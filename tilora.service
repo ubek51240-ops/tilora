@@ -1,0 +1,14 @@
+[Unit]
+Description=TILORA Adaptiv Ta'lim Veb-Platformasi (FastAPI + Gunicorn)
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/var/www/tilora
+ExecStart=/var/www/tilora/venv/bin/gunicorn -c /var/www/tilora/gunicorn_conf.py app.main:app
+Restart=always
+RestartSec=5
+Environment=PYTHONPATH=/var/www/tilora/backend
+
+[Install]
+WantedBy=multi-user.target

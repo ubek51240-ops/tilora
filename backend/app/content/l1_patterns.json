@@ -1,0 +1,101 @@
+[
+  {
+    "id": "l1_01",
+    "regex": "\\b(she|he|it)\\s+have\\b",
+    "category": "grammar",
+    "issue_short": "'she/he/it have' noto'g'ri shakl",
+    "issue_reason": "Uchinchi shaxs birlikda (he/she/it) fe'l 'has' shaklida bo'ladi. O'zbek tilida shaxs bo'yicha fe'l oxirida qo'shimcha o'zgargani bilan, ingliz tilidagi 'have/has' mutlaq farqlanishi ko'pincha e'tibordan chetda qoladi.",
+    "suggestion": "Tuzatish: 'has' so'zidan foydalaning (masalan: 'she has').",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_02",
+    "regex": "\\bdiscuss\\s+about\\b",
+    "category": "lexis",
+    "issue_short": "'discuss about' ortiqcha predlog",
+    "issue_reason": "'Discuss' fe'li bevosita to'ldiruvchi oladi va o'timli hisoblanadi. O'zbek tilidagi 'haqida gaplashmoq/muhokama qilmoq' modelining to'g'ridan-to'g'ri ko'chirilishi natijasida 'about' ortiqcha qo'shilgan.",
+    "suggestion": "Tuzatish: 'discuss the issue' deb yozing ('about' so'zini olib tashlang).",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_03",
+    "regex": "\\bexplain\\s+me\\b",
+    "category": "grammar",
+    "issue_short": "'explain me' noto'g'ri sintaksis",
+    "issue_reason": "'Explain' fe'li shaxsga qaratilganda 'to' predlogi bilan kelishi shart. O'zbek tilidagi 'menga tushuntir' iborasi ingliz tilida 'explain to me' shaklida ifodalanadi.",
+    "suggestion": "Tuzatish: 'explain to me' yoki 'explain this to me'.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_04",
+    "regex": "\\bI\\s+am\\s+agree\\b",
+    "category": "grammar",
+    "issue_short": "'I am agree' noto'g'ri tuzilma",
+    "issue_reason": "'Agree' ingliz tilida sifat emas, mustaqil fe'ldir. O'zbek tilidagi 'men roziman' (sifat-kesim) konstruksiyasi ta'sirida talabalar ko'pincha 'am' bog'lovchisini xato qo'shib yuborishadi.",
+    "suggestion": "Tuzatish: 'I agree' deb yozing.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_05",
+    "regex": "\\bmore\\s+better\\b",
+    "category": "grammar",
+    "issue_short": "'more better' ikki karra qiyoslash",
+    "issue_reason": "'Better' so'zi allaqachon 'good' so'zining qiyosiy shaklidir. Unga 'more' so'zini qo'shish grammatik ortiqchalik (pleonazm) hisoblanadi.",
+    "suggestion": "Tuzatish: shunchaki 'better' yoki 'much better'.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_06",
+    "regex": "\\bcriterias\\b",
+    "category": "grammar",
+    "issue_short": "'criterias' soxta ko'plik",
+    "issue_reason": "'Criteria' so'zi lotin/yunon tilidan o'tgan bo'lib, uning o'zi ko'plik shaklidir (birlikda: criterion). O'zbek tilidagi ko'plik qo'shimchasi '-lar' ga o'xshatib inglizcha '-s' qo'shish xatodir.",
+    "suggestion": "Tuzatish: 'criteria' (ko'plik) yoki 'criterion' (birlik).",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_07",
+    "regex": "\\bin\\s+my\\s+opinion\\s+I\\s+think\\b",
+    "category": "lexis",
+    "issue_short": "Ortiqcha takroriy ifoda ('in my opinion I think')",
+    "issue_reason": "'In my opinion' va 'I think' ayni bir ma'noni ifodalaydi. Ikkalasini yonma-yon ishlatish akademik yozuvda nojo'ya takror hisoblanadi.",
+    "suggestion": "Tuzatish: yo 'In my opinion, ...' yoki 'I think that ...'.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_08",
+    "regex": "\\bdepend\\s+from\\b",
+    "category": "grammar",
+    "issue_short": "'depend from' noto'g'ri predlog",
+    "issue_reason": "O'zbek tilidagi '...dan bog'liq' qo'shimchasi ingliz tiliga 'from' shaklida noto'g'ri ko'chirilgan (L1 ta'siri). To'g'ri bog'lanish: 'depend on'.",
+    "suggestion": "Tuzatish: 'depend on' deb yozing.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_09",
+    "regex": "\\bcongratulate\\s+with\\b",
+    "category": "grammar",
+    "issue_short": "'congratulate with' noto'g'ri predlog",
+    "issue_reason": "O'zbek tilidagi '... bilan tabriklamoq' sintaktik modeli ta'sirida 'with' ishlatilgan. Ingliz tilida esa 'congratulate on' bo'ladi.",
+    "suggestion": "Tuzatish: 'congratulate on' shaklidan foydalaning.",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_10",
+    "regex": "\\b(enter|reach)\\s+to\\b",
+    "category": "grammar",
+    "issue_short": "'enter/reach to' ortiqcha predlog",
+    "issue_reason": "'Enter' va 'reach' fe'llari o'timli bo'lib, o'zbek tilidagi '...ga kirmoq/yetmoq' tushunchasidagi yo'nalish qo'shimchasi inglizchaga 'to' qilib ortiqcha qo'shilgan.",
+    "suggestion": "Tuzatish: 'to' predlogisiz to'g'ridan-to'g'ri obyektni yozing (masalan: 'enter the classroom').",
+    "l1_interference": true
+  },
+  {
+    "id": "l1_11",
+    "regex": "\\bgood\\s+in\\s+(writing|assessing|teaching|speaking|english)\\b",
+    "category": "grammar",
+    "issue_short": "'good in' o'rniga 'good at'",
+    "issue_reason": "O'zbek tilidagi '...da yaxshi/usta' ma'nosi ingliz tilida 'good in' emas, 'good at' orqali ifodalanadi.",
+    "suggestion": "Tuzatish: 'good at' deb yozing.",
+    "l1_interference": true
+  }
+]

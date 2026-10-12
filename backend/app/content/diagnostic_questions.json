@@ -1,0 +1,122 @@
+[
+  {
+    "id": "diag_01",
+    "skill": "listening",
+    "cefr_level": "A2",
+    "is_audio": true,
+    "audio_url": "/audio_diag_01.wav",
+    "audio_text": "Could you tell me what time the staff meeting starts?",
+    "instruction": "Audioni diqqat bilan tinglang va berilgan so'rovga eng mos javobni tanlang:",
+    "question": "Audioni diqqat bilan tinglang va berilgan so'rovga eng mos javobni tanlang:",
+    "options": [
+      "At 10:00 AM in Room 204.",
+      "Yes, I was at the meeting yesterday.",
+      "Because the manager is busy.",
+      "The meeting was very long."
+    ],
+    "correct_index": 0,
+    "rationale": "Direct time and location answer matching the polite request heard in the audio."
+  },
+  {
+    "id": "diag_02",
+    "skill": "listening",
+    "cefr_level": "B1",
+    "is_audio": true,
+    "audio_url": "/audio_diag_02.wav",
+    "audio_text": "In your initial weeks of school placement, I strongly encourage you to establish meaningful rapport with your pupils before you enforce strict grading protocols.",
+    "instruction": "Audioni diqqat bilan tinglang. Professor talaba-o'qituvchilarga nima bo'yicha asosiy tavsiya bermoqda?",
+    "question": "Audioni diqqat bilan tinglang. Professor talaba-o'qituvchilarga nima bo'yicha asosiy tavsiya bermoqda?",
+    "options": [
+      "Strict discipline is essential in week 1.",
+      "Establishing positive connection with pupils precedes rigorous assessment.",
+      "Grading should be completely avoided in pedagogical practice.",
+      "Rapport is only necessary in elementary schools."
+    ],
+    "correct_index": 1,
+    "rationale": "Audio contains advice to prioritize rapport over strict grading."
+  },
+  {
+    "id": "diag_03",
+    "skill": "reading",
+    "cefr_level": "B1",
+    "question": "Read: 'Differentiated instruction requires teachers to tailor learning pace and content to individual needs rather than adopting a one-size-fits-all paradigm.' What does 'tailor' mean here?",
+    "options": [
+      "To sew educational uniforms",
+      "To adapt and customize specifically",
+      "To shorten curriculum hours",
+      "To evaluate uniformly"
+    ],
+    "correct_index": 1,
+    "rationale": "Contextual meaning of pedagogical tailoring."
+  },
+  {
+    "id": "diag_04",
+    "skill": "reading",
+    "cefr_level": "B2",
+    "question": "In academic writing, which sentence best exemplifies objective evaluation of teaching methodologies?",
+    "options": [
+      "I personally think communicative language teaching is the only awesome method.",
+      "Empirical findings suggest communicative approaches enhance oral fluency, though grammatical precision may require explicit scaffolding.",
+      "Everyone knows traditional grammar translation is totally useless nowadays.",
+      "My teacher told us that audiolingualism is the absolute best."
+    ],
+    "correct_index": 1,
+    "rationale": "Academic nuance, cautious claims, and empirical hedging."
+  },
+  {
+    "id": "diag_05",
+    "skill": "writing",
+    "cefr_level": "A2",
+    "question": "Which sentence correctly uses past tense for a lesson observation report?",
+    "options": [
+      "The teacher begin the lesson with a quick warm-up game.",
+      "The teacher begun the lesson yesterday morning.",
+      "The teacher began the lesson with a five-minute interactive warmer.",
+      "The teacher is beginning the lesson yesterday."
+    ],
+    "correct_index": 2,
+    "rationale": "Irregular past simple 'began' in pedagogical context."
+  },
+  {
+    "id": "diag_06",
+    "skill": "writing",
+    "cefr_level": "B1",
+    "question": "Select the sentence with accurate cohesion and transitional phrasing for essay writing:",
+    "options": [
+      "Formative assessment guides learners. Furthermore, it supplies teachers with actionable diagnostic feedback.",
+      "Formative assessment guides learners but also because it supplies teachers.",
+      "Formative assessment guides learners, so therefore teachers are happy.",
+      "Formative assessment guides learners however it supplies teachers."
+    ],
+    "correct_index": 0,
+    "rationale": "Formal transition 'Furthermore' linking complementary advantages."
+  },
+  {
+    "id": "diag_07",
+    "skill": "speaking",
+    "cefr_level": "A2",
+    "question": "In a peer feedback session, which phrase politely introduces a constructive suggestion?",
+    "options": [
+      "Your pronunciation is very bad.",
+      "You might consider varying your intonation during storytelling.",
+      "Stop speaking like that immediately.",
+      "You must speak without any pause."
+    ],
+    "correct_index": 1,
+    "rationale": "Polite modal hedging ('You might consider...')."
+  },
+  {
+    "id": "diag_08",
+    "skill": "speaking",
+    "cefr_level": "B1",
+    "question": "When presenting a mini-lesson, which opening phrase best frames lesson objectives for learners?",
+    "options": [
+      "Today we do something because syllabus says so.",
+      "By the end of today's lesson, you will be able to distinguish between active and passive voice in news headlines.",
+      "I will talk for 45 minutes about English grammar.",
+      "Listen carefully to me."
+    ],
+    "correct_index": 1,
+    "rationale": "Standard student-centered outcome framing (SWBAT format)."
+  }
+]

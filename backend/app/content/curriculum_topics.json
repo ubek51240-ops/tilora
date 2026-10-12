@@ -1,0 +1,82 @@
+[
+  {
+    "id": "top_01",
+    "skill": "speaking",
+    "week_range": "1-2",
+    "title_uz": "Og'zaki nutq: Kasbiy tanishuv va darsdagi oddiy dialog",
+    "title_en": "Professional rapport and introductory classroom exchanges",
+    "difficulty_level": 3,
+    "scaffold_default": "full",
+    "pedagogical_focus": "Establishing comfortable verbal interaction in a low-stakes pedagogical setting."
+  },
+  {
+    "id": "top_02",
+    "skill": "speaking",
+    "week_range": "3-4",
+    "title_uz": "Og'zaki nutq: Kasbiy vaziyatdagi muloqot va ko'rsatma berish",
+    "title_en": "Classroom management discourse: Delivering clear task instructions",
+    "difficulty_level": 4,
+    "scaffold_default": "partial",
+    "pedagogical_focus": "Imperative and modal structures for concise task framing."
+  },
+  {
+    "id": "top_03",
+    "skill": "writing",
+    "week_range": "5-6",
+    "title_uz": "Yozma nutq: O'quvchilar yozma ishini baholash mezonlari tahlili",
+    "title_en": "Evaluating learner writing: Criteria-referenced analytical essay",
+    "difficulty_level": 5,
+    "scaffold_default": "full",
+    "pedagogical_focus": "Synthesizing criteria for accuracy, coherence, lexical range, and task achievement."
+  },
+  {
+    "id": "top_04",
+    "skill": "reading",
+    "week_range": "7-8",
+    "title_uz": "O'qish: Metodik maqolalarni tanqidiy tahlil qilish",
+    "title_en": "Critical reading of empirical ELT research articles",
+    "difficulty_level": 6,
+    "scaffold_default": "partial",
+    "pedagogical_focus": "Identifying thesis statements, empirical evidence, and pedagogical implications."
+  },
+  {
+    "id": "top_05",
+    "skill": "listening",
+    "week_range": "9-10",
+    "title_uz": "Tinglash: Dars kuzatuvi audio va turli talaffuz variantlari",
+    "title_en": "Authentic classroom observation audio: Regional accents and speech tempo",
+    "difficulty_level": 5,
+    "scaffold_default": "partial",
+    "pedagogical_focus": "Deciphering fast-paced pedagogical discourse and student questions."
+  },
+  {
+    "id": "top_06",
+    "skill": "integrated",
+    "week_range": "11-12",
+    "title_uz": "Integratsiyalashgan: Dars rejasi (Lesson Plan) tuzish va himoya qilish",
+    "title_en": "Designing and defending communicative lesson plans",
+    "difficulty_level": 7,
+    "scaffold_default": "none",
+    "pedagogical_focus": "Holistic application of communicative language teaching principles."
+  },
+  {
+    "id": "top_07",
+    "skill": "writing",
+    "week_range": "13-14",
+    "title_uz": "Yozma nutq: Metakognitiv reflektiv o'qituvchi kundaligi",
+    "title_en": "Metacognitive teaching journal: Action research and self-regulation",
+    "difficulty_level": 8,
+    "scaffold_default": "none",
+    "pedagogical_focus": "Self-reflective evaluation of teaching strategies and student engagement."
+  },
+  {
+    "id": "top_08",
+    "skill": "integrated",
+    "week_range": "15-16",
+    "title_uz": "Yakuniy loyiha: Mikrodars taqdimoti va ekspert muhokamasi",
+    "title_en": "Capstone microteaching demonstration and peer symposium",
+    "difficulty_level": 9,
+    "scaffold_default": "none",
+    "pedagogical_focus": "Full autonomous demonstration of pedagogical and linguistic competence."
+  }
+]

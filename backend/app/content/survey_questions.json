@@ -1,0 +1,98 @@
+[
+  {
+    "id": "sq_01",
+    "dimension": "anxiety",
+    "prompt_uz": "Ingliz tilida auditoriya oldida nutq so'zlashdan oldin kuchli hayajon va xavotir sezaman.",
+    "prompt_en": "I feel a strong sense of nervousness before speaking English in front of peers.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_02",
+    "dimension": "anxiety",
+    "prompt_uz": "Ingliz tilida gapirayotganimda boshqa talabalar mening xatolarim ustidan kulyapti deb o'ylayman.",
+    "prompt_en": "I worry that other students might laugh at my mistakes when I speak English.",
+    "scale": "likert_5",
+    "weight": 1.2
+  },
+  {
+    "id": "sq_03",
+    "dimension": "anxiety",
+    "prompt_uz": "O'qituvchi ingliz tilida kutilmaganda mendan javob so'rasa, o'zimni yo'qotib qo'yaman.",
+    "prompt_en": "I get flustered when the teacher unexpectedly calls on me in English.",
+    "scale": "likert_5",
+    "weight": 1.1
+  },
+  {
+    "id": "sq_04",
+    "dimension": "anxiety",
+    "prompt_uz": "Darsda murakkab matn yoki audiomaterial berilganda darhol taslim bo'lish hissi paydo bo'ladi.",
+    "prompt_en": "I feel overwhelmed when confronted with dense or authentic language materials.",
+    "scale": "likert_5",
+    "weight": 0.9
+  },
+  {
+    "id": "sq_05",
+    "dimension": "load_capacity",
+    "prompt_uz": "Bir mashg'ulotda 15-20 ta yangi kasbiy atama va murakkab sintaktik tuzilmani o'zlashtirish menga qiyinchilik tug'dirmaydi.",
+    "prompt_en": "I comfortably absorb 15-20 new academic collocations in a single session.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_06",
+    "dimension": "load_capacity",
+    "prompt_uz": "Uzoq (400-500 so'zli) ilmiy-pedagogik maqolalarni o'qib, asosiy tezislarini ajratib olishga sabrim yetadi.",
+    "prompt_en": "I maintain focus while analyzing extended pedagogical observation texts.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_07",
+    "dimension": "pace",
+    "prompt_uz": "Yozma yoki og'zaki topshiriqlarni belgilangan vaqtdan oldinroq, tez va dadil bajarishga odatlanganman.",
+    "prompt_en": "I usually complete written drafting tasks ahead of standard deadlines.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_08",
+    "dimension": "pace",
+    "prompt_uz": "Javob berishdan oldin uzoq o'ylanib qolmayman, fikrimni tezkor ifoda eta olaman.",
+    "prompt_en": "I articulate my thoughts promptly without prolonged hesitation.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_09",
+    "dimension": "autonomy",
+    "prompt_uz": "Topshiriq bajarishda tayyor namuna yoki o'qituvchi yordamisiz mustaqil strategiya tanlay olaman.",
+    "prompt_en": "I can devise an autonomous writing strategy without leaning on templates.",
+    "scale": "likert_5",
+    "weight": 1.2
+  },
+  {
+    "id": "sq_10",
+    "dimension": "autonomy",
+    "prompt_uz": "O'z xatolarimni mustaqil tahlil qilish va o'zlashtirish kamchiliklarini to'ldirish menga qulay.",
+    "prompt_en": "I regularly conduct self-diagnosis of my linguistic errors.",
+    "scale": "likert_5",
+    "weight": 1.1
+  },
+  {
+    "id": "sq_11",
+    "dimension": "motivation",
+    "prompt_uz": "Ingliz tilini yaxshi o'rganishimdan maqsad — kelajakda kuchli, xalqaro tajribaga ega metodist-o'qituvchi bo'lish.",
+    "prompt_en": "My primary drive is to become an inspiring, pedagogically proficient English educator.",
+    "scale": "likert_5",
+    "weight": 1.0
+  },
+  {
+    "id": "sq_12",
+    "dimension": "motivation",
+    "prompt_uz": "Men uchun faqat imtihondan yuqori baho olish emas, balki tilni chuqur his qilish muhim.",
+    "prompt_en": "Intrinsic linguistic mastery matters to me far more than mere test scores.",
+    "scale": "likert_5",
+    "weight": 1.0
+  }
+]

@@ -40,7 +40,7 @@ def _resolve_secret_key() -> str:
     """
     env_key = os.getenv("SECRET_KEY", "").strip()
     placeholders = {"", "change_this_to_a_random_32_character_secret_string", "generate_random_secret_key_here",
-                    "***REMOVED_SECRET***"}
+                    "tilora-secret-key-default"}
     if env_key and env_key not in placeholders and len(env_key) >= 32:
         return env_key
     if env_key and env_key in placeholders:

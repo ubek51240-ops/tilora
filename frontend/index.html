@@ -75,6 +75,9 @@
       <button class="nav-btn" data-screen="s_dynamics">
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span> <span>Mening dinamikam (refleksiya)</span>
       </button>
+      <button class="nav-btn" data-screen="s_microteaching">
+        <span><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg></span> <span data-i18n-ext="nav_microteaching">Mikroo'qitish va tengdoshlar baholashi</span>
+      </button>
       <button class="nav-btn" data-screen="s_teacher">
         <span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> <span data-i18n="nav_proposals">Takliflar va fikr-mulohazalar</span>
       </button>
@@ -337,6 +340,8 @@
 
     <!-- ==================== 2. O'QUV YO'LI ==================== -->
     <section class="screen" id="s_path">
+      <!-- Nazorat guruhi (experiment_arm=control) uchun sabab bloki — student_ext.js to'ldiradi (GET /student/path note) -->
+      <div id="pathArmNotice"></div>
       <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <h2 style="font-family:var(--serif);font-size:22px" data-i18n="path_main_heading">16 haftalik shaxsiylashtirilgan o'quv yo'li</h2>
@@ -919,6 +924,21 @@
           <span>📤</span> <span data-i18n="btn_submit_diag">Diagnostika va anketa natijalarini yuborish (Profilni yangilash) →</span>
         </button>
       </div>
+
+      <!-- 3-Qism: SILL — Til o'rganish strategiyalari (Oxford, 1990); alohida yuboriladi: student_ext.js -->
+      <div class="card" style="margin-bottom:30px" id="sillCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid var(--line-2);padding-bottom:10px;flex-wrap:wrap;gap:8px">
+          <h3 data-i18n-ext="sill_card_title" style="margin:0">3. Til o'rganish strategiyalari (SILL, Oxford 1990)</h3>
+          <span style="font-size:12px;color:var(--teal);font-weight:600">SILL 7.0 · Likert 1–5 · pre/post</span>
+        </div>
+        <div data-i18n-ext="sill_card_sub" style="font-size:12.5px;color:var(--muted);margin-bottom:14px">24 ta tasdiq · 6 guruh · Likert 1–5. Natija pre/post sifatida saqlanadi va dinamikada ko'rinadi.</div>
+        <div id="sillQuestionsContainer">
+          <div class="ext-loading">⏳ Yuklanmoqda...</div>
+        </div>
+        <button id="btnSubmitSill" class="btn-primary" style="width:100%;height:44px;font-size:14px;font-weight:700;margin-top:14px;display:none" onclick="window.submitSill()">
+          <span>📤</span> <span data-i18n-ext="sill_submit">SILL natijasini yuborish</span>
+        </button>
+      </div>
     </section>
 
     <!-- ==================== 4.2. O'QUV FANLARI, TESTLAR VA SLAYDLAR (TALABALAR UCHUN) ==================== -->
@@ -1004,6 +1024,19 @@
           Materiallar yuklanmoqda...
         </div>
       </div>
+    </section>
+
+    <!-- ==================== 4.4. MIKROO'QITISH VA TENGDOSHLAR BAHOLASHI (3.2, 14-jadval) ==================== -->
+    <section class="screen" id="s_microteaching">
+      <!-- student_ext.js renders into #microteachingRoot (GET/POST/PUT /api/student/microteaching, POST .../{id}/review) -->
+      <div style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <h2 style="font-family:var(--serif);font-size:22px;color:var(--ink);margin:0">🎤 <span data-i18n-ext="mt_title">Mikroo'qitish va tengdoshlar baholashi</span></h2>
+          <p data-i18n-ext="mt_subtitle" style="font-size:13px;color:var(--muted);margin:4px 0 0">Texnologik vositali dars parchasini loyihalash → 10–15 daqiqalik o'tkazish → tengdoshlar rubrikasi → o'qituvchi bahosi → refleksiv hisobot (3.2, 14-jadval)</p>
+        </div>
+        <span class="chip part" data-i18n-ext="mt_peers_hint" style="white-space:normal;max-width:360px">Tanqid emas, konstruktiv taklif ('You might consider…')</span>
+      </div>
+      <div id="microteachingRoot"><div class="ext-loading">⏳ Yuklanmoqda...</div></div>
     </section>
 
     <!-- ==================== 4.5. TALABA DINAMIKASI (REFLEKSIYA MODULI) ==================== -->
@@ -1664,6 +1697,27 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
           <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Mashg'ulot yozuvlaridan tajriba qanoti bo'yicha: bajarish sur'ati, yordam so'rovlari, o'z-o'zini tekshirish, o'z bahosi aniqligi, izohlarni qabul qilish ulushi, takrorlanuvchi L1 xatolar.</p>
           <div id="researchProcessIndicators" style="overflow-x:auto"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
         </div>
+
+        <!-- Jonli rejim: o'lchov vositalarining ishonchliligi (GET /research/live/reliability) -->
+        <div class="card" style="margin-bottom:20px;padding:16px">
+          <h3 style="font-family:var(--serif);font-size:17px;text-transform:none;letter-spacing:0;margin-bottom:4px">🧪 O'lchov vositalarining ishonchliligi (4.1)</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Ichki izchillik — Cronbach α (FLCAS, MSLQ, kognitiv profil, SILL; umumiy va o'lchovlar bo'yicha) hamda baholovchilar mosligi — tizim rubrikasi vs o'qituvchi (aniq moslik, ±1 moslik, Pearson r, kvadratik vaznli κ).</p>
+          <div id="researchReliability"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
+        </div>
+
+        <!-- Jonli rejim: SILL strategiyalari (GET /research/live/sill) -->
+        <div class="card" style="margin-bottom:20px;padding:16px">
+          <h3 style="font-family:var(--serif);font-size:17px;text-transform:none;letter-spacing:0;margin-bottom:4px">🧭 SILL strategiyalari (Oxford, 1990)</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Til o'rganish strategiyalari so'rovnomasi: 6 guruh bo'yicha pre → post o'rtachalar (1–5), tajriba va nazorat qanotlari.</p>
+          <div id="researchSill" style="overflow-x:auto"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
+        </div>
+
+        <!-- Faqat admin: ma'lumotlarni saqlash muddati (GET/POST /admin/retention/*) -->
+        <div id="researchRetentionCard" class="card" style="display:none;margin-bottom:20px;padding:16px;border-top:3px solid var(--clay)">
+          <h3 style="font-family:var(--serif);font-size:17px;text-transform:none;letter-spacing:0;margin-bottom:4px">🗄️ Ma'lumotlarni saqlash muddati (retention)</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">O'RQ-547: shaxsga doir ma'lumotlar belgilangan muddat o'tgach anonimlashtiriladi; faqat ID-ga bog'liq raqamli natijalar ilmiy statistika uchun qoladi. Faqat administrator uchun.</p>
+          <div id="researchRetention"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
+        </div>
       </div>
     </section>
 
@@ -1678,6 +1732,7 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecModel')">Model va qoidalar</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecStages')">5 bosqich</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecForms')">Tashkiliy shakllar</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCompare')">O'xshash tizimlar bilan taqqoslash</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecBenchmark')">Platformalar benchmarki</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecGlossary')">Glossariy</button>
@@ -1685,6 +1740,7 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecL1')">L1 interferensiyasi</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecFaq')">FAQ</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecPrivacy')">Maxfiylik va xavfsizlik</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCompliance')">Moslik xaritasi</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecRefs')">Adabiyotlar</button>
       </div>
 
@@ -1711,7 +1767,24 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
       <h3 id="aboutSecStages" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">2. Besh bosqichli mashg'ulot va metakognitiv sikl</h3>
       <div class="card" id="aboutStages" style="margin-bottom:18px"></div>
       <h3 style="font-family:var(--serif);font-size:19px;margin-bottom:8px">Platformaning besh funksional moduli (3.3-bo'lim)</h3>
-      <div id="aboutModules" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:22px"></div>
+      <div id="aboutModules" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:14px"></div>
+
+      <!-- Tajriba dizayni (4-bob) -->
+      <div class="card" style="margin-bottom:22px;padding:16px;border-top:3px solid var(--amber)">
+        <div style="font-weight:700;font-size:14.5px;margin-bottom:8px">🔬 Tajriba dizayni (4-bob)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;font-size:13px;line-height:1.6;color:var(--ink-2)">
+          <div><b>Guruhlar:</b> tajriba guruhi (TAAM modeli: adaptiv variantlar, metakognitiv sikl, AI izoh) va nazorat guruhi (an'anaviy metodika; adaptiv, metakognitiv va AI bloklari yopiq). Boshlang'ich tenglik χ² bilan tekshiriladi.</div>
+          <div><b>Nazorat oynasi (AI'siz):</b> pre / mid / post diagnostika o'qituvchi ochgan oynada, texnologik vositalarsiz bajariladi; natija «muzlatilgan» baho sifatida yoziladi.</div>
+          <div><b>O'lchov vositalari:</b> CEFR testlari (4 ko'nikma), FLCAS (tashvish), MSLQ (metakognitiv), SILL (strategiyalar), kuzatuv varaqasi (jarayon ko'rsatkichlari), refleksiv hisobotlar.</div>
+          <div><b>Ishonchlilik:</b> Cronbach α (ichki izchillik, ≥ 0.7 qoniqarli) va baholovchilar mosligi — tizim rubrikasi vs o'qituvchi (aniq / ±1 moslik, Pearson r, vaznli κ).</div>
+          <div><b>Statistik mezonlar:</b> χ² (boshlang'ich tenglik), Student t-mezoni (pre→post, guruhlar farqi), Cohen d (effekt hajmi), Bespalko K (samaradorlik koeffitsiyenti, K &gt; 1.0).</div>
+        </div>
+      </div>
+
+      <!-- 2a. Tashkiliy shakllar (3.2, 14-jadval) -->
+      <h3 id="aboutSecForms" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">Tashkiliy shakllar (3.2, 14-jadval)</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Model doirasida o'qitishning tashkiliy shakllari: an'anaviy vazifa, o'zgargan/yangi vazifa, texnologiyaning o'rni va tuzilma.</p>
+      <div class="card" id="aboutLessonForms" style="margin-bottom:22px">Yuklanmoqda...</div>
 
       <!-- 3. Taqqoslash -->
       <h3 id="aboutSecCompare" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">3. O'xshash tizimlar bilan taqqoslash</h3>
@@ -1760,6 +1833,10 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
           <li><b>Huquqlaringiz:</b> hisob sozlamalarida ma'lumotlaringizni o'zgartirish; tadqiqotda ishtirok roziligini istalgan vaqtda qaytarib olish (yuqoridagi "Etika &amp; Rozilik" tugmasi).</li>
         </ul>
       </div>
+
+      <!-- 8a. Dissertatsiyaga moslik xaritasi -->
+      <h3 id="aboutSecCompliance" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">Dissertatsiyaga moslik xaritasi</h3>
+      <div id="aboutCompliance" style="margin-bottom:22px"><div class="card">Yuklanmoqda...</div></div>
 
       <!-- 9. Adabiyotlar -->
       <h3 id="aboutSecRefs" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">9. Ilmiy-metodik asoslar (adabiyotlar)</h3>
@@ -3342,7 +3419,9 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
 <script src="js/diag_manage.js?v=1.2"></script>
 <script src="js/dissertation_features.js?v=1.2"></script>
 <script src="js/about.js?v=1.0"></script>
-<script src="js/dynamics.js?v=1.0"></script>
+<script src="js/dynamics.js?v=1.1"></script>
+<script src="js/i18n_ext.js?v=1.0"></script>
+<script src="js/student_ext.js?v=1.0"></script>
 <script src="js/teacher_panel.js?v=1.0"></script>
 </body>
 </html>

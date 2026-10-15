@@ -11,6 +11,8 @@ from app.schemas.all_schemas import CreateTeacherRequest
 from app.api.auth import validate_password_strength, validate_login_identifier
 
 router = APIRouter(prefix="/admin", tags=["Administrator"], dependencies=[Depends(require_role(["admin"]))])
+from app.api.experiment_ext import retention_router  # noqa: E402
+router.include_router(retention_router)
 
 @router.get("/summary")
 def get_admin_summary(db: Session = Depends(get_db)):

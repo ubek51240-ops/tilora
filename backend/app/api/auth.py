@@ -159,7 +159,12 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
     # Eski (statik tuzli) xeshni yangi, foydalanuvchiga xos tuzli formatga ko'chirish
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(payload.password)
-        db.commit()
+    # Saqlash muddati (retention) uchun oxirgi kirish vaqti
+    try:
+        user.last_login_at = _utcnow()
+    except Exception:
+        pass
+    db.commit()
 
     _login_ident_limiter.reset(ident_key)
 

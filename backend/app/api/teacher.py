@@ -1326,6 +1326,9 @@ def _decide(db: Session, prop_id: str, new_status: str, current_user: dict, comm
         p.teacher_comment = comment
     db.commit()
     db.refresh(p)
+    if new_status == "approved":
+        from app.services.adaptation import apply_proposal_if_adaptive
+        apply_proposal_if_adaptive(db, p, current_user.get("id") or current_user.get("sub"))
     label = {"approved": "tasdiqlandi va kuchga kirdi", "modified": "o'zgartirildi", "rejected": "bekor qilindi"}[new_status]
     return {"status": new_status, "message": f"{_proposal_dict(p)['student_name']} bo'yicha taklif {label}.", "proposal": _proposal_dict(p)}
 

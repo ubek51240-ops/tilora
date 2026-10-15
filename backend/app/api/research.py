@@ -20,6 +20,8 @@ from app.services.live_research import build_live_tables, COMM_SKILLS, META_SKIL
 from app.services import statistics as st
 
 router = APIRouter(prefix="/research", tags=["Tadqiqotchi"])
+from app.api.experiment_ext import research_ext_router  # noqa: E402
+router.include_router(research_ext_router)
 
 # Jadvallar ommaviy ko'rsatiladi (dissertatsiya natijalari ochiq ma'lumot),
 # eksport va jonli ma'lumotlar esa faqat tadqiqotchi/o'qituvchi/admin uchun.

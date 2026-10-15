@@ -230,6 +230,76 @@
     }
   }
 
+  // ---------------- Tashkiliy shakllar (3.2, 14-jadval) ----------------
+  async function renderLessonForms() {
+    const th = "text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap";
+    const td = "padding:8px;border-bottom:1px solid var(--line-2);vertical-align:top;line-height:1.5";
+    try {
+      const d = await getJson("/content/lesson-forms");
+      const forms = Array.isArray(d) ? d : (d.forms || []);
+      setHtml("aboutLessonForms", forms.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:860px">
+        <thead><tr style="color:var(--muted);font-size:11.5px;text-transform:uppercase">
+          <th style="${th}">Shakl</th>
+          <th style="${th}">An'anaviy vazifasi</th>
+          <th style="${th}">O'zgargan / yangi vazifasi</th>
+          <th style="${th}">Texnologiyaning o'rni</th>
+          <th style="${th}">Tuzilma</th></tr></thead>
+        <tbody>${forms.map(f => `<tr>
+          <td style="${td};font-weight:700;min-width:120px">${esc(f.name)}<div style="font-family:var(--mono);font-size:10.5px;color:var(--muted);font-weight:400">${esc(f.key)}</div></td>
+          <td style="${td};color:var(--muted)">${esc(f.traditional)}</td>
+          <td style="${td};color:var(--ink-2)"><span style="color:var(--teal)">◆</span> ${esc(f.new_role)}</td>
+          <td style="${td};color:var(--ink-2)">${esc(f.technology_role)}</td>
+          <td style="${td}"><ol style="margin:0;padding-left:16px">${(f.structure || []).map(s => `<li>${esc(s)}</li>`).join("")}</ol></td>
+        </tr>`).join("")}</tbody></table></div>`
+        : `<div style="color:var(--muted);font-size:12.5px">Tashkiliy shakllar ro'yxati mavjud emas.</div>`);
+    } catch (e) {
+      setHtml("aboutLessonForms", `<div style="color:var(--muted)">Tashkiliy shakllar yuklanmadi (${esc(e.message)}).</div>`);
+    }
+  }
+
+  // ---------------- Dissertatsiyaga moslik xaritasi ----------------
+  async function renderCompliance() {
+    const th = "text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap";
+    const td = "padding:8px;border-bottom:1px solid var(--line-2);vertical-align:top;line-height:1.5";
+    const chip = (s) => s === "full"
+      ? `<span class="chip" style="background:var(--teal-soft);color:var(--teal);border-color:#BCD9D3;font-weight:700;white-space:nowrap">To'liq</span>`
+      : `<span class="chip" style="background:var(--amber-soft);color:var(--amber);border-color:#E7D9AE;font-weight:700;white-space:nowrap">Qisman</span>`;
+    try {
+      const d = await getJson("/content/compliance");
+      const sections = d.sections || [];
+      const total = d.total == null ? sections.reduce((n, s) => n + (s.items || []).length, 0) : d.total;
+      const full = d.full == null ? 0 : d.full;
+      let html = `<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+          <div style="font-weight:700;font-size:14.5px">${esc(d.title || "Dissertatsiya talablari → platformadagi amalga oshirilishi")}</div>
+          <span style="display:inline-block;padding:3px 12px;border-radius:9px;font-weight:800;font-size:13px;color:#fff;background:var(--teal)">${esc(full)}/${esc(total)} talab bajarilgan${d.partial ? ` · ${esc(d.partial)} qisman` : ""}</span>
+        </div>
+        ${d.source ? `<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${esc(d.source)}</div>` : ""}`;
+      if (!sections.length) {
+        html += `<div class="card" style="color:var(--muted);font-size:12.5px">Moslik xaritasi bo'sh.</div>`;
+      }
+      sections.forEach(s => {
+        const items = s.items || [];
+        html += `<div class="card" style="margin-bottom:12px;padding:14px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <div style="font-weight:700;font-size:13.5px">${esc(s.section)}</div>
+            <span style="font-size:11.5px;color:var(--muted)">${esc(items.filter(i => i.status === "full").length)}/${esc(items.length)} to'liq</span>
+          </div>
+          <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:720px">
+            <thead><tr style="color:var(--muted);font-size:11.5px;text-transform:uppercase">
+              <th style="${th}">Talab</th><th style="${th}">Amalga oshirilishi</th><th style="${th}">Qayerda</th><th style="${th}">Holat</th></tr></thead>
+            <tbody>${items.map(i => `<tr>
+              <td style="${td};font-weight:600;min-width:180px">${esc(i.req)}</td>
+              <td style="${td};color:var(--ink-2)">${esc(i.impl)}</td>
+              <td style="${td};font-family:var(--mono);font-size:11.5px;color:var(--teal)">${esc(i.where)}</td>
+              <td style="${td}">${chip(i.status)}</td>
+            </tr>`).join("")}</tbody></table></div></div>`;
+      });
+      setHtml("aboutCompliance", html);
+    } catch (e) {
+      setHtml("aboutCompliance", `<div class="card" style="color:var(--muted)">Moslik xaritasi yuklanmadi (${esc(e.message)}).</div>`);
+    }
+  }
+
   // Profil sahifasidagi kontent banki satri (hamma uchun, sahifa yuklanganda)
   document.addEventListener("DOMContentLoaded", renderOverview);
 
@@ -237,7 +307,7 @@
   window.loadAboutScreen = function () {
     if (aboutLoaded) return;
     aboutLoaded = true;
-    renderOverview(); renderMethodology(); renderGlossary(); renderCefr(); renderL1(); renderFaq();
+    renderOverview(); renderMethodology(); renderLessonForms(); renderGlossary(); renderCefr(); renderL1(); renderFaq(); renderCompliance();
   };
   window.scrollAboutTo = function (id) {
     const el = document.getElementById(id);

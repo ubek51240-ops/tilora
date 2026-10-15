@@ -374,6 +374,10 @@ def _handle_decision(db: Session, prop_id: str, new_status: str, current_user: d
 
     db.commit()
     db.refresh(p)
+    # Tasdiqlangan tizim taklifi (ko'mak darajasi) kuchga kiradi — moslashtirish bosqichi
+    if new_status == "approved":
+        from app.services.adaptation import apply_proposal_if_adaptive
+        apply_proposal_if_adaptive(db, p, user_id)
 
     status_labels = {
         "approved": "qabul qilindi va tasdiqlandi",

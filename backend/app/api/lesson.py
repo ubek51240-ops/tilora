@@ -21,7 +21,12 @@ from app.services.feedback import generate_production_feedback, analyze_producti
 from app.services.ai_service import ai_service
 from app.services.lesson_tasks import get_task, list_tasks, DEFAULT_SKILL
 from app.services.differentiation import effective_variant
+from app.core.access import experimental_only
 from pydantic import BaseModel, Field
+
+# Nazorat guruhi uchun yopiq bo'lgan (adaptiv/metakognitiv) endpointlar dependency'lari
+_meta = Depends(experimental_only("metacognitive_block"))
+_alt = Depends(experimental_only("alternative"))
 
 
 class AiEvaluateRequest(BaseModel):
@@ -183,6 +188,7 @@ def _record_dict(r: LessonRecord, with_text: bool = False) -> Dict[str, Any]:
         "ai_powered": r.ai_powered, "gap_explanation": r.gap_explanation, "next_goal": r.next_goal,
         "revision_count": r.revision_count or 0, "first_score": r.first_score, "cefr_estimate": r.cefr_estimate, "relevance_score": r.relevance_score,
         "score_improvement": (r.score - r.first_score) if (r.score is not None and r.first_score is not None) else None,
+        "teacher_rubric": getattr(r, "teacher_rubric", None),
         "teacher_extension": r.teacher_extension, "created_at": r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
     }
     if with_text:
@@ -220,7 +226,7 @@ def get_lesson_status(lesson_id: str, db: Session = Depends(get_db), current_use
 
 
 @router.post("/{lesson_id}/plan")
-def submit_plan(lesson_id: str, payload: PlanRequest, current_user: dict = Depends(get_current_user)):
+def submit_plan(lesson_id: str, payload: PlanRequest, current_user: dict = _meta):
     """Metakognitiv sikl 1-qadam — REJALASHTIRISH: talaba maqsad va strategiyani belgilaydi."""
     st = get_lesson_state(_uid(current_user))
     if payload.skill:
@@ -371,7 +377,7 @@ def feedback_decision(lesson_id: str, payload: FeedbackDecisionIn, current_user:
 
 
 @router.post("/{lesson_id}/alternative")
-async def alternative_version(lesson_id: str, current_user: dict = Depends(get_current_user)):
+async def alternative_version(lesson_id: str, current_user: dict = _alt):
     """
     Qiyosiy usul (3.2, 5-guruh): tahlil bosqichida AI talabaning matniga MUQOBIL variant taklif qiladi;
     talaba ikki variantni solishtirib farqni asoslaydi. Faqat 4-bosqichda ruxsat (1-qoida).
@@ -410,7 +416,7 @@ def comparison_note(lesson_id: str, payload: ComparisonIn, current_user: dict = 
 
 
 @router.post("/{lesson_id}/self-rating")
-def submit_self_rating(lesson_id: str, payload: SelfRatingSubmit, current_user: dict = Depends(get_current_user)):
+def submit_self_rating(lesson_id: str, payload: SelfRatingSubmit, current_user: dict = _meta):
     """4-QOIDA: Talaba avval o'zini o'zi baholaydi."""
     st = get_lesson_state(_uid(current_user))
     ratings = {}
@@ -430,7 +436,7 @@ def submit_self_rating(lesson_id: str, payload: SelfRatingSubmit, current_user: 
 
 
 @router.post("/{lesson_id}/ai-self-rate")
-def ai_self_rate(lesson_id: str, current_user: dict = Depends(get_current_user)):
+def ai_self_rate(lesson_id: str, current_user: dict = _meta):
     """Demo rejim: tizim bahosini o'z bahosi sifatida nusxalash. 4-qoida nuqtai nazaridan tavsiya etilmaydi."""
     st = get_lesson_state(_uid(current_user))
     actual = st.get("actual_rating")
@@ -445,7 +451,7 @@ def ai_self_rate(lesson_id: str, current_user: dict = Depends(get_current_user))
 
 
 @router.post("/{lesson_id}/ai-evaluate")
-async def ai_evaluate_production(lesson_id: str, payload: Optional[AiEvaluateRequest] = None, current_user: dict = Depends(get_current_user)):
+async def ai_evaluate_production(lesson_id: str, payload: Optional[AiEvaluateRequest] = None, current_user: dict = _meta):
     """5-bosqich: talaba ishini AI baholaydi (4 mezon, sabab, umumiy ball). O'z bahosiga ta'sir qilmaydi."""
     st = get_lesson_state(_uid(current_user))
     text = (payload.content_text if payload and payload.content_text else st.get("production_text", "")) or ""
@@ -466,7 +472,7 @@ async def ai_evaluate_production(lesson_id: str, payload: Optional[AiEvaluateReq
 
 
 @router.get("/{lesson_id}/actual-rating")
-def get_actual_rating(lesson_id: str, current_user: dict = Depends(get_current_user)):
+def get_actual_rating(lesson_id: str, current_user: dict = _meta):
     """4-QOIDA: o'z bahosi qo'yilmaguncha haqiqiy natija ko'rsatilmaydi (409). Natija faqat RAQAMLI."""
     st = get_lesson_state(_uid(current_user))
     if not st.get("self_rating"):
@@ -490,7 +496,7 @@ def _rating_gap(self_r: Dict[str, Any], actual: Dict[str, Any]) -> Optional[floa
 
 
 @router.post("/{lesson_id}/reflection")
-def submit_reflection(lesson_id: str, payload: ReflectionSubmit, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+def submit_reflection(lesson_id: str, payload: ReflectionSubmit, db: Session = Depends(get_db), current_user: dict = _meta):
     """Metakognitiv sikl 4-qadam — REFLEKSIYA: farq sababi va keyingi maqsad; mashg'ulot yozuvi bazaga saqlanadi."""
     uid = _uid(current_user)
     st = get_lesson_state(uid)
@@ -527,8 +533,17 @@ def submit_reflection(lesson_id: str, payload: ReflectionSubmit, db: Session = D
     db.commit()
     db.refresh(rec)
     reset_lesson_state(uid)
+    # Moslashtirish bosqichi: ko'mak darajasini o'zgartirish TAKLIFI (o'qituvchi tasdiqlaydi — 3-qoida)
+    proposal = None
+    try:
+        from app.services.adaptation import maybe_create_scaffold_proposal
+        proposal = maybe_create_scaffold_proposal(db, uid)
+    except Exception:
+        proposal = None
     return {"lesson_id": lesson_id, "status": "completed", "record_id": rec.id, "gap_explanation": gap, "next_goal": goal,
-            "message": "Mashg'ulot yakunlandi va yozuv saqlandi. Dinamika bo'limida ko'rishingiz mumkin."}
+            "adaptation_proposal": proposal,
+            "message": "Mashg'ulot yakunlandi va yozuv saqlandi. Dinamika bo'limida ko'rishingiz mumkin."
+                       + (" Ko'mak darajasini o'zgartirish taklifi o'qituvchiga yuborildi." if proposal and not proposal.get("duplicate") else "")}
 
 
 @router.post("/{lesson_id}/reset")

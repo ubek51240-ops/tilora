@@ -19,6 +19,8 @@ from app.models.entities import Assessment, User
 from app.services import statistics as st
 
 router = APIRouter(prefix="/teacher/competence", tags=["O'qituvchi"], dependencies=[Depends(require_role(["teacher", "admin"]))])
+from app.api.experiment_ext import guskey_router  # noqa: E402
+router.include_router(guskey_router)
 
 _CONTENT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "content", "teacher_competence.json")
 COMPONENTS = ["cognitive", "didactic", "ethical", "reflective"]

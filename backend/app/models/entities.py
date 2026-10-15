@@ -25,6 +25,9 @@ class Group(Base):
     course_year = Column(SmallInteger, default=3)
     teacher_id = Column(String(36), nullable=True)
     experiment_arm = Column(String(20), default="experimental") # experimental, control, none
+    # AI'siz nazorat oynasi (4.1: "yakuniy nazorat shakllari texnologik vositalardan foydalanmasdan"):
+    # none | pre | mid | post — oyna ochiq bo'lsa guruh talabalari uchun AI endpointlari yopiladi
+    assessment_window = Column(String(10), default="none")
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class User(Base):
@@ -42,6 +45,7 @@ class User(Base):
     subscription_tier = Column(String(20), default="free") # "free", "pro"
     subscription_status = Column(String(30), default="active") # "active", "pending", "expired"
     phone_number = Column(String(30), nullable=True)
+    last_login_at = Column(DateTime, nullable=True)  # saqlash muddati (retention) uchun
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class StudentProfile(Base):
@@ -472,6 +476,7 @@ class LessonRecord(Base):
     first_score = Column(SmallInteger, nullable=True)
     cefr_estimate = Column(String(2), nullable=True)  # lokal CEFR bahosi (A2/B1/B2/C1)
     relevance_score = Column(SmallInteger, nullable=True)  # topshiriqqa moslik (0–100)
+    teacher_rubric = Column(JSON, nullable=True)      # ikkinchi mustaqil baholovchi (o'qituvchi) rubrikasi — inter-rater mosligi uchun
     teacher_extension = Column(Text, nullable=True)   # o'qituvchi izohni jarayon/o'zini boshqarish darajasiga ko'taradi
     teacher_id = Column(String(36), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
@@ -487,6 +492,55 @@ class TaskVariantAssignment(Base):
     note = Column(Text, nullable=True)
     source = Column(String(20), default="teacher")  # teacher | system
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class SurveyResponse(Base):
+    """Anketa (FLCAS / MSLQ / SILL) xom javoblari — Cronbach α (ichki izchillik) hisoblash uchun (4.1)."""
+    __tablename__ = "survey_responses"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("users.id"), index=True, nullable=False)
+    instrument = Column(String(20), nullable=False)       # flcas | mslq | sill | cognitive
+    dimension = Column(String(30), nullable=False)
+    question_id = Column(String(64), nullable=False)
+    rating = Column(SmallInteger, nullable=False)
+    assessment_type = Column(String(10), default="pre")
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class Microteaching(Base):
+    """Mikroo'qitish (3.2, 14-jadval): bo'lajak o'qituvchi texnologik vositali dars parchasini loyihalaydi, o'tkazadi va tahlil qiladi."""
+    __tablename__ = "microteachings"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("users.id"), index=True, nullable=False)
+    group_id = Column(String(36), ForeignKey("groups.id"), nullable=True)
+    title = Column(String(255), nullable=False)
+    lesson_form = Column(String(30), default="microteaching")  # microteaching | flipped | mixed | practical ...
+    objective = Column(Text, nullable=True)         # SWBAT
+    stages = Column(JSON, nullable=True)            # [{name, minutes, activity, technology_role}]
+    tool_name = Column(String(120), nullable=True)
+    tool_rationale = Column(Text, nullable=True)    # vositani tanlash sababi (majburiy — kompetensiya mezoni)
+    alternative_plan = Column(Text, nullable=True)  # texnologiyasiz muqobil variant
+    independent_share = Column(SmallInteger, default=35)  # mustaqil bajarish ulushi, % (>= 33 bo'lishi kerak)
+    reflection = Column(Text, nullable=True)        # o'tkazilgandan keyingi refleksiv hisobot
+    status = Column(String(20), default="draft")    # draft | submitted | reviewed | evaluated
+    teacher_rubric = Column(JSON, nullable=True)
+    teacher_comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class PeerReview(Base):
+    """Tengdoshlar baholashi: guruhdosh mikroo'qitishni rubrika bo'yicha baholaydi (analitik rubrika, 4 mezon × 1–5)."""
+    __tablename__ = "peer_reviews"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    microteaching_id = Column(String(36), ForeignKey("microteachings.id"), index=True, nullable=False)
+    reviewer_id = Column(String(36), ForeignKey("users.id"), index=True, nullable=False)
+    rubric = Column(JSON, nullable=False)           # {objective, instructions, tool_use, reflection}
+    strengths = Column(Text, nullable=True)
+    suggestions = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 
 
 class ApiKey(Base):

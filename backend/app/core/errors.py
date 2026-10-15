@@ -31,6 +31,11 @@ ERROR_MESSAGES = {
         "en": "Control group members have restricted access to adaptive modules (research integrity).",
         "ru": "Членам контрольной группы закрыт доступ к адаптивным модулям."
     },
+    "ASSESSMENT_WINDOW": {
+        "uz": "Guruhingizda nazorat (pre/mid/post) o'tkazilmoqda: nazorat texnologik vositalarsiz bajariladi, AI vositalari vaqtincha yopiq.",
+        "en": "An assessment window (pre/mid/post) is open for your group: assessments are completed without technology; AI tools are temporarily disabled.",
+        "ru": "В вашей группе проходит контроль (pre/mid/post): работа выполняется без технологий, ИИ-инструменты временно отключены."
+    },
     "PROPOSAL_ALREADY_DECIDED": {
         "uz": "Ushbu taklif allaqachon ko'rib chiqilgan.",
         "en": "This proposal has already been decided.",

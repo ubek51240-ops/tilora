@@ -16,6 +16,9 @@ MAX_PROMPT_CHARS = 12000
 
 
 def ai_quota(current_user: dict = Depends(get_current_user)) -> dict:
+    # Tajriba butunligi: nazorat guruhi talabasi va AI'siz nazorat oynasida AI vositalari yopiq
+    from app.core.access import ai_allowed
+    ai_allowed(current_user)
     uid = current_user.get("id") or current_user.get("sub") or "anon"
     _ai_limiter.check_and_record(
         f"ai:{uid}",

@@ -80,6 +80,21 @@
     "a": "Platformadagi assessments jadvalidan (kirish diagnostikasi avtomatik 'pre', keyingisi 'post'; CSV/JSON import ham mumkin) 4.2–4.10 jadvallar real vaqtda hisoblanadi: guruhlar soni, boshlang'ich tenglik (Pirson χ², daraja taqsimoti), guruh ichidagi o'zgarish (bog'langan t-mezon), ko'nikmalar bo'yicha guruhlararo farq (mustaqil t-mezon, Cohen d), metakognitiv komponentlar (MSLQ 1–5) va tashvish dinamikasi, Bespalko K va samaradorlik koeffitsiyenti, nazariy kutilma bilan muvofiqlik. Jadval sxemasi dissertatsiya to'plami bilan bir xil, shuning uchun Word/Excel eksport ikkala manba uchun ishlaydi."
   },
   {
+    "audience": "student",
+    "q": "Nazorat guruhidaman — nega ba'zi funksiyalar yopiq?",
+    "a": "Tajriba dizayni (4.1) bo'yicha nazorat guruhi an'anaviy metodika bilan o'qitiladi: adaptiv yo'l, A/B/C variantlar, AI ko'mak va metakognitiv blok tajriba guruhiga mo'ljallangan. Siz diagnostika, materiallar, mashg'ulot matnini topshirish va o'qituvchi izohidan foydalanasiz. Tajriba yakunlangach, o'qituvchi guruhni tajriba qanotiga o'tkazadi va barcha funksiyalar ochiladi (axloqiy talab)."
+  },
+  {
+    "audience": "teacher",
+    "q": "AI'siz nazorat oynasi nima?",
+    "a": "Yakuniy nazorat texnologik vositalarsiz bajarilishi kerak (4.1), aks holda natija talaba bilimini emas, vositadan foydalanish malakasini aks ettiradi. Guruh kuzatuv panelida 'Nazorat oynasi'ni pre/mid/post holatiga o'tkazsangiz, shu guruh talabalari uchun AI vositalari vaqtincha yopiladi va diagnostika natijalari aynan shu o'lchov turi bilan yoziladi. Nazorat tugagach oynani 'none' ga qaytaring."
+  },
+  {
+    "audience": "student",
+    "q": "Mikroo'qitish va tengdoshlar baholashi qanday ishlaydi?",
+    "a": "Siz 10–15 daqiqalik texnologik vositali dars parchasini loyihalaysiz: maqsad (SWBAT), bosqichlar, vosita va uni tanlash sababi (majburiy), texnologiyasiz muqobil (majburiy), mustaqil bajarish ulushi (≥1/3). Topshirgach guruhdoshlaringiz 4 mezon bo'yicha (maqsad, ko'rsatmalar/ICQ, vositaning maqsadga bog'langanligi, refleksiya) baholaydi, so'ng o'qituvchi baholaydi. Tengdoshlar va o'qituvchi baholari mosligi tadqiqot modulida hisoblanadi."
+  },
+  {
     "audience": "all",
     "q": "Ma'lumotlarim qanday himoyalanadi?",
     "a": "Parollar foydalanuvchiga xos tuz bilan PBKDF2-SHA256 (600 000 iteratsiya) orqali xeshlanadi; sessiya JWT tokeni 12 soat amal qiladi; login urinishlari cheklangan (brute-force himoyasi); barcha API so'rovlari rol va egalik bo'yicha tekshiriladi; AI so'rovlari foydalanuvchi bo'yicha chegaralanadi. Shaxsga doir ma'lumotlar O'RQ-547 qonuniga muvofiq faqat ta'lim maqsadida ishlatiladi."

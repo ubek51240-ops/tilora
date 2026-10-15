@@ -15,8 +15,13 @@ from app.schemas.all_schemas import DiagnosticResultResponse, DiagnosticSubmissi
 from app.core.deps import get_current_user, require_role, get_optional_user
 from app.services.path_builder import generate_learning_path
 from app.services.diagnostic_bank import load_diagnostic_questions, load_survey_questions, subjects_with_questions
+from app.core.access import check_experiment_access
+from app.api.experiment_ext import sill_router, micro_router
+import app.core.schema_patch  # noqa: F401
 
 router = APIRouter(prefix="/student", tags=["Talaba"])
+router.include_router(sill_router, dependencies=[Depends(get_current_user)])
+router.include_router(micro_router, dependencies=[Depends(get_current_user)])
 
 @router.get("/profile")
 def get_student_profile(
@@ -265,11 +270,22 @@ def submit_diagnostic(
         db.add(new_profile)
 
         # 5. Tajriba-sinov o'lchovi (pre/post) — assessments jadvaliga yoziladi (4.2–4.10 jonli jadvallar manbai)
-        from app.models.entities import Assessment
-        atype = payload.assessment_type
+        from app.models.entities import Assessment, SurveyResponse
+        # Nazorat oynasi (o'qituvchi belgilagan) ustuvor; aks holda so'rovdagi tur; aks holda avtomatik
+        win = current_user.get("assessment_window") or "none"
+        atype = win if win != "none" else payload.assessment_type
         if not atype:
-            has_pre = db.query(Assessment).filter(Assessment.student_id == current_user["id"], Assessment.assessment_type == "pre").first()
+            has_pre = db.query(Assessment).filter(Assessment.student_id == current_user["id"], Assessment.assessment_type == "pre",
+                                                  Assessment.skill.in_(["listening", "reading", "writing", "speaking", "anxiety"])).first()
             atype = "post" if has_pre else "pre"
+        # Xom anketa javoblari — Cronbach α uchun (FLCAS / MSLQ / kognitiv o'lchamlar)
+        _inst = {"anxiety": "flcas", "planning": "mslq", "monitoring": "mslq", "evaluation": "mslq", "regulation": "mslq",
+                 "load_capacity": "cognitive", "pace": "cognitive", "autonomy": "cognitive", "motivation": "cognitive"}
+        for ans in payload.survey_answers:
+            sq = s_map.get(ans.question_id)
+            if sq and sq.get("dimension") in _inst:
+                db.add(SurveyResponse(student_id=current_user["id"], instrument=_inst[sq["dimension"]], dimension=sq["dimension"],
+                                      question_id=ans.question_id, rating=ans.rating, assessment_type=atype))
         now = datetime.utcnow()
         rows = []
         for sk in ["listening", "reading", "writing", "speaking"]:
@@ -329,6 +345,27 @@ def get_student_path(
         "writing": profile.cefr_writing if profile else "B1"
     }
 
+    # Nazorat guruhi: adaptiv yo'l ko'rsatilmaydi — an'anaviy (chiziqli, bir xil) dastur (tajriba butunligi, 4.1)
+    arm = current_user.get("experiment_arm") if target_id == current_user["id"] else None
+    if arm is None and target_id != current_user["id"]:
+        from app.models.entities import Group
+        u = db.query(User).filter(User.id == target_id).first()
+        g = db.query(Group).filter(Group.id == u.group_id).first() if (u and u.group_id) else None
+        arm = g.experiment_arm if g else "none"
+    if arm == "control":
+        from app.services.path_builder import generate_learning_path as _glp
+        import json as _json, os as _os
+        topics_file = _os.path.join(_os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))), "content", "curriculum_topics.json")
+        topics = _json.load(open(topics_file, "r", encoding="utf-8")) if _os.path.exists(topics_file) else []
+        items = []
+        for idx, t in enumerate(topics[:8]):
+            items.append({"week_number": (idx + 1) * 2, "skill": t["skill"], "topic_id": t["id"], "topic": t["title_uz"],
+                          "pedagogical_focus": t.get("pedagogical_focus", ""), "difficulty_level": 5, "scaffold_level": "none",
+                          "rationale": "Nazorat guruhi: an'anaviy dastur — barcha talabaga bir xil ketma-ketlik, profilga moslashtirilmaydi.",
+                          "status": "current" if idx == 0 else "planned", "teacher_approved": True})
+        return {"student_id": target_id, "total_weeks": 16, "current_week": 4, "items": items, "experiment_arm": "control",
+                "note": "Nazorat guruhi an'anaviy metodika bo'yicha o'qitiladi: adaptiv yo'l, variantlar va metakognitiv blok yopiq."}
+
     path_items = generate_learning_path(
         student_id=target_id,
         cefr_levels=cefr,
@@ -338,8 +375,17 @@ def get_student_path(
         "student_id": target_id,
         "total_weeks": 16,
         "current_week": 4,
-        "items": path_items
+        "items": path_items,
+        "experiment_arm": arm or "experimental"
     }
+
+@router.get("/experiment-status")
+def experiment_status(current_user: dict = Depends(get_current_user)):
+    """Talabaning tajriba qanoti va nazorat oynasi (frontend bannerlari uchun)."""
+    return {"experiment_arm": current_user.get("experiment_arm") or "none", "assessment_window": current_user.get("assessment_window") or "none",
+            "adaptive_enabled": current_user.get("experiment_arm") != "control",
+            "ai_enabled": current_user.get("experiment_arm") != "control" and (current_user.get("assessment_window") or "none") == "none"}
+
 
 @router.get("/dynamics")
 def get_student_dynamics(

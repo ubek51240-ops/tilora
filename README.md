@@ -178,6 +178,25 @@ Write & Improve (Cambridge), ETS Criterion, Duolingo, ELSA, Moodle va UNESCO AI 
 | Inklyuzivlik: shrift kattaligi va yuqori kontrast rejimi | WCAG | top-bar tugmalari |
 | Ma'lumotlarni o'chirish huquqi (anonimlashtirish) | GDPR/O'RQ-547 | `DELETE /auth/me` |
 
+## ✅ 4.5. Dissertatsiyaga to'liq moslik (v2.4)
+
+Qolgan barcha talablar amalga oshirildi (moslik xaritasi: `GET /api/content/compliance`, "Platforma haqida" sahifasi):
+
+| Talab (bo'lim) | Amalga oshirilishi |
+|---|---|
+| Nazorat guruhi cheklovi (4.1) | `experiment_arm=control` → adaptiv yo'l, variantlar, metakognitiv blok, AI 403 `CONTROL_GROUP_RESTRICTED`; o'qituvchi qanotni o'zgartiradi |
+| AI'siz yakuniy nazorat (4.1) | Guruh `assessment_window` (pre/mid/post): AI yopiq (`ASSESSMENT_WINDOW`), diagnostika shu tur bilan yoziladi |
+| Moslashtirish bosqichi (3.3) | 3 muvaffaqiyat → ko'mak pasaytirish taklifi `teacher_proposals` ga; tasdiqlansa variant kuchga kiradi |
+| Oxford SILL (4.1) | 24 band, 6 guruh; pre/post; `/student/sill`, `/research/live/sill` |
+| Cronbach α, inter-rater (4.1) | Xom anketa javoblari (`survey_responses`), o'qituvchi ikkinchi baholovchi; `/research/live/reliability` |
+| Mikroo'qitish + tengdoshlar baholashi (3.2) | `microteachings`, `peer_reviews`; `/student/microteaching/*`, `/teacher/panel/microteaching/*` |
+| Guskey 1 va 4 (4.1) | Munosabat so'rovi, dars loyihasi tekshiruv varaqasi; `/teacher/competence/guskey/summary` |
+| Saqlash muddati (3.1) | `DATA_RETENTION_DAYS` (1095), `/admin/retention/*` anonimlashtirish |
+| Tashkiliy shakllar (14-jadval) | `/content/lesson-forms` (7 shakl) |
+| Uch tilli interfeys (3.3) | Yangi ekranlar `i18n_ext.js` orqali UZ/EN/RU |
+
+Testlar: 83 ta (`tests/test_v24_full_compliance.py` qo'shildi).
+
 ## 👥 5. Demo Hisoblar Ma'lumotlari
 
 Demo hisoblar paroli `SEED_PASSWORD` muhit o'zgaruvchisi bilan belgilanadi (standart: `tilora2026!`, faqat lokal demo uchun; ishlab chiqarishda o'zgartiring).

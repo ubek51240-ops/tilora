@@ -1322,6 +1322,9 @@
       fillResearchSkillSelect(ov.skills || []);
       window.researchReloadAssessments();
       loadProcessIndicators();
+      loadReliability();
+      loadSillSummary();
+      loadRetentionCard();
     } catch (e) {
       currentResearchData = null;
       if (banner) { banner.style.display = 'block'; banner.innerHTML = researchNotice("Jonli ma'lumotlarni yuklab bo'lmadi: " + esc(e.message), 'error'); }
@@ -1978,6 +1981,183 @@
       rToast('Baho o\'chirildi.', 'success');
       await loadLiveResearch();
     } catch (e) {
+      rToast(e.message, 'error');
+    }
+  };
+
+  // ---------- 4.1: O'lchov vositalarining ishonchliligi (Cronbach α, baholovchilar mosligi) ----------
+  const REL_INSTRUMENTS = { flcas: 'FLCAS (tashvish)', mslq: 'MSLQ (metakognitiv)', cognitive: 'Kognitiv profil', sill: 'SILL (strategiyalar)' };
+  const REL_DIMS = {
+    anxiety: 'Tashvish', planning: 'Rejalashtirish', monitoring: 'Kuzatish', evaluation: 'Baholash', regulation: 'Boshqarish',
+    load_capacity: "Yuklama sig'imi", pace: "Sur'at", autonomy: 'Mustaqillik', motivation: 'Motivatsiya',
+    memory: 'Xotira', cognitive: 'Kognitiv', compensation: 'Kompensatsiya', metacognitive: 'Metakognitiv', affective: 'Affektiv', social: 'Ijtimoiy',
+  };
+  const RATER_ROWS = [['content', 'Mazmun'], ['grammar', 'Grammatika'], ['lexis', 'Leksika'], ['coherence', "Bog'liqlik"], ['overall', 'Umumiy (barcha mezonlar)'], ['microteaching_peer_vs_teacher', "Mikroo'qitish: tengdoshlar vs o'qituvchi"]];
+
+  function alphaCell(a) {
+    if (a === null || a === undefined) return '<span style="color:var(--muted)">—</span>';
+    const col = a >= 0.8 ? 'var(--teal)' : (a >= 0.7 ? 'var(--amber)' : 'var(--clay)');
+    return '<b style="color:' + col + '">' + esc(Number(a).toFixed(3)) + '</b>';
+  }
+
+  async function loadReliability() {
+    const box = document.getElementById('researchReliability');
+    if (!box) return;
+    const th = 'padding:7px 10px;font-size:12px;white-space:nowrap;text-align:center';
+    const td = 'padding:7px 10px;font-size:12.5px;text-align:center';
+    const f = (v) => (v === null || v === undefined) ? '—' : esc(v);
+    const pct = (v) => (typeof v === 'number') ? esc(Math.round(v * 100)) + '%' : '—';
+    const num = (v) => (typeof v === 'number') ? esc(v.toFixed(2)) : '—';
+    try {
+      const res = await researchRequest('/research/live/reliability');
+      const cr = res.cronbach || {};
+      let html = '<div style="font-size:12.5px;font-weight:700;margin-bottom:6px">a) Ichki izchillik — Cronbach α</div>'
+        + '<div style="overflow-x:auto;margin-bottom:14px"><table style="width:100%;border-collapse:collapse;min-width:640px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+        + '<th style="' + th + ';text-align:left">Vosita</th><th style="' + th + ';text-align:left">O\'lchov</th><th style="' + th + '">α</th><th style="' + th + '">Respondentlar</th><th style="' + th + '">Bandlar</th><th style="' + th + ';text-align:left">Talqin</th></tr></thead><tbody>';
+      Object.keys(cr).forEach(inst => {
+        const block = cr[inst] || {};
+        const ov = block.overall || {};
+        html += '<tr style="border-bottom:1px solid var(--line);background:var(--surface-2)"><td style="' + td + ';text-align:left;font-weight:700">' + esc(REL_INSTRUMENTS[inst] || inst) + '</td><td style="' + td + ';text-align:left;font-weight:600">Umumiy</td>'
+          + '<td style="' + td + '">' + alphaCell(ov.alpha) + '</td><td style="' + td + '">' + f(ov.n_respondents) + '</td><td style="' + td + '">' + f(ov.n_items) + '</td><td style="' + td + ';text-align:left;color:var(--muted)">' + f(ov.label) + '</td></tr>';
+        const dims = block.dimensions || {};
+        Object.keys(dims).forEach(dk => {
+          const d = dims[dk] || {};
+          html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + td + '"></td><td style="' + td + ';text-align:left;padding-left:22px">' + esc(REL_DIMS[dk] || dk) + '</td>'
+            + '<td style="' + td + '">' + alphaCell(d.alpha) + '</td><td style="' + td + '">' + f(d.n_respondents) + '</td><td style="' + td + '">' + f(d.n_items) + '</td><td style="' + td + ';text-align:left;color:var(--muted)">' + f(d.label) + '</td></tr>';
+        });
+      });
+      html += '</tbody></table></div>';
+      const ir = res.inter_rater || {};
+      html += '<div style="font-size:12.5px;font-weight:700;margin-bottom:6px">b) Baholovchilar mosligi — tizim rubrikasi vs o\'qituvchi (ikki marta baholangan yozuvlar: <b>' + esc(ir.records_double_rated == null ? 0 : ir.records_double_rated) + '</b>)</div>'
+        + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:640px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+        + '<th style="' + th + ';text-align:left">Mezon</th><th style="' + th + '">n</th><th style="' + th + '">Aniq moslik</th><th style="' + th + '">±1 moslik</th><th style="' + th + '">Pearson r</th><th style="' + th + '">κ (vaznli)</th><th style="' + th + ';text-align:left">Talqin</th></tr></thead><tbody>';
+      RATER_ROWS.forEach(([k, label]) => {
+        const a = ir[k] || {};
+        const kap = typeof a.kappa === 'number' ? a.kappa : null;
+        const col = kap === null ? 'var(--muted)' : (kap >= 0.6 ? 'var(--teal)' : (kap >= 0.4 ? 'var(--amber)' : 'var(--clay)'));
+        html += '<tr style="border-bottom:1px solid var(--line)' + (k === 'overall' ? ';background:var(--surface-2);font-weight:700' : '') + '"><td style="' + td + ';text-align:left">' + esc(label) + '</td>'
+          + '<td style="' + td + '">' + esc(a.n == null ? 0 : a.n) + '</td><td style="' + td + '">' + pct(a.exact) + '</td><td style="' + td + '">' + pct(a.adjacent) + '</td><td style="' + td + '">' + num(a.r) + '</td>'
+          + '<td style="' + td + '"><b style="color:' + col + '">' + num(a.kappa) + '</b></td><td style="' + td + ';text-align:left;color:var(--muted)">' + f(a.label) + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+      if (res.note) html += '<div style="font-size:11.5px;color:var(--muted);margin-top:8px">' + esc(res.note) + '</div>';
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = researchNotice('Ishonchlilik ko\'rsatkichlarini yuklab bo\'lmadi: ' + esc(e.message), 'error');
+    }
+  }
+
+  // ---------- SILL strategiyalari (Oxford): guruhlar × tajriba/nazorat pre/post ----------
+  async function loadSillSummary() {
+    const box = document.getElementById('researchSill');
+    if (!box) return;
+    const th = 'padding:7px 10px;font-size:12px;white-space:nowrap;text-align:center';
+    const td = 'padding:7px 10px;font-size:12.5px;text-align:center';
+    const num = (v) => (typeof v === 'number') ? esc(v.toFixed(2)) : '—';
+    const growth = (g) => {
+      if (g === null || g === undefined || g === '—' || g === '') return '<span style="color:var(--muted)">—</span>';
+      const n = Number(String(g).replace('%', '').replace('+', ''));
+      const col = isNaN(n) ? 'var(--ink)' : (n > 0 ? '#16A34A' : (n < 0 ? 'var(--clay)' : 'var(--muted)'));
+      return '<b style="color:' + col + '">' + esc(g) + '</b>';
+    };
+    try {
+      const res = await researchRequest('/research/live/sill');
+      const groups = res.groups || {};
+      const meta = res.meta || {};
+      const keys = Object.keys(groups);
+      if (!keys.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12.5px;padding:10px">SILL natijalari hali yo\'q.</div>'; return; }
+      let html = '<table style="width:100%;border-collapse:collapse;min-width:760px"><thead>'
+        + '<tr style="background:var(--surface-2)"><th style="' + th + ';text-align:left" rowspan="2">Strategiya guruhi</th><th colspan="3" style="' + th + ';border-bottom:1px solid var(--line)">Tajriba guruhi</th><th colspan="3" style="' + th + ';border-bottom:1px solid var(--line)">Nazorat guruhi</th></tr>'
+        + '<tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)"><th style="' + th + '">Pre (n)</th><th style="' + th + '">Post (n)</th><th style="' + th + '">O\'sish</th><th style="' + th + '">Pre (n)</th><th style="' + th + '">Post (n)</th><th style="' + th + '">O\'sish</th></tr></thead><tbody>';
+      keys.forEach(k => {
+        const m = meta[k] || {};
+        const e = (groups[k] || {}).experimental || {};
+        const c = (groups[k] || {}).control || {};
+        const cell = (v, n) => num(v) + (n ? ' <span style="font-size:11px;color:var(--muted)">(' + esc(n) + ')</span>' : '');
+        html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + td + ';text-align:left"><b>' + esc(m.name || k) + '</b>' + (m.desc ? '<div style="font-size:11px;color:var(--muted)">' + esc(m.desc) + '</div>' : '') + '</td>'
+          + '<td style="' + td + '">' + cell(e.pre, e.n_pre) + '</td><td style="' + td + ';font-weight:700">' + cell(e.post, e.n_post) + '</td><td style="' + td + '">' + growth(e.growth) + '</td>'
+          + '<td style="' + td + '">' + cell(c.pre, c.n_pre) + '</td><td style="' + td + ';font-weight:700">' + cell(c.post, c.n_post) + '</td><td style="' + td + '">' + growth(c.growth) + '</td></tr>';
+      });
+      html += '</tbody></table><div style="font-size:11.5px;color:var(--muted);margin-top:8px">Qiymatlar 1–5 shkalada (Oxford, 1990: 1.0–2.4 past, 2.5–3.4 o\'rta, 3.5–5.0 yuqori qo\'llanish); n — javob bergan talabalar soni.</div>';
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = researchNotice('SILL natijalarini yuklab bo\'lmadi: ' + esc(e.message), 'error');
+    }
+  }
+
+  // ---------- Admin: ma'lumotlarni saqlash muddati (retention) ----------
+  let retentionStatus = null;
+  function retentionHtml(st, extra) {
+    const th = 'padding:6px 10px;font-size:12px;white-space:nowrap;text-align:left';
+    const td = 'padding:6px 10px;font-size:12.5px';
+    const preview = st.stale_preview || [];
+    let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12.5px">'
+      + '<span style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px">Saqlash muddati: <b>' + esc(st.retention_days) + ' kun</b></span>'
+      + '<span style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:4px 10px">Chegara sanasi: <b>' + esc(st.cutoff || '—') + '</b></span>'
+      + '<span style="background:' + (st.stale_accounts > 0 ? 'var(--amber-soft)' : 'var(--teal-soft)') + ';border:1px solid var(--line);border-radius:8px;padding:4px 10px">Muddati o\'tgan hisoblar: <b>' + esc(st.stale_accounts == null ? 0 : st.stale_accounts) + '</b></span>'
+      + '</div>'
+      + '<div style="font-size:12.5px;color:var(--ink-2);line-height:1.55;margin-bottom:10px"><b>Siyosat:</b> ' + esc(st.policy || '') + '</div>';
+    if (preview.length) {
+      html += '<div style="overflow-x:auto;margin-bottom:10px"><table style="width:100%;border-collapse:collapse;min-width:420px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)"><th style="' + th + '">ID</th><th style="' + th + '">Email</th><th style="' + th + '">Oxirgi faollik</th></tr></thead><tbody>'
+        + preview.map(u => '<tr style="border-bottom:1px solid var(--line)"><td style="' + td + ';font-family:var(--mono);font-size:11.5px">' + esc(String(u.id || '').slice(0, 8)) + '…</td><td style="' + td + '">' + esc(u.email) + '</td><td style="' + td + '">' + esc(u.last || '—') + '</td></tr>').join('')
+        + '</tbody></table>' + (st.stale_accounts > preview.length ? '<div style="font-size:11.5px;color:var(--muted);margin-top:4px">Birinchi ' + esc(preview.length) + ' tasi ko\'rsatildi.</div>' : '') + '</div>';
+    } else {
+      html += '<div style="font-size:12.5px;color:var(--muted);padding:8px 10px;border:1px dashed var(--line);border-radius:8px;margin-bottom:10px">Muddati o\'tgan faol hisoblar yo\'q.</div>';
+    }
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">'
+      + '<button class="btn-primary" style="padding:7px 12px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.researchRetentionDryRun && window.researchRetentionDryRun()">🧪 Dry-run (sinov hisob-kitobi)</button>'
+      + '<input type="text" id="researchRetentionConfirm" placeholder="Tasdiqlash uchun TASDIQLAYMAN deb yozing" autocomplete="off" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px;min-width:260px">'
+      + '<button class="btn-primary" style="padding:7px 12px;font-size:12.5px;background:var(--clay);border-color:var(--clay)" onclick="window.researchRetentionPurge && window.researchRetentionPurge()">🗑 Anonimlashtirish</button>'
+      + '</div>'
+      + '<div id="researchRetentionResult" style="margin-top:8px;font-size:12.5px">' + (extra || '') + '</div>';
+    return html;
+  }
+
+  async function loadRetentionCard() {
+    const card = document.getElementById('researchRetentionCard');
+    const box = document.getElementById('researchRetention');
+    if (!card || !box) return;
+    if (researchRole() !== 'admin') { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+    try {
+      retentionStatus = await researchRequest('/admin/retention/status');
+      box.innerHTML = retentionHtml(retentionStatus);
+    } catch (e) {
+      box.innerHTML = researchNotice('Retention holatini yuklab bo\'lmadi: ' + esc(e.message), 'error');
+    }
+  }
+
+  window.researchRetentionDryRun = async function () {
+    const out = document.getElementById('researchRetentionResult');
+    if (out) out.innerHTML = '<span style="color:var(--muted)">Hisoblanmoqda...</span>';
+    try {
+      const res = await researchRequest('/admin/retention/purge?dry_run=true', { method: 'POST' });
+      if (out) out.innerHTML = researchNotice('<b>Dry-run:</b> anonimlashtirishga tayyor hisoblar soni — <b>' + esc(res.count == null ? 0 : res.count) + '</b> (muddat ' + esc(res.retention_days) + ' kun). Hech narsa o\'zgartirilmadi.', 'warn');
+    } catch (e) {
+      if (out) out.innerHTML = researchNotice(esc(e.message), 'error');
+      rToast(e.message, 'error');
+    }
+  };
+
+  window.researchRetentionPurge = async function () {
+    const inp = document.getElementById('researchRetentionConfirm');
+    const out = document.getElementById('researchRetentionResult');
+    if (!inp || inp.value.trim() !== 'TASDIQLAYMAN') {
+      rToast('Tasdiqlash uchun maydonga aynan TASDIQLAYMAN deb yozing.', 'error');
+      if (inp) { inp.focus(); inp.style.outline = '1.5px solid var(--clay)'; }
+      return;
+    }
+    inp.style.outline = '';
+    if (out) out.innerHTML = '<span style="color:var(--muted)">Anonimlashtirilmoqda...</span>';
+    try {
+      const res = await researchRequest('/admin/retention/purge?dry_run=false', { method: 'POST' });
+      rToast('Anonimlashtirildi: ' + (res.count == null ? 0 : res.count) + ' ta hisob.', 'success');
+      try { retentionStatus = await researchRequest('/admin/retention/status'); } catch (e2) { /* holat yangilanmasa ham natija ko'rsatiladi */ }
+      const box = document.getElementById('researchRetention');
+      if (box && retentionStatus) box.innerHTML = retentionHtml(retentionStatus, researchNotice('<b>Bajarildi:</b> ' + esc(res.count == null ? 0 : res.count) + ' ta hisob anonimlashtirildi (status: ' + esc(res.status) + ').', 'ok'));
+      else if (out) out.innerHTML = researchNotice('<b>Bajarildi:</b> ' + esc(res.count == null ? 0 : res.count) + ' ta hisob anonimlashtirildi.', 'ok');
+    } catch (e) {
+      if (out) out.innerHTML = researchNotice(esc(e.message), 'error');
       rToast(e.message, 'error');
     }
   };

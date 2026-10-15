@@ -88,6 +88,21 @@ def get_faq(audience: Optional[str] = Query(None, pattern="^(student|teacher|res
     return {"items": items, "total": len(items)}
 
 
+@router.get("/compliance")
+def get_compliance_map():
+    """Dissertatsiya talablari → platformada amalga oshirilgan joy (moslik xaritasi)."""
+    data = _read("compliance_map.json")
+    items = [i for s in data.get("sections", []) for i in s.get("items", [])]
+    return {**data, "total": len(items), "full": sum(1 for i in items if i.get("status") == "full"),
+            "partial": sum(1 for i in items if i.get("status") == "partial")}
+
+
+@router.get("/lesson-forms")
+def get_lesson_forms():
+    """Tashkiliy shakllar (3.2, 14-jadval): 4 an'anaviy shaklning o'zgargan vazifasi + 3 yangi shakl (teskari, mikroo'qitish, aralash)."""
+    return {"forms": _read("lesson_forms.json")}
+
+
 @router.get("/curriculum")
 def get_curriculum():
     """16 haftalik mavzular banki (ko'nikma, hafta, kutilayotgan natijalar)."""

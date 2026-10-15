@@ -4,5 +4,6 @@ from app.models.entities import (
     TeacherProposal, ResearchConsent, Assessment, AuditLog,
     TeacherSubject, SyllabusTopic, TeacherMaterial, SubscriptionPayment,
     DiagnosticTest, DiagnosticQuestion, DiagnosticAttempt, DiagnosticAnswer, SubjectBook,
-    CustomDiagnosticQuestion, CustomSurveyQuestion
+    CustomDiagnosticQuestion, CustomSurveyQuestion,
+    LessonRecord, TaskVariantAssignment, SurveyResponse, Microteaching, PeerReview, ApiKey
 )

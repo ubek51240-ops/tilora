@@ -25,9 +25,11 @@ def _refresh_from_db(payload: dict) -> dict:
     from app.database import SessionLocal
     from app.models.entities import User
 
+    from app.models.entities import Group
     db = SessionLocal()
     try:
         user = db.query(User).filter(User.id == uid).first()
+        grp = db.query(Group).filter(Group.id == user.group_id).first() if (user and user.group_id) else None
     finally:
         db.close()
     if not user:
@@ -46,6 +48,9 @@ def _refresh_from_db(payload: dict) -> dict:
         "group_id": user.group_id,
         "subscription_tier": getattr(user, "subscription_tier", "free") or "free",
         "is_approved": bool(getattr(user, "is_approved", True)),
+        # Tajriba qanoti va AI'siz nazorat oynasi — guruhdan (nazorat guruhi cheklovi va nazorat rejimi uchun)
+        "experiment_arm": (grp.experiment_arm if grp else None) or "none",
+        "assessment_window": (getattr(grp, "assessment_window", None) if grp else None) or "none",
     })
     return payload
 

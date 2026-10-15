@@ -6,7 +6,7 @@ Cohen effekt hajmi, Bespalko o'zlashtirish (K) va samaradorlik (K_s) koeffitsiye
 Tashqi kutubxonasiz (numpy/scipy yo'q) — 1 GB RAM li serverda ham ishlaydi.
 """
 import math
-from typing import Dict, List, Sequence, Tuple, Optional
+from typing import Dict, List, Sequence, Tuple, Optional, Any
 
 
 # ---------------- Deskriptiv ----------------
@@ -254,6 +254,79 @@ def growth_percent(pre: float, post: float) -> str:
     if pre <= 0:
         return "—"
     return f"{(post - pre) / pre * 100:+.1f}%"
+
+
+# ---------------- Ishonchlilik (4.1: Cronbach α, baholovchilar mosligi) ----------------
+
+def cronbach_alpha(matrix: List[List[float]]) -> Dict[str, float]:
+    """
+    Ichki izchillik (Cronbach, 1951). matrix: har qator — bitta respondent, har ustun — bitta band.
+    α = k/(k-1) * (1 - Σ var_item / var_total). Talqin: ≥0.9 a'lo, ≥0.8 yaxshi, ≥0.7 qoniqarli, <0.7 past.
+    """
+    rows = [r for r in matrix if r and all(x is not None for x in r)]
+    if len(rows) < 2:
+        return {"alpha": None, "n_respondents": len(rows), "n_items": len(rows[0]) if rows else 0, "label": "Ma'lumot yetarli emas"}
+    k = len(rows[0])
+    rows = [r for r in rows if len(r) == k]
+    if k < 2 or len(rows) < 2:
+        return {"alpha": None, "n_respondents": len(rows), "n_items": k, "label": "Kamida 2 band va 2 respondent kerak"}
+    item_vars = [variance([r[j] for r in rows]) for j in range(k)]
+    totals = [sum(r) for r in rows]
+    vt = variance(totals)
+    if vt == 0:
+        return {"alpha": None, "n_respondents": len(rows), "n_items": k, "label": "Dispersiya nol (barcha javoblar bir xil)"}
+    alpha = (k / (k - 1)) * (1 - sum(item_vars) / vt)
+    alpha = round(alpha, 3)
+    label = "A'lo (≥0.9)" if alpha >= 0.9 else "Yaxshi (≥0.8)" if alpha >= 0.8 else "Qoniqarli (≥0.7)" if alpha >= 0.7 else "Past (<0.7) — bandlarni qayta ko'rib chiqing"
+    return {"alpha": alpha, "n_respondents": len(rows), "n_items": k, "label": label}
+
+
+def pearson_r(a: Sequence[float], b: Sequence[float]) -> Optional[float]:
+    a, b = list(a), list(b)
+    n = min(len(a), len(b))
+    if n < 2:
+        return None
+    a, b = a[:n], b[:n]
+    ma, mb = mean(a), mean(b)
+    num = sum((x - ma) * (y - mb) for x, y in zip(a, b))
+    den = math.sqrt(sum((x - ma) ** 2 for x in a) * sum((y - mb) ** 2 for y in b))
+    return round(num / den, 3) if den > 0 else None
+
+
+def weighted_kappa(a: Sequence[int], b: Sequence[int], categories: int = 5) -> Optional[float]:
+    """Kvadratik vaznli Cohen kappa (tartibli 1–k shkalalar, ikki baholovchi)."""
+    pairs = [(int(x), int(y)) for x, y in zip(a, b) if x is not None and y is not None]
+    n = len(pairs)
+    if n < 2:
+        return None
+    k = categories
+    obs = [[0.0] * k for _ in range(k)]
+    for x, y in pairs:
+        if 1 <= x <= k and 1 <= y <= k:
+            obs[x - 1][y - 1] += 1
+    ra = [sum(obs[i]) for i in range(k)]
+    rb = [sum(obs[i][j] for i in range(k)) for j in range(k)]
+    w = [[((i - j) ** 2) / ((k - 1) ** 2) for j in range(k)] for i in range(k)]
+    so = sum(w[i][j] * obs[i][j] for i in range(k) for j in range(k)) / n
+    se = sum(w[i][j] * ra[i] * rb[j] / n for i in range(k) for j in range(k)) / n
+    if se == 0:
+        return None
+    return round(1 - so / se, 3)
+
+
+def rater_agreement(a: Sequence[int], b: Sequence[int]) -> Dict[str, Any]:
+    """Ikki mustaqil baholovchi (tizim rubrikasi va o'qituvchi) mosligi: aniq moslik %, ±1 moslik %, Pearson r, vaznli kappa."""
+    pairs = [(x, y) for x, y in zip(a, b) if x is not None and y is not None]
+    n = len(pairs)
+    if n == 0:
+        return {"n": 0, "exact": None, "adjacent": None, "r": None, "kappa": None, "label": "Ma'lumot yo'q"}
+    exact = sum(1 for x, y in pairs if x == y) / n
+    adj = sum(1 for x, y in pairs if abs(x - y) <= 1) / n
+    kap = weighted_kappa([p[0] for p in pairs], [p[1] for p in pairs])
+    lbl = "—"
+    if kap is not None:
+        lbl = "Juda yaxshi (κ≥0.8)" if kap >= 0.8 else "Yaxshi (κ≥0.6)" if kap >= 0.6 else "O'rtacha (κ≥0.4)" if kap >= 0.4 else "Zaif (κ<0.4)"
+    return {"n": n, "exact": round(exact, 2), "adjacent": round(adj, 2), "r": pearson_r([p[0] for p in pairs], [p[1] for p in pairs]), "kappa": kap, "label": lbl}
 
 
 def fmt_p(p: float) -> str:

@@ -30,8 +30,28 @@
     noteFor: null,              // {id, variant} — variant biriktirish izohi formasi
     busy: false,
     // 5-tab: o'qituvchining SI-kompetensiyasi (2.3; UNESCO AI CFT 2024)
-    comp: { q: null, me: null, result: null, toolResult: null },
+    comp: { q: null, me: null, result: null, toolResult: null, sat: null, satResult: null, lpcResult: null, gsum: null },
+    // Guruh boshqaruvi: AI'siz nazorat oynasi (groups endpoint qaytarmaydi — lokal holat, default none)
+    windows: {},
+    // Ikkinchi baholovchi natijalari: record_id → {teacher_rubric, agreement}
+    rated: {},
+    // 6-tab: mikroo'qitish loyihalari (3.2, 14-jadval)
+    micro: null, microOpen: {},
   };
+  const RUBRIC_KEYS = ['content', 'grammar', 'lexis', 'coherence'];
+  const RUBRIC_LABELS = { content: 'Mazmun', grammar: 'Grammatika', lexis: 'Leksika', coherence: "Bog'liqlik" };
+  const FORM_NAMES = { lecture: "Ma'ruza", practical: "Amaliy mashg'ulot", independent: "Mustaqil ta'lim", consultation: 'Konsultatsiya', flipped: 'Teskari mashg\'ulot', microteaching: "Mikroo'qitish", mixed: 'Aralash mashg\'ulot' };
+  const MICRO_STATUS = { draft: ['Qoralama', 'background:var(--surface-2);color:var(--muted);border-color:var(--line)'], submitted: ['Topshirilgan', 'background:var(--amber-soft);color:var(--amber);border-color:#E7D9AE'], reviewed: ['Tengdoshlar baholagan', 'background:var(--teal-soft);color:var(--teal);border-color:#BCD9D3'], evaluated: ["O'qituvchi baholagan", 'background:var(--teal);color:#fff;border-color:var(--teal)'] };
+  const LPC_ITEMS = [
+    ['objective_in_syllabus', "Dars maqsadi sillabusda (ishchi dasturda) qayd etilgan"],
+    ['tool_linked_to_objective', "Texnologik vosita aniq o'quv maqsadiga bog'langan"],
+    ['tool_at_specific_stage', "Vosita darsning muayyan bosqichida qo'llaniladi (butun dars davomida emas)"],
+    ['tool_rationale_written', "Vositani tanlash sababi loyihada yozilgan"],
+    ['alternative_without_tool', "Texnologiyasiz muqobil variant ko'zda tutilgan"],
+    ['independent_stage_share_ok', "Mustaqil bajarish bosqichi umumiy vaqtning kamida 1/3 qismini tashkil etadi"],
+    ['feedback_explains_cause', "Izoh (feedback) xato sababini tushuntiradi, tayyor javob bermaydi"],
+    ['max_two_new_tools', "Bir mashg'ulotda 2 tadan ortiq yangi vosita kiritilmaydi"],
+  ];
   const COMP_ORDER = ['cognitive', 'didactic', 'ethical', 'reflective'];
   const LEVEL_COLOR = { beginner: 'var(--clay)', practical: 'var(--amber)', creative: 'var(--teal)' };
   const LEVEL_BG = { beginner: 'var(--clay-soft, #F6E7E2)', practical: 'var(--amber-soft)', creative: 'var(--teal-soft)' };
@@ -182,12 +202,79 @@
   window.tpSelectGroup = async function (gid) {
     TP.groupId = gid || null;
     TP.group = TP.groups.find(g => g.id === gid) || null;
-    TP.students = TP.diff = TP.obs = null;
+    TP.students = TP.diff = TP.obs = TP.micro = null;
     TP.overrideFor = TP.noteFor = null;
     if (TP.tab === 'records') TP.tab = 'students';
     renderShell();
     await loadTab();
   };
+
+  // ---------- Guruh boshqaruvi: tajriba qanoti va AI'siz nazorat oynasi ----------
+  async function refetchGroups() {
+    const data = await req('/teacher/panel/groups');
+    TP.groups = data.groups || [];
+    TP.group = TP.groups.find(g => g.id === TP.groupId) || null;
+    TP.students = TP.diff = TP.obs = null;
+  }
+
+  window.tpSetArm = async function (gid) {
+    if (TP.busy || !gid) return;
+    const sel = document.getElementById('tpArmSel');
+    const arm = sel ? sel.value : 'none';
+    TP.busy = true;
+    try {
+      const res = await req('/teacher/panel/groups/' + encodeURIComponent(gid) + '/arm', { method: 'PATCH', body: { arm } });
+      const g = (res && res.group) || {};
+      toast((res && res.note) || ('Qanot yangilandi: ' + String(g.name || '') + ' → ' + armLabel(g.arm)), 'success');
+      await refetchGroups();
+      renderShell();
+      await loadTab(true);
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  window.tpSetWindow = async function (gid) {
+    if (TP.busy || !gid) return;
+    const sel = document.getElementById('tpWinSel');
+    const win = sel ? sel.value : 'none';
+    TP.busy = true;
+    try {
+      const res = await req('/teacher/panel/groups/' + encodeURIComponent(gid) + '/assessment-window', { method: 'PATCH', body: { window: win } });
+      const w = (res && res.group && res.group.assessment_window) || win;
+      TP.windows[gid] = w;
+      toast((res && res.note) || 'Nazorat oynasi yangilandi.', w !== 'none' ? 'info' : 'success');
+      await refetchGroups();
+      renderShell();
+      await loadTab(true);
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  function groupControlsHtml(g) {
+    if (!g) return '';
+    const arm = g.arm || 'none';
+    const win = TP.windows[g.id] || 'none';
+    const sel = (id, opts, cur, onchange) => '<select id="' + id + '" onchange="' + onchange + '" style="' + INPUT + '">'
+      + opts.map(([v, l]) => '<option value="' + esc(v) + '"' + (v === cur ? ' selected' : '') + '>' + esc(l) + '</option>').join('') + '</select>';
+    const armNote = arm === 'control'
+      ? "Nazorat guruhi: an'anaviy metodika — adaptiv, metakognitiv va AI bloklari talabalar uchun yopiq."
+      : (arm === 'experimental' ? 'Tajriba guruhi: TAAM modeli to\'liq (adaptiv variantlar, metakognitiv sikl, AI izoh) ochiq.' : 'Qanot belgilanmagan: guruh tajriba statistikasiga (4.2–4.9 jadvallar) kirmaydi.');
+    const winNote = win !== 'none'
+      ? "Oyna ochiq (" + esc(win) + "): guruh talabalari uchun AI vositalari vaqtincha yopiq; diagnostika natijasi «" + esc(win) + "» turi bilan yoziladi (4.1)."
+      : "Oyna yopiq: diagnostika va mashg'ulotlar odatdagi rejimda. Pre/mid/post nazoratdan oldin oynani oching.";
+    return '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--line);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">'
+      + '<div><label style="font-size:11.5px;font-weight:700;display:flex;flex-direction:column;gap:4px">🧪 Tajriba qanoti — ' + esc(g.name) + '<span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      + sel('tpArmSel', [['none', 'Belgilanmagan'], ['experimental', 'Tajriba (experimental)'], ['control', 'Nazorat (control)']], arm, 'window.tpSetArm(' + arg(g.id) + ')')
+      + armChip(arm) + '</span></label>'
+      + '<div style="font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45">' + armNote + '</div></div>'
+      + '<div><label style="font-size:11.5px;font-weight:700;display:flex;flex-direction:column;gap:4px">🔒 AI\'siz nazorat oynasi<span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">'
+      + sel('tpWinSel', [['none', 'Yopiq (none)'], ['pre', 'pre — boshlang\'ich'], ['mid', 'mid — oraliq'], ['post', 'post — yakuniy']], win, 'window.tpSetWindow(' + arg(g.id) + ')')
+      + (win !== 'none' ? '<span class="chip full" style="padding:1px 8px">AI yopiq</span>' : '<span class="chip none" style="padding:1px 8px">odatdagi rejim</span>') + '</span></label>'
+      + '<div style="font-size:11.5px;color:var(--muted);margin-top:4px;line-height:1.45">' + winNote + '</div></div>'
+      + '</div>';
+  }
 
   window.tpSwitchTab = async function (tab) {
     TP.tab = tab;
@@ -196,8 +283,8 @@
   };
 
   window.tpRefresh = async function () {
-    TP.students = TP.diff = TP.obs = TP.records = null;
-    TP.comp.q = TP.comp.me = null;
+    TP.students = TP.diff = TP.obs = TP.records = TP.micro = null;
+    TP.comp.q = TP.comp.me = TP.comp.sat = TP.comp.gsum = null;
     await loadTab(true);
   };
 
@@ -211,6 +298,7 @@
       ['diff', '🧩 Tabaqalashtirish (A/B/C)'],
       ['obs', '📋 Kuzatuv varaqasi'],
       ['records', '📝 Talaba yozuvlari'],
+      ['micro', "🎤 Mikroo'qitish"],
       ['comp', '🧠 SI-kompetensiyam'],
     ];
     let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">'
@@ -234,6 +322,7 @@
           + '</button>';
       });
       html += '</div>';
+      html += groupControlsHtml(TP.group);
     }
     html += '</div>';
 
@@ -270,11 +359,15 @@
         if (!TP.recordsStudentId) { c.innerHTML = '<div class="card" style="text-align:center;color:var(--muted);padding:26px">Talabani tanlang: «Talabalar» yoki «Kuzatuv varaqasi» bo\'limida <b>Yozuvlar</b> tugmasini bosing.</div>'; return; }
         if (!TP.records || TP.records.student.id !== TP.recordsStudentId || force) { c.innerHTML = loadingBox(); TP.records = await req('/teacher/panel/students/' + encodeURIComponent(TP.recordsStudentId) + '/records'); }
         renderRecords();
+      } else if (TP.tab === 'micro') {
+        if (!TP.micro || force) { c.innerHTML = loadingBox("Mikroo'qitish loyihalari yuklanmoqda..."); TP.micro = await req('/teacher/panel/microteaching' + (TP.groupId ? '?group_id=' + encodeURIComponent(TP.groupId) : '')); }
+        renderMicro();
       } else if (TP.tab === 'comp') {
         if (!TP.comp.q || !TP.comp.me || force) {
           c.innerHTML = loadingBox('Kompetensiya varaqasi yuklanmoqda...');
-          const [q, me] = await Promise.all([req('/teacher/competence/questions'), req('/teacher/competence/me')]);
-          TP.comp.q = q; TP.comp.me = me;
+          const soft = (p) => req(p).catch(() => null);
+          const [q, me, sat, gsum] = await Promise.all([req('/teacher/competence/questions'), req('/teacher/competence/me'), soft('/teacher/competence/satisfaction/items'), soft('/teacher/competence/guskey/summary')]);
+          TP.comp.q = q; TP.comp.me = me; TP.comp.sat = sat; TP.comp.gsum = gsum;
         }
         renderCompetence();
       }
@@ -650,9 +743,218 @@
     if (r.teacher_extension) html += '<div style="font-size:13px;line-height:1.55;margin-bottom:6px;white-space:pre-wrap"><b>Saqlangan:</b> ' + esc(r.teacher_extension) + '</div>';
     html += '<textarea id="tpExt_' + esc(r.id) + '" rows="2" placeholder="Texnologiya vazifa darajasida izoh berdi; siz uni strategiya va o\'zini boshqarish darajasiga ko\'taring (kamida 3 belgi)" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px;font-family:inherit;margin-bottom:6px">' + esc(r.teacher_extension || '') + '</textarea>'
       + btn('💬 Izohni jarayon darajasiga ko\'tarish (saqlash)', 'window.tpExtend(' + arg(r.id) + ')')
+      + '</div>';
+    html += raterBlock(r);
+    html += '</div>';
+    return html;
+  }
+
+  // Ikkinchi mustaqil baholovchi (o'qituvchi rubrikasi) — baholovchilar mosligi (inter-rater, 4.1)
+  function agreementHtml(a) {
+    if (!a) return '';
+    const pct = (v) => (typeof v === 'number') ? Math.round(v * 100) + '%' : '—';
+    const num = (v) => (typeof v === 'number') ? v.toFixed(2) : '—';
+    const k = typeof a.kappa === 'number' ? a.kappa : null;
+    const col = k === null ? 'var(--muted)' : (k >= 0.6 ? 'var(--teal)' : (k >= 0.4 ? 'var(--amber)' : 'var(--clay)'));
+    return '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12px;margin-top:8px;padding:8px 10px;border-radius:8px;background:var(--surface);border:1px solid var(--line)">'
+      + '<b>Moslik:</b><span>n = ' + esc(a.n == null ? 0 : a.n) + '</span><span>aniq ' + esc(pct(a.exact)) + '</span><span>±1 ' + esc(pct(a.adjacent)) + '</span><span>r = ' + esc(num(a.r)) + '</span>'
+      + '<span style="font-weight:800;color:' + col + '">κ = ' + esc(num(a.kappa)) + '</span><span class="chip" style="padding:1px 8px;color:' + col + ';border-color:' + col + ';background:var(--surface)">' + esc(a.label || '—') + '</span></div>';
+  }
+
+  function raterBlock(r) {
+    const sysR = r.rubric || {};
+    const local = TP.rated[r.id] || {};
+    const tr = local.teacher_rubric || r.teacher_rubric || null;
+    let html = '<div style="margin-top:10px;padding:10px;border:1px dashed var(--amber);border-radius:9px;background:var(--amber-soft)">'
+      + '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:6px">'
+      + '<div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#5F4A0F">⚖️ Ikkinchi baholovchi (rubrika)</div>'
+      + (tr ? '<span class="chip none" style="padding:1px 8px">o\'qituvchi bahosi saqlangan</span>' : '<span style="font-size:11.5px;color:var(--muted)">Tizim rubrikasi bilan mustaqil taqqoslash uchun 1–5 baholang</span>')
+      + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">';
+    RUBRIC_KEYS.forEach(k => {
+      const cur = tr && tr[k] ? Number(tr[k]) : null;
+      html += '<label style="font-size:11.5px;font-weight:600;display:flex;flex-direction:column;gap:3px">' + esc(RUBRIC_LABELS[k])
+        + ' <span style="font-weight:400;color:var(--muted)">tizim: <b style="color:var(--ink)">' + esc(fmt(sysR[k])) + '</b></span>'
+        + '<select id="tpRate_' + esc(r.id) + '_' + k + '" style="' + INPUT + '">'
+        + '<option value=""' + (cur === null ? ' selected' : '') + '>—</option>'
+        + [1, 2, 3, 4, 5].map(v => '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + v + '</option>').join('')
+        + '</select></label>';
+    });
+    html += '</div>'
+      + '<div style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">' + btn('⚖️ Baholashni saqlash', 'window.tpRate(' + arg(r.id) + ')') + '</div>'
+      + (local.agreement ? agreementHtml(local.agreement) : '')
+      + '</div>';
+    return html;
+  }
+
+  window.tpRate = async function (rid) {
+    if (TP.busy) return;
+    const body = {};
+    for (const k of RUBRIC_KEYS) {
+      const el = document.getElementById('tpRate_' + rid + '_' + k);
+      const v = el ? Number(el.value) : 0;
+      if (!v || v < 1 || v > 5) { toast('Barcha 4 mezonni 1–5 oralig\'ida baholang (' + RUBRIC_LABELS[k] + ').', 'error'); if (el) el.focus(); return; }
+      body[k] = v;
+    }
+    TP.busy = true;
+    try {
+      const res = await req('/teacher/panel/records/' + encodeURIComponent(rid) + '/rate', { method: 'POST', body });
+      TP.rated[rid] = { teacher_rubric: res.teacher_rubric || body, agreement: res.agreement || null };
+      toast('Ikkinchi baholovchi rubrikasi saqlandi.', 'success');
+      renderRecords();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  // ---------- 6-TAB: Mikroo'qitish (3.2, 14-jadval) ----------
+  function microStatusChip(s) {
+    const m = MICRO_STATUS[s] || [s || '—', 'background:var(--surface-2);color:var(--muted);border-color:var(--line)'];
+    return '<span class="chip" style="padding:1px 8px;font-weight:700;' + m[1] + '">' + esc(m[0]) + '</span>';
+  }
+  function checkMark(ok, label) {
+    return '<span title="' + esc(label) + '" style="display:inline-flex;align-items:center;gap:3px;font-size:11.5px;font-weight:700;color:' + (ok ? 'var(--teal)' : 'var(--clay)') + '">' + (ok ? '✓' : '✗') + ' <span style="font-weight:500;color:var(--ink-2)">' + esc(label) + '</span></span>';
+  }
+  function rubricBar(name, val) {
+    const v = typeof val === 'number' ? val : null;
+    const pct = v === null ? 0 : Math.max(0, Math.min(100, v / 5 * 100));
+    return '<div style="display:grid;grid-template-columns:minmax(120px,1.4fr) minmax(80px,2fr) auto;gap:6px;align-items:center;font-size:12px">'
+      + '<span>' + esc(name) + '</span><span class="track"><span class="fill" style="display:block;width:' + pct + '%"></span></span><b style="min-width:34px;text-align:right">' + (v === null ? '—' : esc(v.toFixed(2))) + '</b></div>';
+  }
+
+  function renderMicro() {
+    const c = content();
+    const d = TP.micro;
+    if (!c || !d) return;
+    const items = d.items || [];
+    const rub = d.rubric || [];
+    const sum = d.summary || {};
+    const avgT = sum.avg_teacher || {};
+    let html = '<div class="why-box" style="margin:0 0 14px"><b>Mikroo\'qitish qoidasi (3.2, 14-jadval)</b>Talaba texnologik vositali dars parchasini loyihalaydi: SWBAT maqsad, bosqichlar, vosita + tanlash sababi (<b>majburiy</b>), texnologiyasiz muqobil (<b>majburiy</b>), mustaqil bajarish ulushi <b>≥ 1/3</b>. Tengdoshlar rubrika bo\'yicha baholaydi, so\'ng o\'qituvchi yakuniy baho beradi.</div>';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;font-size:12.5px">'
+      + '<span style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 10px"><b>' + esc(items.length) + '</b> loyiha</span>'
+      + '<span style="background:var(--amber-soft);border:1px solid #E7D9AE;border-radius:8px;padding:4px 10px"><b>' + esc(sum.submitted || 0) + '</b> topshirilgan</span>'
+      + '<span style="background:var(--teal-soft);border:1px solid #BCD9D3;border-radius:8px;padding:4px 10px"><b>' + esc(sum.evaluated || 0) + '</b> baholangan</span>'
+      + rub.map(r => '<span style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 10px" title="' + esc(r.desc || '') + '">' + esc(r.name) + ': <b>' + esc(typeof avgT[r.key] === 'number' ? avgT[r.key].toFixed(2) : '—') + '</b>/5</span>').join('')
+      + '</div>';
+    if (!items.length) {
+      html += '<div class="card" style="text-align:center;color:var(--muted);padding:26px">' + (TP.group ? esc(TP.group.name) + ' guruhida' : 'Ko\'rinadigan guruhlarda') + ' hali mikroo\'qitish loyihalari yo\'q. Talabalar «Mikroo\'qitish» bo\'limida loyiha yaratib topshiradi.</div>';
+      c.innerHTML = html; return;
+    }
+    items.forEach(m => { html += microCard(m, rub); });
+    c.innerHTML = html;
+  }
+
+  function microCard(m, rub) {
+    const ch = m.checks || {};
+    const open = !!TP.microOpen[m.id];
+    const pa = m.peer_avg || {};
+    let html = '<div class="card" style="padding:14px;margin-bottom:12px;border-left:4px solid ' + (m.status === 'evaluated' ? 'var(--teal)' : (m.status === 'draft' ? 'var(--line)' : 'var(--amber)')) + '">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:flex-start">'
+      + '<div><div style="font-weight:800;font-size:14.5px">' + esc(m.title) + '</div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:2px">👤 ' + esc(m.author || '—') + ' · ' + esc(FORM_NAMES[m.lesson_form] || m.lesson_form || '—') + ' · ' + esc(m.created_at || '') + '</div></div>'
+      + '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">' + microStatusChip(m.status) + '<span class="chip" style="padding:1px 8px;background:var(--surface-2);color:var(--ink);border-color:var(--line)">👥 ' + esc(m.peer_count || 0) + ' tengdosh</span></div></div>'
+      + '<div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0">'
+      + checkMark(ch.independent_share_ok, 'Mustaqil ulush ≥ 1/3 (' + esc(m.independent_share == null ? '—' : m.independent_share) + '%)')
+      + checkMark(ch.has_rationale, 'Vosita sababi') + checkMark(ch.has_alternative, 'Texnologiyasiz muqobil') + '</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;align-items:start">'
+      + '<div style="background:var(--surface-2);padding:8px 10px;border-radius:8px"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px">Vosita</div><b>' + esc(m.tool_name || '—') + '</b></div>'
+      + '<div style="background:var(--surface-2);padding:8px 10px;border-radius:8px"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;margin-bottom:4px">Tengdoshlar o\'rtachasi</div>'
+      + (m.peer_count ? '<div style="display:flex;flex-direction:column;gap:4px">' + rub.map(r => rubricBar(r.name, pa[r.key])).join('') + '</div>' : '<span style="font-size:12px;color:var(--muted)">Hali tengdosh bahosi yo\'q</span>') + '</div>'
+      + '</div>'
+      + '<div style="margin-top:8px">' + btn(open ? '▲ Tafsilotlarni yopish' : '▼ Tafsilotlar va baholash', 'window.tpMicroToggle(' + arg(m.id) + ')', ghostStyle()) + '</div>';
+    if (open) html += microDetails(m, rub);
+    html += '</div>';
+    return html;
+  }
+
+  function microDetails(m, rub) {
+    const stages = Array.isArray(m.stages) ? m.stages : [];
+    let html = '<div style="margin-top:10px;border-top:1px dashed var(--line);padding-top:10px">'
+      + '<div style="font-size:12.5px;margin-bottom:8px"><b>Dars maqsadi (SWBAT):</b> <span style="color:var(--ink-2)">' + esc(m.objective || '—') + '</span></div>';
+    if (stages.length) {
+      html += '<div style="overflow-x:auto;margin-bottom:8px"><table style="width:100%;border-collapse:collapse;min-width:520px;font-size:12.5px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+        + '<th style="' + TH + '">Bosqich</th><th style="' + TH + ';text-align:center">Daqiqa</th><th style="' + TH + '">Faoliyat</th><th style="' + TH + '">Texnologiyaning o\'rni</th></tr></thead><tbody>';
+      stages.forEach(s => {
+        s = s || {};
+        html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + TD + ';font-weight:600">' + esc(s.name || '—') + '</td><td style="' + TD + ';text-align:center">' + esc(fmt(s.minutes)) + '</td><td style="' + TD + ';white-space:normal">' + esc(s.activity || '—') + '</td><td style="' + TD + ';white-space:normal;color:var(--ink-2)">' + esc(s.technology_role || '—') + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    } else {
+      html += '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">Bosqichlar kiritilmagan.</div>';
+    }
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:8px;font-size:12.5px;margin-bottom:8px">'
+      + '<div style="background:var(--surface-2);padding:8px 10px;border-radius:8px"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Vosita va tanlash sababi</div><b>' + esc(m.tool_name || '—') + '</b><div style="color:var(--ink-2);margin-top:3px;line-height:1.5">' + esc(m.tool_rationale || '—') + '</div></div>'
+      + '<div style="background:var(--surface-2);padding:8px 10px;border-radius:8px"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Texnologiyasiz muqobil</div><div style="color:var(--ink-2);line-height:1.5">' + esc(m.alternative_plan || '—') + '</div></div>'
+      + '<div style="background:var(--surface-2);padding:8px 10px;border-radius:8px"><div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase">Refleksiv hisobot</div><div style="color:var(--ink-2);line-height:1.5;white-space:pre-wrap">' + esc(m.reflection || '—') + '</div></div>'
+      + '</div>';
+    const revs = m.peer_reviews || [];
+    html += '<details style="margin-bottom:10px;font-size:12.5px"' + (revs.length ? '' : '') + '><summary style="cursor:pointer;font-weight:600;color:var(--teal)">Tengdoshlar baholashi (' + esc(revs.length) + ')</summary>';
+    if (!revs.length) html += '<div style="color:var(--muted);padding:6px 0">Hali tengdosh bahosi yo\'q.</div>';
+    revs.forEach((rv, i) => {
+      const rr = rv.rubric || {};
+      html += '<div style="border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;background:var(--surface)">'
+        + '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px"><b>#' + (i + 1) + '</b><span style="color:var(--muted)">' + esc(rv.created_at || '') + '</span>'
+        + rub.map(r => '<span class="chip" style="padding:1px 7px;background:var(--teal-soft);color:var(--teal);border-color:#BCD9D3" title="' + esc(r.name) + '">' + esc(r.name.split(' ')[0]) + ' ' + esc(rr[r.key] == null ? '—' : rr[r.key]) + '</span>').join('') + '</div>'
+        + (rv.strengths ? '<div><b style="color:var(--teal)">Kuchli tomonlari:</b> ' + esc(rv.strengths) + '</div>' : '')
+        + (rv.suggestions ? '<div><b style="color:var(--amber)">Takliflar:</b> ' + esc(rv.suggestions) + '</div>' : '')
+        + '</div>';
+    });
+    html += '</details>';
+    // O'qituvchi bahosi
+    const tr = m.teacher_rubric || null;
+    html += '<div style="padding:10px;border:1px dashed var(--teal);border-radius:9px;background:var(--teal-soft)">'
+      + '<div style="font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--teal);margin-bottom:6px">🎓 O\'qituvchi bahosi (rubrika, 1–5)</div>'
+      + (tr ? '<div style="font-size:12px;margin-bottom:6px;display:flex;gap:6px;flex-wrap:wrap"><span class="chip none">saqlangan</span>' + rub.map(r => '<span>' + esc(r.name) + ': <b>' + esc(tr[r.key] == null ? '—' : tr[r.key]) + '</b></span>').join('') + '</div>' : '')
+      + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px;margin-bottom:8px">';
+    rub.forEach(r => {
+      const cur = tr && tr[r.key] ? Number(tr[r.key]) : null;
+      html += '<label style="font-size:11.5px;font-weight:600;display:flex;flex-direction:column;gap:3px" title="' + esc(r.desc || '') + '">' + esc(r.name)
+        + '<select id="tpMe_' + esc(m.id) + '_' + esc(r.key) + '" style="' + INPUT + '"><option value=""' + (cur === null ? ' selected' : '') + '>—</option>'
+        + [1, 2, 3, 4, 5].map(v => '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select>'
+        + '<span style="font-size:11px;color:var(--muted);font-weight:400">' + esc(r.desc || '') + '</span></label>';
+    });
+    html += '</div>'
+      + '<textarea id="tpMeC_' + esc(m.id) + '" rows="2" maxlength="2000" placeholder="Izoh: kuchli tomon, keyingi qadam (ixtiyoriy)" style="' + INPUT + ';width:100%;margin-bottom:6px">' + esc(m.teacher_comment || '') + '</textarea>'
+      + btn(tr ? '💾 Bahoni yangilash' : '✔ Baholash va yakunlash', 'window.tpMicroEvaluate(' + arg(m.id) + ')')
       + '</div></div>';
     return html;
   }
+
+  window.tpMicroToggle = function (mid) {
+    TP.microOpen[mid] = !TP.microOpen[mid];
+    renderMicro();
+  };
+
+  window.tpMicroEvaluate = async function (mid) {
+    if (TP.busy || !TP.micro) return;
+    const rub = TP.micro.rubric || [];
+    const rubric = {};
+    for (const r of rub) {
+      const el = document.getElementById('tpMe_' + mid + '_' + r.key);
+      const v = el ? Number(el.value) : 0;
+      if (!v || v < 1 || v > 5) { toast('«' + r.name + '» mezonini 1–5 oralig\'ida baholang.', 'error'); if (el) el.focus(); return; }
+      rubric[r.key] = v;
+    }
+    const comment = ((document.getElementById('tpMeC_' + mid) || {}).value || '').trim();
+    TP.busy = true;
+    try {
+      const res = await req('/teacher/panel/microteaching/' + encodeURIComponent(mid) + '/evaluate', { method: 'POST', body: { rubric, comment } });
+      toast('O\'qituvchi bahosi saqlandi.', 'success');
+      if (res && res.microteaching) {
+        TP.micro.items = (TP.micro.items || []).map(x => x.id === mid ? res.microteaching : x);
+        const ev = TP.micro.items.filter(x => x.teacher_rubric);
+        const avg = {};
+        rub.forEach(r => { const vals = ev.map(x => Number(x.teacher_rubric[r.key])).filter(v => v > 0); if (vals.length) avg[r.key] = Math.round(vals.reduce((s, v) => s + v, 0) / vals.length * 100) / 100; });
+        TP.micro.summary = Object.assign({}, TP.micro.summary || {}, { evaluated: ev.length, submitted: TP.micro.items.filter(x => x.status !== 'draft').length, avg_teacher: avg });
+        renderMicro();
+      } else {
+        TP.micro = null; await loadTab(true);
+      }
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
 
   window.tpExtend = async function (rid) {
     if (TP.busy) return;
@@ -779,8 +1081,149 @@
       + btn('✔ Baholash', 'window.tpToolEvaluate()', 'padding:9px 14px;font-size:13px')
       + '<div id="tpToolResult" style="margin-top:12px">' + (TP.comp.toolResult ? toolResultHtml(TP.comp.toolResult) : '') + '</div>'
       + '</div>';
+
+    html += guskeyBlocksHtml();
     c.innerHTML = html;
   }
+
+  // ---------- Guskey 1-daraja (munosabat), 4-daraja (dars loyihasi), xulosa ----------
+  function guskeyBlocksHtml() {
+    const sat = TP.comp.sat;
+    const gs = TP.comp.gsum;
+    let html = '';
+    // (g) Xulosa
+    if (gs) {
+      const l1 = gs.level1_satisfaction || {}, l4 = gs.level4_practice || {};
+      html += '<div class="card" style="padding:14px;margin-top:14px;background:var(--surface-2)">'
+        + '<div style="font-weight:700;font-size:13.5px;margin-bottom:6px">📊 Guskey modeli bo\'yicha xulosa (barcha o\'qituvchilar)</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap;font-size:12.5px">'
+        + '<span style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 10px">1-daraja (munosabat): <b>' + esc(l1.n || 0) + '</b> javob · o\'rtacha <b>' + esc(typeof l1.avg === 'number' ? l1.avg.toFixed(2) : '—') + '</b>/5</span>'
+        + '<span style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:4px 10px">4-daraja (amaliyot): <b>' + esc(l4.n || 0) + '</b> tekshiruv · o\'rtacha <b>' + esc(typeof l4.avg_percent === 'number' ? l4.avg_percent.toFixed(1) + '%' : '—') + '</b></span>'
+        + '</div>'
+        + (gs.note ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.5">' + esc(gs.note) + '</div>' : '')
+        + '</div>';
+    }
+    // (e) 1-daraja: munosabat so'rovi
+    html += '<div class="card" style="padding:16px;margin-top:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">🙂 Guskey 1-daraja: munosabat so\'rovi</div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">' + esc((sat && sat.level) || 'Ishtirokchilarning tayyorgarlik va platformaga munosabati') + '. Har bir tasdiqni 1 (mutlaqo qo\'shilmayman) dan 5 (to\'liq qo\'shilaman) gacha baholang.</p>';
+    if (!sat || !(sat.items || []).length) {
+      html += '<div style="font-size:12.5px;color:var(--muted);padding:10px;border:1px dashed var(--line);border-radius:8px;text-align:center">So\'rov bandlari yuklanmadi. «🔄 Yangilash» tugmasini bosing.</div>';
+    } else {
+      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px">';
+      (sat.items || []).forEach((it, i) => {
+        html += '<div id="tpSatRow_' + esc(it.id) + '" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 10px;border-radius:8px;background:var(--surface-2)">'
+          + '<div style="flex:1;min-width:220px;font-size:13px;line-height:1.5"><span style="color:var(--muted);font-weight:700;margin-right:4px">' + (i + 1) + '.</span>' + esc(it.uz) + '</div><div style="display:flex;gap:4px;flex-wrap:wrap">';
+        for (let v = 1; v <= 5; v++) {
+          html += '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px;font-weight:700"><input type="radio" name="tpSat_' + esc(it.id) + '" value="' + v + '" style="margin:0"> ' + v + '</label>';
+        }
+        html += '</div></div>';
+      });
+      html += '</div>'
+        + '<label style="font-size:11.5px;font-weight:600;display:block;margin-bottom:10px">Izoh (ixtiyoriy)<textarea id="tpSatComment" rows="2" maxlength="1500" placeholder="Nima foydali bo\'ldi, nimani o\'zgartirish kerak..." style="' + INPUT + ';width:100%;margin-top:3px"></textarea></label>'
+        + btn('📤 So\'rovni yuborish', 'window.tpSatSubmit()', 'padding:9px 14px;font-size:13px')
+        + '<div id="tpSatResult" style="margin-top:12px">' + (TP.comp.satResult ? satResultHtml(TP.comp.satResult) : '') + '</div>';
+    }
+    html += '</div>';
+    // (f) 4-daraja: dars loyihasini tekshirish varaqasi
+    html += '<div class="card" style="padding:16px;margin-top:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">📐 Guskey 4-daraja: dars loyihasini tekshirish varaqasi</div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Amaliyotdagi o\'zgarish: o\'z dars loyihangizda texnologik vosita o\'quv maqsadiga bog\'langanmi? 8 mezonga «Ha / Yo\'q» deb javob bering (≥75% — amaliy/ijodiy daraja).</p>'
+      + '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">';
+    LPC_ITEMS.forEach(([key, label], i) => {
+      html += '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 10px;border-radius:8px;background:var(--surface-2)">'
+        + '<div style="flex:1;min-width:220px;font-size:13px;font-weight:600"><span style="color:var(--muted);margin-right:4px">' + (i + 1) + '.</span>' + esc(label) + '</div>'
+        + '<div style="display:flex;gap:4px">'
+        + '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid #BCD9D3;border-radius:7px;background:var(--teal-soft);color:var(--teal);font-size:12.5px;font-weight:700"><input type="radio" name="tpLpc_' + key + '" value="1" style="margin:0"> Ha</label>'
+        + '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:700"><input type="radio" name="tpLpc_' + key + '" value="0" checked style="margin:0"> Yo\'q</label>'
+        + '</div></div>';
+    });
+    html += '</div>'
+      + '<label style="font-size:11.5px;font-weight:600;display:block;margin-bottom:10px">Izoh (dars mavzusi, guruh — ixtiyoriy)<textarea id="tpLpcNote" rows="2" maxlength="1000" style="' + INPUT + ';width:100%;margin-top:3px"></textarea></label>'
+      + btn('✔ Loyihani tekshirish', 'window.tpLpcSubmit()', 'padding:9px 14px;font-size:13px')
+      + '<div id="tpLpcResult" style="margin-top:12px">' + (TP.comp.lpcResult ? lpcResultHtml(TP.comp.lpcResult) : '') + '</div>'
+      + '</div>';
+    return html;
+  }
+
+  function satResultHtml(r) {
+    const avg = Number(r.avg) || 0;
+    const col = avg >= 4 ? 'var(--teal)' : (avg >= 3 ? 'var(--amber)' : 'var(--clay)');
+    return '<div style="padding:12px 14px;border-radius:10px;border:1.5px solid ' + col + ';background:var(--surface);display:flex;gap:12px;align-items:center;flex-wrap:wrap">'
+      + '<span style="font-size:22px;font-weight:800;color:' + col + '">' + esc(avg.toFixed(2)) + '<span style="font-size:13px;color:var(--muted)">/5</span></span>'
+      + '<span style="font-weight:700;color:' + col + '">' + esc(r.label || '') + '</span>'
+      + '<span style="font-size:12px;color:var(--muted)">Munosabat natijasi saqlandi (Guskey 1-daraja).</span>'
+      + (r.comment ? '<div style="flex-basis:100%;font-size:12.5px;color:var(--ink-2)"><b>Izoh:</b> ' + esc(r.comment) + '</div>' : '')
+      + '</div>';
+  }
+
+  function lpcResultHtml(r) {
+    const pct = Number(r.score_percent) || 0;
+    const col = pct >= 75 ? 'var(--teal)' : (pct >= 50 ? 'var(--amber)' : 'var(--clay)');
+    const bg = pct >= 75 ? 'var(--teal-soft)' : (pct >= 50 ? 'var(--amber-soft)' : 'var(--clay-soft, #F6E7E2)');
+    let html = '<div style="padding:14px;border-radius:10px;border:1.5px solid ' + col + ';background:' + bg + '">'
+      + '<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><span style="font-size:22px;font-weight:800;color:' + col + '">' + esc(pct) + '%</span><span style="font-weight:700;color:' + col + '">' + esc(r.level || '') + '</span>'
+      + '<span style="font-size:12px;color:var(--muted)">Bajarilgan: ' + esc((r.met || []).length) + ' / ' + esc((r.met || []).length + (r.unmet || []).length) + '</span></div>';
+    if ((r.met || []).length) html += '<div style="font-size:12.5px;margin-top:8px"><b style="color:var(--teal)">✓ Bajarilgan:</b><ul style="margin:3px 0 0;padding-left:18px;line-height:1.5">' + r.met.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+    if ((r.unmet || []).length) html += '<div style="font-size:12.5px;margin-top:8px"><b style="color:var(--clay)">✗ Bajarilmagan:</b><ul style="margin:3px 0 0;padding-left:18px;line-height:1.5">' + r.unmet.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul></div>';
+    if (r.note) html += '<div style="font-size:12px;color:var(--ink-2);margin-top:8px"><b>Izoh:</b> ' + esc(r.note) + '</div>';
+    return html + '</div>';
+  }
+
+  async function refreshGuskeySummary() {
+    try {
+      TP.comp.gsum = await req('/teacher/competence/guskey/summary');
+    } catch (e) { /* xulosa yangilanmasa ham natija ko'rsatiladi */ }
+  }
+
+  window.tpSatSubmit = async function () {
+    if (TP.busy || !TP.comp.sat) return;
+    const items = TP.comp.sat.items || [];
+    const answers = {};
+    const missing = [];
+    items.forEach(it => {
+      const sel = document.querySelector('input[name="tpSat_' + it.id + '"]:checked');
+      const row = document.getElementById('tpSatRow_' + it.id);
+      if (sel) { answers[it.id] = Number(sel.value); if (row) row.style.outline = ''; }
+      else { missing.push(it.id); if (row) row.style.outline = '1.5px solid var(--clay)'; }
+    });
+    if (missing.length) { toast(missing.length + ' ta bandga javob berilmadi.', 'error'); return; }
+    const comment = ((document.getElementById('tpSatComment') || {}).value || '').trim();
+    TP.busy = true;
+    const box = document.getElementById('tpSatResult');
+    if (box) box.innerHTML = loadingBox('Yuborilmoqda...');
+    try {
+      const res = await req('/teacher/competence/satisfaction', { method: 'POST', body: { answers, comment } });
+      TP.comp.satResult = res;
+      if (box) box.innerHTML = satResultHtml(res);
+      toast('Munosabat so\'rovi saqlandi.', 'success');
+      await refreshGuskeySummary();
+    } catch (e) {
+      if (box) box.innerHTML = errorBox(e.message);
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  window.tpLpcSubmit = async function () {
+    if (TP.busy) return;
+    const body = {};
+    LPC_ITEMS.forEach(([key]) => {
+      const sel = document.querySelector('input[name="tpLpc_' + key + '"]:checked');
+      body[key] = !!(sel && sel.value === '1');
+    });
+    body.note = ((document.getElementById('tpLpcNote') || {}).value || '').trim();
+    TP.busy = true;
+    const box = document.getElementById('tpLpcResult');
+    if (box) box.innerHTML = loadingBox('Tekshirilmoqda...');
+    try {
+      const res = await req('/teacher/competence/lesson-plan-check', { method: 'POST', body });
+      TP.comp.lpcResult = res;
+      if (box) box.innerHTML = lpcResultHtml(res);
+      toast('Dars loyihasi tekshiruvi saqlandi.', 'success');
+      await refreshGuskeySummary();
+    } catch (e) {
+      if (box) box.innerHTML = errorBox(e.message);
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
 
   function compResultHtml(r) {
     const comps = r.components || {};

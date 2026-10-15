@@ -1,0 +1,44 @@
+{
+  "title": "Dissertatsiya talablariga moslik xaritasi",
+  "source": "Ikramova A.A. DSc dissertatsiyasi: 2.3, 3.1, 3.2, 3.3, 4.1, 4.2, 4.3-bo'limlar va 7–37-jadvallar",
+  "sections": [
+    {"section": "3.3 — Model: uch tamoyil", "items": [
+      {"req": "Tabaqalashtirish uch o'lchov bo'yicha (til darajasi ko'nikmalar kesimida, kasbiy yo'nalish, kognitiv-affektiv profil)", "impl": "Kirish diagnostikasi 4 ko'nikma × CEFR + FLCAS/MSLQ/kognitiv anketa; A/B/C variantlar; guruhda kamida uch variant", "where": "Diagnostika; Guruh kuzatuv paneli → Tabaqalashtirish; GET /lesson/{id}", "status": "full"},
+      {"req": "Moslashuvchanlik: bosqichli, ochiq (sababi ko'rsatiladi), yordam kamayadi", "impl": "Variant va ko'mak darajasi sababi bilan; 3 muvaffaqiyatdan so'ng ko'makni pasaytirish TAKLIFI o'qituvchiga; tasdiqlansa kuchga kiradi", "where": "1-bosqich banner; Takliflar (tizim); services/adaptation.py", "status": "full"},
+      {"req": "Metakognitivlik: rejalashtirish → monitoring → baholash → refleksiya sikli", "impl": "Reja (maqsad, strategiya), o'z-o'zini tekshirish/vaqt/yordam urinishlari, izohni asoslab qabul/rad etish, o'z bahosi → tizim bahosi, farq sababi va keyingi maqsad", "where": "Mashg'ulot 1–5 bosqichlari; /lesson/{id}/plan, monitor, feedback-decision, self-rating, reflection", "status": "full"},
+      {"req": "Besh funksional modul: diagnostika, mashqlar, baholash, refleksiya, o'qituvchi paneli", "impl": "Barcha beshta modul alohida ekran/API bilan", "where": "Platforma haqida → Modullar", "status": "full"},
+      {"req": "Uch tilli interfeys, ma'lumot hajmi cheklovi va saqlash muddati, cheklangan tezlikda ishlash, AI materialni belgilash", "impl": "UZ/EN/RU (yangi ekranlar i18n_ext bilan); retention 3 yil + anonimlashtirish; tejamkor rejim; 'AI tomonidan hosil qilingan' nishonlari", "where": "Til tugmalari; /admin/retention; Tejamkor rejim; bosqich nishonlari", "status": "full"}
+    ]},
+    {"section": "3.2 — Shakl, vosita, usullar", "items": [
+      {"req": "6 usul guruhi: diagnostik, tayyorgarlik, mustaqil mahsulot, tahliliy, qiyosiy, refleksiv — qat'iy ketma-ketlikda", "impl": "5 bosqichli oqim; tahliliy = qayta ishlash (5 qoralama); qiyosiy = AI muqobil varianti + farq asosi", "where": "Mashg'ulot; /lesson/{id}/revise, alternative, comparison", "status": "full"},
+      {"req": "Vosita tanlash qoidalari: ≤2 yangi vosita, muayyan bosqichda, texnologiyasiz muqobil", "impl": "Mikroo'qitish loyihasida muqobil va sabab majburiy; dars loyihasi tekshiruv varaqasi (Guskey 4)", "where": "Mikroo'qitish; SI-kompetensiyam → Dars loyihasi tekshiruvi", "status": "full"},
+      {"req": "Yangi shakllar: teskari, mikroo'qitish, aralash mashg'ulot (14-jadval)", "impl": "Mikroo'qitish moduli (loyiha → o'tkazish → tengdoshlar baholashi → o'qituvchi bahosi → refleksiya); 7 shakl ma'lumotnomasi", "where": "Mikroo'qitish ekrani; /content/lesson-forms", "status": "full"},
+      {"req": "Nutqiy faoliyat turlari bo'yicha bosqichlar (16-jadval): gapirish — dialog tizimi tayyorgarlikda; tinglash — sur'at va takrorlash kamayadi; o'qish — darajaga moslashtirilgan matn, manbasi ko'rsatiladi", "impl": "Dialog mashqi (faqat 2-bosqich); tinglash sur'ati/takrorlash variantga qarab; moslashtirilgan matn nishoni", "where": "Mashg'ulot 2–3 bosqichlari; /ai/dialog", "status": "full"},
+      {"req": "Mustaqil bajarish ulushi umumiy vaqtning 1/3 dan kam emas", "impl": "Topshiriq vaqt taqsimoti (30/90 daq); mikroo'qitish loyihasida ulush tekshiruvi", "where": "Mashg'ulot; Mikroo'qitish", "status": "full"}
+    ]},
+    {"section": "3.1 — Texnologik va axloqiy talablar (11–13-jadvallar)", "items": [
+      {"req": "Diagnostik aniqlik, moslashuvchanlik, qaytar aloqa mazmunliligi, tushuntiriluvchanlik, kognitiv qulaylik, texnik barqarorlik, ko'p tillilik, integratsiya", "impl": "CEFR 4 ko'nikma; A/B/C; sababli izohlar (L1 banki 44 naqsh); rationale; sodda interfeys + a11y; tejamkor rejim; o'zbek–ingliz interferensiyasi; assessments jadvali", "where": "Butun tizim", "status": "full"},
+      {"req": "Ma'lumotlar himoyasi, akademik halollik, shaffoflik, adolatlilik, inklyuzivlik, inson nazorati, talaba avtonomiyasi", "impl": "Minimal yig'ish + retention + o'chirish huquqi; AI qulfi va AI-siz nazorat; AI nishonlari; guruhlar kesimida natija; shrift/kontrast; o'qituvchi tasdig'i; muqobil yo'l", "where": "Maxfiylik bo'limi; /auth/me DELETE; nazorat oynasi; a11y tugmalari", "status": "full"},
+      {"req": "AI vositasini baholash varaqasi (13-jadval, 8 savol)", "impl": "Ha/yo'q varaqasi, foiz va xulosa", "where": "SI-kompetensiyam → AI vositasini baholash; /teacher/competence/tool-evaluation", "status": "full"}
+    ]},
+    {"section": "2.3 — O'qituvchi SI-kompetensiyasi (7–10-jadvallar)", "items": [
+      {"req": "4 tarkibiy qism (kognitiv, didaktik-texnologik, axloqiy, refleksiv) × 3 daraja (boshlang'ich, amaliy, ijodiy)", "impl": "16 bandli o'z-o'zini baholash, daraja, rivojlantirish yo'llari, pre/post", "where": "SI-kompetensiyam; /teacher/competence/*", "status": "full"},
+      {"req": "Rivojlantirish yo'llari (9-jadval) va baholash vositalari (10-jadval)", "impl": "Komponentga mos yo'l tavsiyasi; dars loyihasi tahlili; refleksiv hisobot (mikroo'qitish)", "where": "SI-kompetensiyam; Mikroo'qitish", "status": "full"}
+    ]},
+    {"section": "4.1 — Tajriba-sinov metodikasi", "items": [
+      {"req": "Tajriba va nazorat guruhlari; nazorat guruhiga adaptiv/metakognitiv bloklar ko'rsatilmaydi", "impl": "Guruh qanoti (experimental/control) — nazorat guruhi uchun adaptiv yo'l, variantlar, metakognitiv blok va AI 403 bilan yopiq", "where": "Guruh kuzatuv paneli → Tajriba qanoti; core/access.py", "status": "full"},
+      {"req": "O'lchov vositalari: CEFR test va amaliy topshiriqlar, FLCAS, Oxford SILL, Pintrich MSLQ, kuzatuv varaqasi, refleksiv hisobotlar", "impl": "24 savolli diagnostika + yozma/og'zaki topshiriqlar; FLCAS 7 band; SILL 24 band (6 guruh); MSLQ 12 band; kuzatuv varaqasi (xlsx); refleksiya yozuvlari", "where": "Diagnostika (3 qism); Kuzatuv varaqasi; Talaba yozuvlari", "status": "full"},
+      {"req": "Yakuniy nazorat texnologik vositalarsiz", "impl": "AI'siz nazorat oynasi (pre/mid/post): guruh uchun AI yopiladi, natija is_frozen", "where": "Guruh paneli → Nazorat oynasi", "status": "full"},
+      {"req": "Validlik (ekspertiza), Cronbach α, ikki mustaqil baholovchi mosligi", "impl": "Xom anketa javoblari → α (FLCAS/MSLQ/SILL/kognitiv); o'qituvchi ikkinchi baholovchi → aniq/±1 moslik, r, vaznli κ; tengdoshlar vs o'qituvchi (mikroo'qitish)", "where": "Tadqiqot → Ishonchlilik; /research/live/reliability", "status": "full"},
+      {"req": "Guskey 5 daraja: munosabat, bilim/malaka, institutsional, amaliyot, talaba natijasi", "impl": "1 — munosabat so'rovi; 2 — SI-kompetensiya pre/post; 4 — dars loyihasi tekshiruvi; 5 — 4.5–4.9 jadvallar; 3 — institutsional shartlar (36-jadval) ma'lumotnomada", "where": "SI-kompetensiyam; Tadqiqot", "status": "full"},
+      {"req": "Axloqiy talablar: ixtiyoriylik, anonimlik, nazorat guruhiga keyin material berish", "impl": "Rozilik modali; ID-ga bog'liq statistika; guruh qanotini tajribadan keyin 'experimental' ga o'tkazish", "where": "Etika & Rozilik; Guruh paneli", "status": "full"}
+    ]},
+    {"section": "4.2 — Matematik-statistik tahlil (4.2–4.10 jadvallar)", "items": [
+      {"req": "Deskriptiv statistika, Styudent t (bog'langan/mustaqil), Pirson χ², o'zlashtirish va samaradorlik koeffitsiyentlari, Cohen d", "impl": "Tashqi kutubxonasiz statistika moduli; jonli jadvallar 4.2–4.10 va 4.3 shkala; Word/Excel/CSV eksport", "where": "Tadqiqot → Jonli ma'lumotlar; services/statistics.py, live_research.py", "status": "full"},
+      {"req": "Ma'lumot kiritish: pre/mid/post baholar", "impl": "Diagnostika avtomatik pre/post (yoki nazorat oynasi turi); CSV/JSON import; qo'lda kiritish", "where": "Tadqiqot → Baholash natijalarini kiritish", "status": "full"}
+    ]},
+    {"section": "4.3 — Tavsiyalar (37-jadval)", "items": [
+      {"req": "Mustaqil bajarish bosqichi majburiy; baholash mahsulotdan jarayonga; foydalanish qoidalari; cheklangan tezlikda yechim", "impl": "AI qulfi; jarayon ko'rsatkichlari va qoralamalar baholanadi; akademik halollik qoidalari (FAQ, rozilik); tejamkor rejim", "where": "Butun tizim", "status": "full"}
+    ]}
+  ]
+}

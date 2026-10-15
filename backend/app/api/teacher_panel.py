@@ -22,6 +22,8 @@ from app.services import statistics as st
 from app.api.lesson import _record_dict
 
 router = APIRouter(prefix="/teacher/panel", tags=["O'qituvchi"], dependencies=[Depends(require_role(["teacher", "admin"]))])
+from app.api.experiment_ext import teacher_ext_router  # noqa: E402
+router.include_router(teacher_ext_router)
 
 VALID_CEFR = {"A1", "A2", "B1", "B2", "C1", "C2"}
 

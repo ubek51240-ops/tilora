@@ -1,0 +1,44 @@
+{
+  "title": "Til o'rganish strategiyalari so'rovnomasi (SILL, R. L. Oxford, 1990 — 7.0 versiyasi asosida qisqartirilgan va moslashtirilgan)",
+  "scale": "likert_5",
+  "scale_labels_uz": ["Hech qachon yoki deyarli hech qachon", "Odatda yo'q", "Ba'zan", "Odatda ha", "Har doim yoki deyarli har doim"],
+  "groups": {
+    "memory": {"name": "Xotira strategiyalari", "en": "Memory strategies", "desc": "Yangi so'z va tuzilmalarni eslab qolish usullari"},
+    "cognitive": {"name": "Kognitiv strategiyalar", "en": "Cognitive strategies", "desc": "Tilni tahlil qilish, mashq qilish, qayta ishlash"},
+    "compensation": {"name": "Kompensatsiya strategiyalari", "en": "Compensation strategies", "desc": "Bilim yetishmaganda ma'noni topish va muloqotni davom ettirish"},
+    "metacognitive": {"name": "Metakognitiv strategiyalar", "en": "Metacognitive strategies", "desc": "O'rganishni rejalashtirish, kuzatish va baholash"},
+    "affective": {"name": "Affektiv strategiyalar", "en": "Affective strategies", "desc": "Hissiyot va tashvishni boshqarish"},
+    "social": {"name": "Ijtimoiy strategiyalar", "en": "Social strategies", "desc": "Boshqalar bilan hamkorlikda o'rganish"}
+  },
+  "interpretation": [
+    {"min": 3.5, "max": 5.0, "label": "Yuqori (strategiyalar faol qo'llanadi)"},
+    {"min": 2.5, "max": 3.49, "label": "O'rta (vaziyatga qarab qo'llanadi)"},
+    {"min": 1.0, "max": 2.49, "label": "Past (strategiyalar kam qo'llanadi)"}
+  ],
+  "items": [
+    {"id": "sill_01", "group": "memory", "uz": "Yangi inglizcha so'zni eslab qolish uchun uni allaqachon bilgan so'zim bilan bog'layman.", "en": "I think of relationships between what I already know and new things I learn in English."},
+    {"id": "sill_02", "group": "memory", "uz": "Yangi so'zni gap ichida ishlatib eslab qolaman.", "en": "I use new English words in a sentence so I can remember them."},
+    {"id": "sill_03", "group": "memory", "uz": "Yangi so'zning tovushi va uning obrazi yoki rasmini bog'lab eslayman.", "en": "I connect the sound of a new English word and an image or picture of the word to help me remember it."},
+    {"id": "sill_04", "group": "memory", "uz": "Yangi so'zlarni muntazam takrorlab turaman.", "en": "I review English lessons often."},
+    {"id": "sill_05", "group": "cognitive", "uz": "Yangi so'zni bir necha marta aytib yoki yozib ko'raman.", "en": "I say or write new English words several times."},
+    {"id": "sill_06", "group": "cognitive", "uz": "Ingliz tilida ma'ruza, podkast yoki video tomosha qilaman.", "en": "I watch English language TV shows or listen to English audio."},
+    {"id": "sill_07", "group": "cognitive", "uz": "Inglizcha matnni avval tez ko'zdan kechirib, keyin diqqat bilan o'qiyman.", "en": "I first skim an English passage, then go back and read carefully."},
+    {"id": "sill_08", "group": "cognitive", "uz": "So'zma-so'z tarjima qilmaslikka harakat qilaman.", "en": "I try not to translate word-for-word."},
+    {"id": "sill_09", "group": "compensation", "uz": "Notanish so'zni ma'nosini kontekstdan taxmin qilaman.", "en": "To understand unfamiliar English words, I make guesses."},
+    {"id": "sill_10", "group": "compensation", "uz": "Suhbatda so'z topolmasam, imo-ishora yoki boshqa so'z bilan tushuntiraman.", "en": "When I can't think of a word during a conversation in English, I use gestures or a synonym."},
+    {"id": "sill_11", "group": "compensation", "uz": "Har bir yangi so'zni lug'atdan qaramasdan o'qishni davom ettiraman.", "en": "I read English without looking up every new word."},
+    {"id": "sill_12", "group": "compensation", "uz": "Suhbatdoshim nima deyishini oldindan taxmin qilishga harakat qilaman.", "en": "I try to guess what the other person will say next in English."},
+    {"id": "sill_13", "group": "metacognitive", "uz": "Ingliz tilini qo'llash uchun imkon qadar ko'proq imkoniyat izlayman.", "en": "I try to find as many ways as I can to use my English."},
+    {"id": "sill_14", "group": "metacognitive", "uz": "Xatolarimni sezaman va ulardan yaxshiroq ishlash uchun foydalanaman.", "en": "I notice my English mistakes and use that information to help me do better."},
+    {"id": "sill_15", "group": "metacognitive", "uz": "O'rganish uchun aniq maqsad qo'yaman va jadval tuzaman.", "en": "I plan my schedule so I will have enough time to study English and set clear goals."},
+    {"id": "sill_16", "group": "metacognitive", "uz": "Ingliz tilini o'rganishdagi yutuqlarimni muntazam baholab boraman.", "en": "I think about my progress in learning English."},
+    {"id": "sill_17", "group": "affective", "uz": "Ingliz tilida gapirishdan qo'rqsam ham, o'zimni xotirjam qilishga harakat qilaman.", "en": "I try to relax whenever I feel afraid of using English."},
+    {"id": "sill_18", "group": "affective", "uz": "Xato qilishdan qo'rqmasdan gapirishga o'zimni undayman.", "en": "I encourage myself to speak English even when I am afraid of making a mistake."},
+    {"id": "sill_19", "group": "affective", "uz": "Yaxshi natijaga erishganimda o'zimni rag'batlantiraman.", "en": "I give myself a reward when I do well in English."},
+    {"id": "sill_20", "group": "affective", "uz": "Til o'rganishdagi his-tuyg'ularimni boshqalar bilan muhokama qilaman yoki kundalikka yozaman.", "en": "I talk to someone else or write in a diary about how I feel when I am learning English."},
+    {"id": "sill_21", "group": "social", "uz": "Tushunmasam, suhbatdoshimdan sekinroq gapirishni yoki takrorlashni so'rayman.", "en": "If I do not understand something in English, I ask the other person to slow down or say it again."},
+    {"id": "sill_22", "group": "social", "uz": "Ingliz tilida gapirganimda tuzatishlarini so'rayman.", "en": "I ask English speakers to correct me when I talk."},
+    {"id": "sill_23", "group": "social", "uz": "Guruhdoshlarim bilan ingliz tilida mashq qilaman.", "en": "I practise English with other students."},
+    {"id": "sill_24", "group": "social", "uz": "Ingliz tilida so'zlashuvchilarning madaniyatini o'rganishga harakat qilaman.", "en": "I try to learn about the culture of English speakers."}
+  ]
+}

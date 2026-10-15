@@ -175,8 +175,10 @@ def submit_diagnostic(
     survey_questions = load_survey_questions(db, current_user, payload.subject_id or None)
 
     s_map = {q["id"]: q for q in survey_questions}
-    dim_scores = {"anxiety": [], "load_capacity": [], "pace": [], "autonomy": [], "motivation": []}
+    dim_scores = {"anxiety": [], "load_capacity": [], "pace": [], "autonomy": [], "motivation": [],
+                  "planning": [], "monitoring": [], "evaluation": [], "regulation": []}
 
+    meta_raw = {"planning": [], "monitoring": [], "evaluation": [], "regulation": []}
     for ans in payload.survey_answers:
         sq = s_map.get(ans.question_id)
         if sq:
@@ -184,6 +186,8 @@ def submit_diagnostic(
             weight = sq.get("weight", 1.0)
             if dim in dim_scores:
                 dim_scores[dim].append(ans.rating * weight)
+            if dim in meta_raw:
+                meta_raw[dim].append(ans.rating)  # metakognitiv shkala 1–5: vaznsiz (MSLQ standarti)
 
     def calc_dim(name, default_val):
         vals = dim_scores.get(name, [])
@@ -199,6 +203,12 @@ def submit_diagnostic(
         "pace_index": calc_dim("pace", 60),
         "autonomy_readiness": calc_dim("autonomy", 42)
     }
+    # Metakognitiv komponentlar (Flavell / Pintrich MSLQ): 1–5 shkala, 4.7-jadval uchun
+    def calc_meta(name):
+        vals = meta_raw.get(name, [])
+        return round(sum(vals) / len(vals), 2) if vals else None
+    metacognitive = {k: calc_meta(k) for k in ("planning", "monitoring", "evaluation", "regulation")}
+    motivation_score = calc_dim("motivation", 0) if dim_scores.get("motivation") else None
 
     # 3. Pedagogik tavsiyalar va Scaffolding strategiyasi
     anx = cog_affective["anxiety_level"]
@@ -253,13 +263,39 @@ def submit_diagnostic(
             valid_from=datetime.utcnow()
         )
         db.add(new_profile)
+
+        # 5. Tajriba-sinov o'lchovi (pre/post) — assessments jadvaliga yoziladi (4.2–4.10 jonli jadvallar manbai)
+        from app.models.entities import Assessment
+        atype = payload.assessment_type
+        if not atype:
+            has_pre = db.query(Assessment).filter(Assessment.student_id == current_user["id"], Assessment.assessment_type == "pre").first()
+            atype = "post" if has_pre else "pre"
+        now = datetime.utcnow()
+        rows = []
+        for sk in ["listening", "reading", "writing", "speaking"]:
+            tot = skill_counts.get(sk, 0)
+            if tot > 0:
+                rows.append(Assessment(student_id=current_user["id"], assessment_type=atype, skill=sk,
+                                       score=int(round(skill_scores.get(sk, 0) * 100 / tot)), max_score=100, administered_at=now))
+        if dim_scores.get("anxiety"):
+            rows.append(Assessment(student_id=current_user["id"], assessment_type=atype, skill="anxiety", score=anx, max_score=100, administered_at=now))
+        if motivation_score is not None:
+            rows.append(Assessment(student_id=current_user["id"], assessment_type=atype, skill="motivation", score=motivation_score, max_score=100, administered_at=now))
+        for k, v in metacognitive.items():
+            if v is not None:
+                rows.append(Assessment(student_id=current_user["id"], assessment_type=atype, skill=f"meta_{k}", score=int(round(v * 20)), max_score=100, administered_at=now))
+        db.add_all(rows)
         db.commit()
+    else:
+        atype = None
 
     return {
         "student_id": student_id,
         "cefr_levels": cefr_levels,
         "overall_cefr": overall_cefr,
         "cognitive_affective": cog_affective,
+        "metacognitive": metacognitive,
+        "assessment_type": atype,
         "professional_track": "Filologiya va tillarni o'qitish (ingliz tili)",
         "source": "diagnostic_test",
         "correct_count": correct_count,
@@ -303,6 +339,68 @@ def get_student_path(
         "total_weeks": 16,
         "current_week": 4,
         "items": path_items
+    }
+
+@router.get("/dynamics")
+def get_student_dynamics(
+    student_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Refleksiya moduli (3.3): talabaning dinamika ko'rsatkichlari — mashg'ulot ballari vaqt bo'yicha,
+    ko'nikma kesimida, o'z bahosi aniqligi (rating_gap), yordam so'rovlari, pre/post baholar, profil tarixi.
+    """
+    from app.models.entities import LessonRecord, Assessment
+    from app.services import statistics as stt
+    target_id = current_user["id"]
+    if student_id and student_id != current_user["id"]:
+        if current_user.get("role") not in ["teacher", "admin"]:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Xavfsizlik qoidasi: faqat o'z dinamikangizni ko'ra olasiz.")
+        target_id = student_id
+
+    recs = db.query(LessonRecord).filter(LessonRecord.student_id == target_id).order_by(LessonRecord.created_at.asc()).all()
+    timeline = [{"date": r.created_at.strftime("%Y-%m-%d") if r.created_at else "", "skill": r.skill, "score": r.score,
+                 "rating_gap": r.rating_gap, "variant": r.task_variant, "scaffold": r.scaffold_level, "help_requests": r.help_requests,
+                 "self_checks": r.self_checks, "minutes": round((r.independent_seconds or 0) / 60, 1), "next_goal": r.next_goal} for r in recs]
+    by_skill = {}
+    for r in recs:
+        if r.score is None:
+            continue
+        d = by_skill.setdefault(r.skill, {"scores": []})
+        d["scores"].append(r.score)
+    for sk, d in by_skill.items():
+        d["count"] = len(d["scores"]); d["avg"] = round(stt.mean(d["scores"]), 1)
+        d["first"] = d["scores"][0]; d["last"] = d["scores"][-1]; d["trend"] = d["scores"][-1] - d["scores"][0]
+    gaps = [r.rating_gap for r in recs if r.rating_gap is not None]
+    assess = {}
+    for a in db.query(Assessment).filter(Assessment.student_id == target_id).order_by(Assessment.administered_at.asc()).all():
+        assess.setdefault(a.assessment_type, {})[a.skill] = a.score
+    profiles = db.query(StudentProfile).filter(StudentProfile.student_id == target_id).order_by(StudentProfile.valid_from.asc()).all()
+    scaffold_path = [r.scaffold_level for r in recs if r.scaffold_level]
+    streak = 0
+    for r in reversed(recs):
+        if r.score is not None and r.score >= 60:
+            streak += 1
+        else:
+            break
+    return {
+        "student_id": target_id,
+        "lessons_completed": len(recs),
+        "timeline": timeline,
+        "by_skill": by_skill,
+        "metacognitive_accuracy": {"avg_rating_gap": round(stt.mean(gaps), 2) if gaps else None,
+                                   "trend": (round(gaps[-1] - gaps[0], 2) if len(gaps) >= 2 else None),
+                                   "note": "0 ga yaqinlashishi o'zini baholash aniqligi oshayotganini bildiradi (metakognitiv kalibrlash)."},
+        "help_requests_total": sum(r.help_requests or 0 for r in recs),
+        "success_streak": streak,
+        "scaffold_path": scaffold_path,
+        "scaffold_rule": "3 ta ketma-ket muvaffaqiyatli (≥60) mashg'ulotdan so'ng ko'mak darajasi bir pog'ona pasaytirilishi o'qituvchiga taklif qilinadi.",
+        "scaffold_reduction_suggested": streak >= 3,
+        "assessments": assess,
+        "profile_history": [{"date": p.valid_from.strftime("%Y-%m-%d") if p.valid_from else "", "source": p.source,
+                             "cefr": {"listening": p.cefr_listening, "reading": p.cefr_reading, "speaking": p.cefr_speaking, "writing": p.cefr_writing},
+                             "anxiety_level": p.anxiety_level, "autonomy_readiness": p.autonomy_readiness} for p in profiles],
     }
 
 @router.get("/glossary")

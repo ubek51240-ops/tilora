@@ -69,6 +69,8 @@ class DiagnosticSubmissionRequest(BaseModel):
     diagnostic_answers: List[DiagnosticAnswer] = []
     survey_answers: List[SurveyAnswer] = []
     subject_id: Optional[str] = None  # Qaysi fan bo'yicha diagnostika (bo'sh -> umumiy)
+    # Tajriba-sinov o'lchovi: pre (kirish) / mid / post (yakuniy). Bo'sh -> avtomatik (birinchi marta pre, keyin post)
+    assessment_type: Optional[str] = Field(None, pattern="^(pre|mid|post)$")
 
 class DiagnosticResultResponse(BaseModel):
     student_id: str
@@ -82,6 +84,8 @@ class DiagnosticResultResponse(BaseModel):
     question_reviews: Optional[List[Dict[str, Any]]] = None
     pedagogic_advice: Optional[Dict[str, Any]] = None
     ai_summary: Optional[str] = None
+    metacognitive: Optional[Dict[str, Optional[float]]] = None
+    assessment_type: Optional[str] = None
 
 # --- O'quv Yo'li ---
 class PathItemResponse(BaseModel):
@@ -107,6 +111,7 @@ class SelfRatingSubmit(BaseModel):
 class ReflectionSubmit(BaseModel):
     gap_explanation: str
     next_goal: str
+    comparison_note: Optional[str] = None  # qiyosiy usul: o'z varianti va muqobil variant farqi asosi
 
 # --- AI ---
 class AITextRequest(BaseModel):

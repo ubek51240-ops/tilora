@@ -249,11 +249,13 @@ def _format_cell(cell, text: str, bold: bool = False, align=WD_ALIGN_PARAGRAPH.L
         run.font.color.rgb = color_rgb
 
 
-def generate_dissertation_docx() -> io.BytesIO:
+def generate_dissertation_docx(data: Dict[str, Any] = None) -> io.BytesIO:
     """
     Dissertatsiya 4-bobiga to'g'ridan-to'g'ri kiritishga tayyor,
     OAK talablari bo'yicha Times New Roman 14/12 pt da formatlangan rasmiy Word hujjati.
+    data: RESEARCH_DATA (dissertatsiya to'plami) yoki live_research.build_live_tables() natijasi.
     """
+    RESEARCH_DATA = data or globals()["RESEARCH_DATA"]
     doc = Document()
     
     # Hoshiyalar (Margins) — OAK standarti: chap 3 sm, o'ng 1.5 sm, yuqori 2 sm, pastki 2 sm
@@ -519,11 +521,13 @@ def generate_dissertation_docx() -> io.BytesIO:
     return file_stream
 
 
-def generate_dissertation_excel() -> io.BytesIO:
+def generate_dissertation_excel(data: Dict[str, Any] = None) -> io.BytesIO:
     """
     Dissertatsiyaning 4-bobi uchun barcha jadvallarni
     alohida varaqlarda chiroyli formatda saqlovchi Excel (.xlsx) kitobi.
+    data: RESEARCH_DATA yoki jonli jadvallar (live_research.build_live_tables()).
     """
+    RESEARCH_DATA = data or globals()["RESEARCH_DATA"]
     wb = openpyxl.Workbook()
     
     # 1. 4.2 Talabalar soni

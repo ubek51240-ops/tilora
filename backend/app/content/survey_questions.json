@@ -178,5 +178,113 @@
     "scale": "likert_5",
     "weight": 0.9,
     "source": "Intrinsic motivation — behavioural indicator"
+  },
+  {
+    "id": "sq_21",
+    "dimension": "planning",
+    "prompt_uz": "Topshiriqni boshlashdan oldin nimaga erishmoqchi ekanimni va qaysi tartibda ishlashimni belgilab olaman.",
+    "prompt_en": "Before starting a task I set what I want to achieve and in what order I will work.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "MSLQ (Pintrich et al., 1991), metacognitive self-regulation — planning, adapted"
+  },
+  {
+    "id": "sq_22",
+    "dimension": "planning",
+    "prompt_uz": "Yozma yoki og'zaki ish uchun avval reja (kirish, asosiy fikrlar, xulosa) tuzaman.",
+    "prompt_en": "I outline (introduction, main points, conclusion) before producing a written or spoken text.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "MSLQ — planning, adapted"
+  },
+  {
+    "id": "sq_23",
+    "dimension": "planning",
+    "prompt_uz": "Mavzuga qarab qaysi resurs (lug'at, namuna, o'qituvchi maslahati) kerakligini oldindan tanlayman.",
+    "prompt_en": "Depending on the topic, I choose in advance which resources (glossary, model, teacher advice) I will need.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "MSLQ — planning / resource management, adapted"
+  },
+  {
+    "id": "sq_24",
+    "dimension": "monitoring",
+    "prompt_uz": "Ish davomida 'tushunyapmanmi, to'g'ri yo'ldamanmi?' deb o'zimni tekshirib boraman.",
+    "prompt_en": "While working I keep checking whether I understand and whether I am on the right track.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "MSLQ — monitoring, adapted"
+  },
+  {
+    "id": "sq_25",
+    "dimension": "monitoring",
+    "prompt_uz": "Chalkashib qolsam, to'xtab, nima tushunarsiz ekanini aniq nomlay olaman.",
+    "prompt_en": "If I get confused, I stop and can name exactly what is unclear.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "MAI (Schraw & Dennison, 1994) — monitoring, adapted"
+  },
+  {
+    "id": "sq_26",
+    "dimension": "monitoring",
+    "prompt_uz": "Vaqtimni nazorat qilaman: topshiriqning qaysi qismiga qancha vaqt ketayotganini bilaman.",
+    "prompt_en": "I keep track of time and know how long each part of the task is taking me.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "MSLQ — time management / monitoring, adapted"
+  },
+  {
+    "id": "sq_27",
+    "dimension": "evaluation",
+    "prompt_uz": "Ishni tugatgach, uni mezonlar bo'yicha o'zim baholayman va qaysi joyi kuchli yoki zaifligini aytaman.",
+    "prompt_en": "After finishing, I evaluate my own work against the criteria and can say where it is strong or weak.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "MAI — evaluation, adapted"
+  },
+  {
+    "id": "sq_28",
+    "dimension": "evaluation",
+    "prompt_uz": "O'qituvchi yoki tizim izohini ko'r-ko'rona qabul qilmay, qaysi qismiga qo'shilishimni asoslayman.",
+    "prompt_en": "I do not accept teacher or system feedback blindly; I justify which parts I agree with.",
+    "scale": "likert_5",
+    "weight": 1.1,
+    "source": "TILORA 4-qoida — evaluation of feedback, original item"
+  },
+  {
+    "id": "sq_29",
+    "dimension": "evaluation",
+    "prompt_uz": "O'z bahoyim bilan haqiqiy natija orasidagi farqni ko'rganimda uning sababini topa olaman.",
+    "prompt_en": "When my self-rating differs from the actual result, I can identify the reason.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "Calibration / evaluation — adapted"
+  },
+  {
+    "id": "sq_30",
+    "dimension": "regulation",
+    "prompt_uz": "Xatolarimni tahlil qilgach, keyingi safar strategiyamni o'zgartiraman (masalan, avval reja, keyin matn).",
+    "prompt_en": "After analysing my mistakes I change my strategy next time (e.g., plan first, then write).",
+    "scale": "likert_5",
+    "weight": 1.1,
+    "source": "MSLQ — regulation, adapted"
+  },
+  {
+    "id": "sq_31",
+    "dimension": "regulation",
+    "prompt_uz": "Har mashg'ulotdan so'ng keyingi mashg'ulot uchun o'zimga aniq, bajarsa bo'ladigan maqsad qo'yaman.",
+    "prompt_en": "After each session I set myself a specific, achievable goal for the next one.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "Zimmerman (2002) self-regulation cycle — adapted"
+  },
+  {
+    "id": "sq_32",
+    "dimension": "regulation",
+    "prompt_uz": "Qaysi usul menda ishlamasa, undan voz kechib boshqasini sinab ko'rishga tayyorman.",
+    "prompt_en": "If a method does not work for me, I am ready to drop it and try another.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "MAI — regulation / debugging strategies, adapted"
   }
 ]

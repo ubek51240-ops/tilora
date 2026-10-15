@@ -431,6 +431,58 @@ class CustomSurveyQuestion(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class LessonRecord(Base):
+    """
+    Yakunlangan 5 bosqichli mashg'ulotning to'liq yozuvi (dissertatsiya 3.3: refleksiya moduli
+    "o'zini baholash varaqasi va dinamika ko'rsatkichlari"; 4.1: "kuzatuv varaqasi" jarayon ko'rsatkichlari).
+    Metakognitiv sikl: rejalashtirish (planning) -> monitoring -> baholash (evaluation) -> refleksiya.
+    """
+    __tablename__ = "lesson_records"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("users.id"), index=True, nullable=False)
+    group_id = Column(String(36), ForeignKey("groups.id"), nullable=True)
+    skill = Column(String(20), default="writing")
+    task_variant = Column(String(10), nullable=True)  # A (yuqori) / B (o'rta) / C (quyi)
+    scaffold_level = Column(String(20), nullable=True)
+    # Rejalashtirish (1-bosqich)
+    plan_goal = Column(Text, nullable=True)
+    plan_strategy = Column(Text, nullable=True)
+    # Monitoring (3-bosqich jarayon ko'rsatkichlari)
+    help_requests = Column(Integer, default=0)        # qulflangan AI tugmasini bosish urinishlari
+    self_checks = Column(Integer, default=0)          # o'z-o'zini tekshirish belgilari
+    independent_seconds = Column(Integer, default=0)  # mustaqil bosqichda sarflangan vaqt
+    total_seconds = Column(Integer, default=0)
+    word_count = Column(Integer, default=0)
+    production_text = Column(Text, nullable=True)
+    # Baholash (4–5-bosqich)
+    score = Column(SmallInteger, nullable=True)
+    rubric = Column(JSON, nullable=True)
+    self_rating = Column(JSON, nullable=True)
+    rating_gap = Column(Float, nullable=True)         # |o'z bahosi - tizim bahosi| o'rtacha (metakognitiv aniqlik)
+    feedback_decisions = Column(JSON, nullable=True)  # [{id, title, accepts, justification}]
+    l1_pattern_ids = Column(JSON, nullable=True)      # takrorlanuvchi xatolarni kuzatish uchun
+    comparison_note = Column(Text, nullable=True)     # qiyosiy usul: o'z varianti va AI varianti farqi asosi
+    ai_powered = Column(Boolean, default=False)
+    # Refleksiya
+    gap_explanation = Column(Text, nullable=True)
+    next_goal = Column(Text, nullable=True)
+    teacher_extension = Column(Text, nullable=True)   # o'qituvchi izohni jarayon/o'zini boshqarish darajasiga ko'taradi
+    teacher_id = Column(String(36), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+class TaskVariantAssignment(Base):
+    """Tabaqalashtirish: o'qituvchi talabaga topshiriq variantini (A/B/C) biriktiradi yoki tizim taklifini o'zgartiradi."""
+    __tablename__ = "task_variant_assignments"
+    id = Column(String(36), primary_key=True, default=gen_uuid)
+    student_id = Column(String(36), ForeignKey("users.id"), index=True, nullable=False)
+    teacher_id = Column(String(36), ForeignKey("users.id"), nullable=True)
+    variant = Column(String(10), nullable=False)  # A / B / C
+    note = Column(Text, nullable=True)
+    source = Column(String(20), default="teacher")  # teacher | system
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class ApiKey(Base):
     """
     Dasturchi (developer) va Super Admin (admin) uchun dasturiy integratsiya API kaliti.

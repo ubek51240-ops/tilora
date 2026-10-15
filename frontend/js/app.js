@@ -94,7 +94,9 @@ const SCREEN_PERMISSIONS = {
   "s_research": ["researcher", "admin", "teacher", "guest", "student", "developer"],
   "s_admin": ["admin"],
   "s_api_docs": ["developer", "admin"],
-  "s_about": ["student", "teacher", "admin", "researcher", "guest", "developer"]
+  "s_about": ["student", "teacher", "admin", "researcher", "guest", "developer"],
+  "s_dynamics": ["student", "teacher", "admin", "developer"],
+  "s_teacher_panel": ["teacher", "admin"]
 };
 
 function canAccessScreen(screenId, role) {
@@ -250,9 +252,17 @@ function showScreen(screenId) {
   if (screenId === "s_about" && typeof window.loadAboutScreen === "function") {
     window.loadAboutScreen();
   }
+  if (screenId === "s_dynamics" && typeof window.loadDynamicsScreen === "function") {
+    window.loadDynamicsScreen();
+  }
+  if (screenId === "s_teacher_panel" && typeof window.loadTeacherPanel === "function") {
+    window.loadTeacherPanel();
+  }
 
   if (screenId === "s_lesson" && typeof goToStage === "function") {
     goToStage(STATE.lessonStage || 1);
+    // Tabaqalashtirish: talabaning varianti (A/B/C), sababi va variantga mos topshiriq
+    if (typeof loadLessonVariant === "function") loadLessonVariant();
   }
 
   if (screenId === "s_path" && typeof window.renderLearningPath === "function") {
@@ -308,6 +318,8 @@ async function triggerAILockNotice(toolName) {
     noticeBox.style.display = "block";
     noticeBox.innerHTML = `<strong>Server tekshirmoqda...</strong> [403 AI_LOCKED so'rovi]`;
   }
+  // Monitoring (metakognitiv sikl): yordamga urinish kuzatuv varaqasiga yoziladi
+  if (STATE.token && typeof sendMonitorEvent === "function") sendMonitorEvent("help_request");
 
   try {
     const lockHeaders = {
@@ -559,6 +571,8 @@ async function finishProduction() {
   
   // Yangi matn: avvalgi AI bahosi eskirdi
   invalidateAiEvaluation();
+  // Monitoring: mustaqil ish vaqti (tick) matn topshirilishidan OLDIN yuboriladi
+  if (typeof sendMonitorTick === "function") await sendMonitorTick();
   // 4-bosqichga o'tish
   goToStage(4);
   
@@ -618,15 +632,24 @@ async function runL1InterferenceCheck(text) {
       : `<div style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);margin-bottom:12px"><span>🔍 Matn mazmuni va L1 interferensiyasi bo'yicha dinamik tahlil yakunlandi</span></div>`;
 
     container.innerHTML = aiBadgeInfo + items.map((issue, idx) => `
-      <div class="fb-item ${escapeHtml(issue.cat || 'grammar')}">
+      <div class="fb-item ${escapeHtml(issue.cat || 'grammar')}" data-item-id="${escapeHtml(issue.id || idx)}" data-item-title="${escapeHtml(issue.title || '')}">
         <div class="fb-badge">${escapeHtml(issue.badge || "Tahlil")}</div>
         <div style="font-size:14.5px;font-weight:700;margin-bottom:4px;color:var(--ink)">${escapeHtml(issue.title)}</div>
         ${issue.matched_text ? `<div style="font-size:12.5px;color:var(--clay);margin-bottom:6px;background:rgba(217,119,87,0.08);padding:3px 8px;border-radius:4px;display:inline-block">Matndan parcha: "<b>${escapeHtml(issue.matched_text)}</b>"</div>` : ''}
         <div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;line-height:1.6"><b>Sabab:</b> ${escapeHtml(issue.reason || issue.issue_reason || '')}</div>
         ${issue.suggestion ? `<div style="font-size:12.5px;color:var(--teal);margin-bottom:12px;line-height:1.5"><b>Tavsiya:</b> ${escapeHtml(issue.suggestion)}</div>` : ''}
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn-primary" style="padding:6px 14px;font-size:12px" onclick="setFeedbackDecision(this, true, '${escapeHtml(issue.id || idx)}')">Roziman</button>
-          <button class="btn-primary" style="padding:6px 14px;font-size:12px;background:var(--clay)" onclick="setFeedbackDecision(this, false, '${escapeHtml(issue.id || idx)}')">Rozi emasman</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn-primary" style="padding:6px 14px;font-size:12px" onclick="setFeedbackDecision(this, true, ${jsArg(issue.id || idx)})">Roziman</button>
+          <button class="btn-primary" style="padding:6px 14px;font-size:12px;background:var(--clay)" onclick="setFeedbackDecision(this, false, ${jsArg(issue.id || idx)})">Rozi emasman</button>
+        </div>
+        <!-- Metakognitiv BAHOLASH: izohni so'zsiz qabul qilmaslik — asos yoziladi -->
+        <div style="margin-top:10px;border-top:1px dashed var(--line-2);padding-top:8px">
+          <label style="font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:4px">Asos (nega qabul qildingiz / qilmadingiz?)</label>
+          <textarea class="fb-justification" maxlength="1000" placeholder="Qisqa asos: izohning qaysi qismi to'g'ri, qaysi qismi menimcha noto'g'ri..." style="width:100%;min-height:52px;padding:8px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:6px;flex-wrap:wrap">
+            <button class="btn-primary" style="padding:5px 12px;font-size:12px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="saveFeedbackJustification(this, ${jsArg(issue.id || idx)})">Saqlash</button>
+            <span class="fb-just-status" style="font-size:12px;color:var(--teal);font-weight:600"></span>
+          </div>
         </div>
       </div>
     `).join("");
@@ -661,10 +684,16 @@ function updateStage5ActualRating(scoreData) {
 
 async function setFeedbackDecision(btn, accepts, itemId) {
   const parent = btn.parentElement;
-  parent.innerHTML = accepts 
+  const item = (btn.closest ? btn.closest(".fb-item") : null);
+  const title = item ? (item.getAttribute("data-item-title") || "") : "";
+  const justEl = item ? item.querySelector(".fb-justification") : null;
+  const justification = justEl ? justEl.value.trim() : "";
+  STATE.feedbackDecisions[String(itemId)] = { accepts: Boolean(accepts), title };
+
+  parent.innerHTML = accepts
     ? `<span style="font-size:12px;color:var(--teal);font-weight:600">✓ Rozilik bildirildi (Qaror sizniki)</span>`
     : `<span style="font-size:12px;color:var(--clay);font-weight:600">✗ E'tiroz qayd etildi (Sabab yozildi)</span>`;
-    
+
   try {
     await fetch(`${STATE.apiBaseUrl}/feedback/response`, {
       method: "POST",
@@ -678,6 +707,46 @@ async function setFeedbackDecision(btn, accepts, itemId) {
   } catch (e) {
     // Jim saqlash
   }
+
+  // Metakognitiv BAHOLASH: qaror (va bo'lsa asos) mashg'ulot holatiga yoziladi
+  const ok = await submitFeedbackDecision(itemId, title, accepts, justification);
+  const status = item ? item.querySelector(".fb-just-status") : null;
+  if (status && ok && justification) status.textContent = "✓ Qaror va asos saqlandi";
+}
+
+async function submitFeedbackDecision(itemId, title, accepts, justification) {
+  if (!STATE.token) return false;
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/feedback-decision`, {
+      method: "POST",
+      headers: lessonAuthHeaders(),
+      body: JSON.stringify({
+        item_id: String(itemId || "fb_item").slice(0, 100),
+        title: String(title || "").slice(0, 300),
+        accepts: Boolean(accepts),
+        justification: String(justification || "").slice(0, 1000)
+      })
+    });
+    return res.ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+async function saveFeedbackJustification(btn, itemId) {
+  const item = btn.closest ? btn.closest(".fb-item") : null;
+  if (!item) return;
+  const dec = STATE.feedbackDecisions[String(itemId)];
+  const justEl = item.querySelector(".fb-justification");
+  const status = item.querySelector(".fb-just-status");
+  const justification = justEl ? justEl.value.trim() : "";
+  if (!dec) { showToast("Avval 'Roziman' yoki 'Rozi emasman' tanlang, so'ng asosni saqlang.", "warning"); return; }
+  if (!justification) { showToast("Asosni yozing: nega qabul qildingiz yoki qilmadingiz?", "warning"); if (justEl) justEl.focus(); return; }
+  if (!STATE.token) { if (status) status.textContent = "Mehmon rejimi: asos faqat shu sahifada saqlanadi."; return; }
+  btn.disabled = true;
+  const ok = await submitFeedbackDecision(itemId, dec.title, dec.accepts, justification);
+  btn.disabled = false;
+  if (status) status.textContent = ok ? "✓ Asos saqlandi" : "⚠️ Saqlanmadi (server)";
 }
 
 // 4-QOIDA: Metakognitiv refleksiya va o'zini baholash
@@ -752,31 +821,46 @@ async function finishLessonStage5() {
   }
 
   if (btn) btn.disabled = true;
+  const doneBox = document.getElementById("lessonDoneBox");
 
   try {
-    const headers = { "Content-Type": "application/json" };
-    if (STATE.token) headers["Authorization"] = `Bearer ${STATE.token}`;
-
-    await fetch(`${STATE.apiBaseUrl}/lesson/5/reflection`, {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/reflection`, {
       method: "POST",
-      headers: headers,
+      headers: lessonAuthHeaders(),
       body: JSON.stringify({
         gap_explanation: gap,
-        next_goal: goal
+        next_goal: goal,
+        comparison_note: STATE.comparisonNote || null
       })
     });
+    const data = await res.json().catch(() => ({}));
 
-    alert("🎉 Mashg'ulot muvaffaqiyatli yakunlandi!\n\nMetakognitiv o'z-o'zini baholash va AI natijalari profilingizga saqlandi.");
-    
-    // Talaba profilinga o'tish
-    if (typeof showScreen === "function") {
-      showScreen("s_profile");
-    }
-    if (typeof loadStudentProfile === "function") {
-      loadStudentProfile();
+    if (res.ok && data.record_id) {
+      showToast("🎉 Mashg'ulot yakunlandi va yozuv saqlandi. Dinamika bo'limida ko'rishingiz mumkin.", "success");
+      if (doneBox) {
+        doneBox.style.display = "block";
+        doneBox.innerHTML = `
+          <div style="margin-bottom:8px"><b>✓ Mashg'ulot yakunlandi.</b> ${escapeHtml(data.message || "")}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-primary" style="background:var(--teal)" onclick="showScreen('s_dynamics')">📈 Dinamikani ko'rish</button>
+            <button class="btn-primary" style="background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="showScreen('s_profile')">Profilga o'tish</button>
+          </div>`;
+      }
+      if (typeof resetMetacognitiveState === "function") resetMetacognitiveState();
+      if (typeof loadStudentProfile === "function") loadStudentProfile();
+    } else if (!res.ok) {
+      const msg = (typeof data.detail === "string") ? data.detail
+        : (res.status === 401 ? "Natijani saqlash uchun avval tizimga kiring (mehmon rejimida yozuv saqlanmaydi)." : `Refleksiyani saqlashda xatolik (HTTP ${res.status}).`);
+      showToast(msg, "error");
+      if (doneBox && res.status === 401) {
+        doneBox.style.display = "block";
+        doneBox.innerHTML = `<b>Mehmon rejimi:</b> refleksiya yozuvi saqlanmadi. Dinamika va kuzatuv paneli faqat tizimga kirgan talaba uchun yuritiladi.`;
+      }
+    } else {
+      showToast("Refleksiya qabul qilindi.", "info");
     }
   } catch (err) {
-    alert("Mashg'ulot yakunlandi va natijalar profilingizga qo'shildi.");
+    showToast("Serverga ulanishda xatolik: refleksiya yuborilmadi.", "error");
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -796,6 +880,11 @@ function goToStage(stageNum) {
   const targetContent = document.getElementById(`stageContent${stageNum}`);
   if (targetContent) targetContent.style.display = "block";
 
+  // Monitoring: mustaqil bosqich vaqti faqat 3-bosqichda hisoblanadi
+  if (typeof startStage3Timer === "function") {
+    if (stageNum === 3) startStage3Timer(); else stopStage3Timer();
+  }
+
   // 1-QOIDA: bosqichni serverga bildiramiz — mustaqil bosqichda AI qulfi serverda yoqiladi,
   // mijoz sarlavha yoki UI orqali uni chetlab o'ta olmaydi.
   if (STATE.token) {
@@ -813,6 +902,535 @@ function goToStage(stageNum) {
     checkReflectionReadiness();
   }
 }
+
+// ============================================================
+// METAKOGNITIV SIKL (dissertatsiya 3.3):
+//   Rejalashtirish (1-bosqich) -> Monitoring (3-bosqich) -> Baholash (4-bosqich) -> Refleksiya (5-bosqich)
+// + Tabaqalashtirish (variant A/B/C), dialog mashqi (2-bosqich), qiyosiy usul (4-bosqich)
+// ============================================================
+STATE.lessonSkill = "writing";
+STATE.lessonVariant = null;
+STATE.lessonInfo = null;
+STATE.lessonTask = null;
+STATE.lessonTaskCache = {};
+STATE.lessonPlan = null;
+STATE.lessonPlanSaved = false;
+STATE.comparisonNote = null;
+STATE.feedbackDecisions = {};
+STATE.dialogMessages = [];
+STATE.stage3Accum = 0;
+STATE.stage3EnteredAt = null;
+STATE.stage3Timer = null;
+STATE.listenPlayback = { count: 0, max: null, speed: 1, inProgress: false, bound: false };
+
+const VARIANT_LABELS = { A: "Kengaytirilgan variant", B: "Asosiy variant", C: "Ko'maklashtirilgan variant" };
+const SCAFFOLD_LABELS = { full: "to'liq ko'mak", partial: "qisman ko'mak", none: "ko'maksiz" };
+
+function lessonAuthHeaders(json = true) {
+  const h = {};
+  if (json) h["Content-Type"] = "application/json";
+  if (STATE.token) h["Authorization"] = `Bearer ${STATE.token}`;
+  return h;
+}
+
+// ---- Tabaqalashtirish: variant va topshiriq ----
+async function loadLessonVariant() {
+  if (!STATE.token) { renderVariantBanner(null); return; }
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5`, { headers: lessonAuthHeaders(false) });
+    if (!res.ok) return;
+    const data = await res.json();
+    STATE.lessonInfo = data;
+    STATE.lessonVariant = data.variant || null;
+    if (data.plan && data.plan.goal) {
+      STATE.lessonPlanSaved = true;
+      STATE.lessonPlan = data.plan;
+      const g = document.getElementById("planGoalInput");
+      const s = document.getElementById("planStrategyInput");
+      if (g && !g.value) g.value = data.plan.goal || "";
+      if (s && !s.value) s.value = data.plan.strategy || "";
+      showPlanSaved(data.plan);
+    }
+    renderVariantBanner(data);
+    const uiSkill = STATE.lessonSkill || data.skill || "writing";
+    if (data.task && data.task.skill === uiSkill) {
+      STATE.lessonTaskCache[`${uiSkill}:${STATE.lessonVariant || ""}`] = data.task;
+      applyTaskToUI(data.task);
+    } else {
+      refreshLessonTask(uiSkill);
+    }
+  } catch (e) {
+    console.warn("Variant yuklanmadi:", e);
+  }
+}
+
+async function refreshLessonTask(skill) {
+  skill = skill || STATE.lessonSkill || "writing";
+  const v = STATE.lessonVariant;
+  const key = `${skill}:${v || ""}`;
+  if (STATE.lessonTaskCache[key]) { applyTaskToUI(STATE.lessonTaskCache[key]); return; }
+  try {
+    const q = `?skill=${encodeURIComponent(skill)}` + (v ? `&variant=${encodeURIComponent(v)}` : "");
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/task${q}`, { headers: lessonAuthHeaders(false) });
+    if (!res.ok) return;
+    const task = await res.json();
+    STATE.lessonTaskCache[key] = task;
+    applyTaskToUI(task);
+  } catch (_) {}
+}
+
+function applyTaskToUI(task) {
+  if (!task) return;
+  STATE.lessonTask = task;
+  const desc = document.getElementById("lessonTaskPromptDesc");
+  if (desc && task.prompt) {
+    const v = task.variant || STATE.lessonVariant;
+    desc.innerHTML = `<b>Savol${v ? ` (${escapeHtml(v)}-variant)` : ""}:</b> ${escapeHtml(task.prompt)}`;
+  }
+  const hint = document.getElementById("lessonWordHint");
+  if (hint) {
+    const mn = Number(task.word_count_min || 0), mx = Number(task.word_count_max || 0);
+    if (mx > 0) {
+      hint.style.display = "inline-block";
+      hint.textContent = `🎯 Talab: ${mn}–${mx} so'z`;
+    } else if (task.duration_seconds_min) {
+      hint.style.display = "inline-block";
+      hint.textContent = `🎯 Nutq: ${task.duration_seconds_min}–${task.duration_seconds_max || task.duration_seconds_min} soniya`;
+    } else {
+      hint.style.display = "none";
+    }
+  }
+  applyListeningPlayback(task);
+  applyReadingSource(task);
+}
+
+function renderVariantBanner(data) {
+  const el = document.getElementById("variantBanner");
+  if (!el) return;
+  if (!data || !data.variant) { el.style.display = "none"; return; }
+  const v = String(data.variant);
+  const sc = data.scaffold_level || (data.task && data.task.scaffold_level) || "";
+  const chipCls = sc === "full" ? "full" : (sc === "partial" ? "part" : "none");
+  el.style.display = "block";
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13.5px">
+      <span class="chip ${chipCls}" style="font-size:12px;font-weight:700">Sizning variantingiz: ${escapeHtml(v)} — ${escapeHtml(VARIANT_LABELS[v] || "Variant")}</span>
+      ${sc ? `<span class="chip" style="background:var(--surface-2);border-color:var(--line);color:var(--ink-2)">Ko'mak: ${escapeHtml(SCAFFOLD_LABELS[sc] || sc)}</span>` : ""}
+      ${data.current_week ? `<span style="font-size:12px;color:var(--muted)">${escapeHtml(data.current_week)}</span>` : ""}
+    </div>
+    ${data.variant_reason ? `<div class="why-box" style="margin-top:10px;padding:12px 16px"><b>2-qoida: sabab ochiq</b>${escapeHtml(data.variant_reason)}</div>` : ""}`;
+}
+
+// 3-bosqich: tinglash qutisi — variantga mos sur'at va takror limiti
+function applyListeningPlayback(task) {
+  const audio = document.getElementById("listeningTaskAudio");
+  if (!audio || task.skill !== "listening") return;
+  const pb = STATE.listenPlayback;
+  if (!task.playback) { pb.max = null; renderPlaybackInfo(); return; }
+  const v = task.variant || STATE.lessonVariant || "B";
+  const cfg = task.playback[v] || task.playback.B || {};
+  pb.max = Number(cfg.max_replays) > 0 ? Number(cfg.max_replays) : null;
+  pb.speed = Number(cfg.speed) > 0 ? Number(cfg.speed) : 1;
+  pb.count = 0;
+  pb.inProgress = false;
+  if (task.audio_url) {
+    const src = String(task.audio_url).replace(/^\//, "");
+    const cur = audio.querySelector("source");
+    if (cur && !(cur.getAttribute("src") || "").endsWith(src)) { cur.setAttribute("src", src); audio.load(); }
+  }
+  audio.controls = true;
+  audio.playbackRate = pb.speed;
+  if (!pb.bound) {
+    pb.bound = true;
+    audio.addEventListener("play", () => {
+      audio.playbackRate = pb.speed;
+      if (pb.inProgress) return; // pauza/davom — yangi tinglash emas
+      if (pb.max && pb.count >= pb.max) {
+        audio.pause();
+        audio.currentTime = 0;
+        showToast(`Tinglash limiti tugadi (${pb.max} marta) — variantingiz shartiga ko'ra.`, "warning");
+        return;
+      }
+      pb.count += 1;
+      pb.inProgress = true;
+      renderPlaybackInfo();
+    });
+    audio.addEventListener("ended", () => {
+      pb.inProgress = false;
+      if (pb.max && pb.count >= pb.max) audio.controls = false;
+      renderPlaybackInfo();
+    });
+  }
+  renderPlaybackInfo();
+}
+
+function renderPlaybackInfo() {
+  const info = document.getElementById("listeningPlaybackInfo");
+  const pb = STATE.listenPlayback;
+  if (!info) return;
+  if (!pb.max) { info.style.display = "none"; return; }
+  const left = Math.max(0, pb.max - pb.count);
+  info.style.display = "flex";
+  info.innerHTML = `<span class="chip part">🔁 Qolgan tinglashlar: ${left} / ${pb.max}</span>` +
+    `<span class="chip none">⏩ Sur'at: ${escapeHtml(String(pb.speed))}×</span>` +
+    (left === 0 && !pb.inProgress ? `<span style="color:var(--clay);font-weight:600">Tinglash limiti tugadi</span>` : "");
+}
+
+// 3-bosqich: o'qish qutisi — moslashtirilgan matn belgisi (shaffoflik) va matn
+function applyReadingSource(task) {
+  if (task.skill !== "reading") return;
+  const badge = document.getElementById("readingSourceBadge");
+  const box = document.getElementById("readingTextBox");
+  if (badge) {
+    if (task.reading_source) {
+      const rs = task.reading_source;
+      badge.style.display = "block";
+      badge.innerHTML = `<span class="chip part" style="display:inline-block;margin-bottom:4px">📄 Moslashtirilgan matn</span>` +
+        (rs.note ? `<div style="font-size:11.5px;color:var(--ink-2);line-height:1.5">${escapeHtml(rs.note)}</div>` : "");
+    } else {
+      badge.style.display = "none";
+    }
+  }
+  if (box && task.reading_text) {
+    const title = (task.reading_source && task.reading_source.title) || task.title_en || task.title || "Academic Reading";
+    box.innerHTML = `<b>${escapeHtml(title)}</b><br><i>${escapeHtml(task.reading_text)}</i>`;
+  }
+}
+
+// ---- 1-bosqich: REJALASHTIRISH ----
+function showPlanSaved(plan) {
+  if (!plan) return;
+  const note = document.getElementById("planSavedNote");
+  if (note) { note.style.display = "block"; note.textContent = `✓ Reja saqlandi: "${plan.goal}"`; }
+  const rem = document.getElementById("planReminder");
+  if (rem) {
+    rem.style.display = "block";
+    rem.innerHTML = `<b>Rejangiz:</b> ${escapeHtml(plan.goal)}` +
+      (plan.strategy ? `<br><span style="color:var(--muted)">Strategiya: ${escapeHtml(plan.strategy)}</span>` : "");
+  }
+}
+
+async function saveLessonPlan() {
+  const goalEl = document.getElementById("planGoalInput");
+  const stratEl = document.getElementById("planStrategyInput");
+  const btn = document.getElementById("btnSavePlan");
+  const goal = goalEl ? goalEl.value.trim() : "";
+  const strategy = stratEl ? stratEl.value.trim() : "";
+  if (goal.length < 5) {
+    showToast("Maqsadingizni kamida 5 ta belgi bilan yozing (rejalashtirish — birinchi qadam).", "warning");
+    if (goalEl) goalEl.focus();
+    return;
+  }
+  if (!STATE.token) {
+    STATE.lessonPlan = { goal, strategy };
+    showPlanSaved(STATE.lessonPlan);
+    goToStage(2);
+    return;
+  }
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/plan`, {
+      method: "POST", headers: lessonAuthHeaders(),
+      body: JSON.stringify({ goal, strategy, skill: STATE.lessonSkill || "writing" })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      showToast(typeof data.detail === "string" ? data.detail : "Rejani saqlab bo'lmadi.", "error");
+      return;
+    }
+    STATE.lessonPlanSaved = true;
+    STATE.lessonPlan = data.plan || { goal, strategy };
+    showPlanSaved(STATE.lessonPlan);
+    showToast("Reja saqlandi. Endi tayyorgarlik bosqichi.", "success");
+    goToStage(2);
+  } catch (e) {
+    showToast("Serverga ulanishda xatolik: reja saqlanmadi.", "error");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function proceedFromIntro() {
+  if (!STATE.token || STATE.lessonPlanSaved) { goToStage(2); return; }
+  const goalEl = document.getElementById("planGoalInput");
+  if (!goalEl || goalEl.value.trim().length < 5) {
+    showToast("Avval rejangizni yozing: 'Bu mashg'ulotdagi maqsadim' maydoni bo'sh.", "warning");
+    if (goalEl) goalEl.focus();
+    return;
+  }
+  saveLessonPlan();
+}
+
+// ---- 2-bosqich: DIALOG MASHQI (jonli muloqotga tayyorgarlik) ----
+const DIALOG_EMPTY_HTML = `<div style="color:var(--muted);font-size:12.5px;text-align:center">Dialogni boshlash uchun ingliz tilida birinchi xabaringizni yozing (masalan: "Good morning! Today we'll talk about...").</div>`;
+
+function resetDialog() {
+  STATE.dialogMessages = [];
+  const log = document.getElementById("dialogLog");
+  if (log) log.innerHTML = DIALOG_EMPTY_HTML;
+  const notice = document.getElementById("dialogNotice");
+  if (notice) notice.style.display = "none";
+}
+
+function appendDialogBubble(role, content, kind) {
+  const log = document.getElementById("dialogLog");
+  if (!log) return null;
+  const div = document.createElement("div");
+  if (kind === "notice") {
+    div.style.cssText = "align-self:stretch;background:var(--amber-soft);border:1px solid #E7D9AE;color:#5F4A0F;padding:8px 12px;border-radius:8px;font-size:12.5px;white-space:pre-wrap";
+  } else if (role === "user") {
+    div.style.cssText = "max-width:85%;align-self:flex-end;background:var(--teal);color:#fff;padding:8px 12px;border-radius:12px;border-bottom-right-radius:3px;white-space:pre-wrap";
+  } else {
+    div.style.cssText = "max-width:85%;align-self:flex-start;background:var(--card);border:1px solid var(--line);color:var(--ink);padding:8px 12px;border-radius:12px;border-bottom-left-radius:3px;white-space:pre-wrap";
+  }
+  div.innerHTML = (kind === "ai" ? `<div style="font-size:10.5px;color:#4338CA;font-weight:700;margin-bottom:3px">🤖 AI tomonidan hosil qilingan</div>` : "") + escapeHtml(content);
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+async function sendDialogMessage(preset) {
+  const input = document.getElementById("dialogInput");
+  const btn = document.getElementById("btnDialogSend");
+  const fbBtn = document.getElementById("btnDialogFeedback");
+  const notice = document.getElementById("dialogNotice");
+  const log = document.getElementById("dialogLog");
+  const text = String(preset || (input ? input.value : "")).trim();
+  if (!text) { showToast("Xabar matnini yozing.", "warning"); return; }
+  if (!STATE.token) {
+    if (notice) {
+      notice.style.display = "block";
+      notice.textContent = "🔑 Dialog mashqi faqat tizimga kirgan talabalar uchun (AI so'rovlari foydalanuvchi bo'yicha hisoblanadi).";
+    }
+    if (window.openLoginModal) window.openLoginModal();
+    return;
+  }
+  if (log && STATE.dialogMessages.length === 0) log.innerHTML = "";
+  if (!preset && input) input.value = "";
+  STATE.dialogMessages.push({ role: "user", content: text.slice(0, 8000) });
+  STATE.dialogMessages = STATE.dialogMessages.slice(-20);
+  if (STATE.dialogMessages.length && STATE.dialogMessages[0].role === "assistant") STATE.dialogMessages.shift();
+  appendDialogBubble("user", text);
+  const typing = document.createElement("div");
+  typing.style.cssText = "align-self:flex-start;color:var(--muted);font-size:12px";
+  typing.textContent = "… hamsuhbat yozmoqda";
+  if (log) { log.appendChild(typing); log.scrollTop = log.scrollHeight; }
+  if (btn) btn.disabled = true;
+  if (fbBtn) fbBtn.disabled = true;
+  try {
+    const scenario = (document.getElementById("dialogScenario") || {}).value || "classroom";
+    const level = (document.getElementById("dialogLevel") || {}).value || "B1";
+    const res = await fetch(`${STATE.apiBaseUrl}/ai/dialog`, {
+      method: "POST", headers: lessonAuthHeaders(),
+      body: JSON.stringify({ messages: STATE.dialogMessages, scenario, level })
+    });
+    const data = await res.json().catch(() => ({}));
+    typing.remove();
+    if (res.status === 403) {
+      appendDialogBubble("assistant", "1-qoida: mustaqil bosqichda dialog tizimi yopiq. Bu mashq faqat tayyorgarlik (2) va tahlil (4) bosqichlarida ochiq.", "notice");
+      return;
+    }
+    if (!res.ok) {
+      appendDialogBubble("assistant", typeof data.detail === "string" ? data.detail : `Server xatosi (HTTP ${res.status}).`, "notice");
+      return;
+    }
+    if (!data.success) {
+      appendDialogBubble("assistant", data.content || "AI dialog xizmati hozir mavjud emas.", "notice");
+      return;
+    }
+    const reply = String(data.content || "").trim();
+    if (reply) {
+      STATE.dialogMessages.push({ role: "assistant", content: reply.slice(0, 8000) });
+      STATE.dialogMessages = STATE.dialogMessages.slice(-20);
+    }
+    appendDialogBubble("assistant", reply || "(bo'sh javob)", "ai");
+    if (notice && data.marker) { notice.style.display = "block"; notice.textContent = `ℹ️ ${data.marker}`; }
+  } catch (e) {
+    typing.remove();
+    appendDialogBubble("assistant", "Serverga ulanishda xatolik.", "notice");
+  } finally {
+    if (btn) btn.disabled = false;
+    if (fbBtn) fbBtn.disabled = false;
+    if (input && !preset) input.focus();
+  }
+}
+
+// ---- 3-bosqich: MONITORING ----
+function sendMonitorEvent(event, seconds) {
+  if (!STATE.token) return Promise.resolve();
+  const body = { event };
+  if (seconds !== undefined) body.seconds = Math.max(0, Math.min(36000, Math.round(seconds)));
+  return fetch(`${STATE.apiBaseUrl}/lesson/5/monitor`, {
+    method: "POST", headers: lessonAuthHeaders(), body: JSON.stringify(body)
+  }).catch(() => {});
+}
+
+function stage3ElapsedSeconds() {
+  return Math.round((STATE.stage3Accum + (STATE.stage3EnteredAt ? Date.now() - STATE.stage3EnteredAt : 0)) / 1000);
+}
+
+function renderStage3Elapsed() {
+  const el = document.getElementById("stage3Elapsed");
+  if (!el) return;
+  const s = stage3ElapsedSeconds();
+  el.textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function startStage3Timer() {
+  if (!STATE.stage3EnteredAt) STATE.stage3EnteredAt = Date.now();
+  if (STATE.lessonPlan) showPlanSaved(STATE.lessonPlan);
+  renderStage3Elapsed();
+  if (!STATE.stage3Timer) STATE.stage3Timer = setInterval(renderStage3Elapsed, 1000);
+}
+
+function stopStage3Timer() {
+  if (STATE.stage3EnteredAt) {
+    STATE.stage3Accum += Date.now() - STATE.stage3EnteredAt;
+    STATE.stage3EnteredAt = null;
+  }
+  if (STATE.stage3Timer) { clearInterval(STATE.stage3Timer); STATE.stage3Timer = null; }
+}
+
+async function sendMonitorTick() {
+  if (!STATE.token) return;
+  const secs = stage3ElapsedSeconds();
+  if (secs <= 0) return;
+  try { await sendMonitorEvent("tick", secs); } catch (_) {}
+}
+
+function onSelfCheck(cb) {
+  if (!cb || !cb.checked || cb.dataset.sent === "1") return;
+  cb.dataset.sent = "1"; // har bir belgi faqat birinchi marta hisoblanadi
+  sendMonitorEvent("self_check");
+}
+
+// ---- 4-bosqich: BAHOLASH — qiyosiy usul (muqobil variant) ----
+async function requestAlternative() {
+  const out = document.getElementById("alternativeOutput");
+  const btn = document.getElementById("btnRequestAlternative");
+  const noteBox = document.getElementById("comparisonNoteBox");
+  if (!out) return;
+  out.style.display = "block";
+  if (!STATE.token) {
+    out.innerHTML = `<div style="padding:12px;background:var(--amber-soft);border-radius:6px;font-size:13px">🔑 Muqobil variant olish uchun tizimga kiring.</div>`;
+    if (window.openLoginModal) window.openLoginModal();
+    return;
+  }
+  out.innerHTML = `<div style="padding:12px;color:var(--muted);font-size:13px">⏳ AI muqobil variantni tayyorlamoqda (faqat birinchi xatboshi, mazmun saqlanadi)...</div>`;
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/alternative`, { method: "POST", headers: lessonAuthHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      let msg = `Server xatosi (HTTP ${res.status}).`;
+      if (typeof data.detail === "string") msg = data.detail;
+      else if (data.detail && data.detail.code === "AI_LOCKED") msg = "1-qoida: mustaqil bosqichda muqobil variant berilmaydi. Avval ishni yakunlang.";
+      out.innerHTML = `<div style="padding:12px;background:var(--amber-soft);border-radius:6px;font-size:13px">⚠️ ${escapeHtml(msg)}</div>`;
+      return;
+    }
+    const badge = data.ai_powered
+      ? `<span style="font-size:11px;color:#4338CA;font-weight:700">🤖 AI tomonidan hosil qilingan</span>`
+      : `<span style="font-size:11px;color:var(--amber);font-weight:700">⚙️ Lokal tahlil (AI o'chiq)</span>`;
+    const instruction = data.instruction || "Ikki variantni solishtiring va farqning sababini o'z so'zlaringiz bilan asoslang (qiyosiy usul).";
+    out.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:6px">
+        ${badge}${data.cached ? `<span class="chip" style="background:var(--surface-2);border-color:var(--line);color:var(--muted)">avval olingan</span>` : ""}
+      </div>
+      <div style="padding:14px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;font-size:13.5px;line-height:1.7;white-space:pre-wrap">${escapeHtml(data.alternative || "")}</div>
+      <div class="why-box" style="margin-top:10px;padding:10px 14px"><b>Qiyosiy usul</b>${escapeHtml(instruction)}</div>`;
+    if (noteBox) noteBox.style.display = "block";
+  } catch (e) {
+    out.innerHTML = `<div style="padding:12px;background:var(--amber-soft);border-radius:6px;font-size:13px">⚠️ Serverga ulanishda xatolik.</div>`;
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function saveComparisonNote() {
+  const el = document.getElementById("comparisonNoteInput");
+  const st = document.getElementById("comparisonSavedNote");
+  const btn = document.getElementById("btnSaveComparison");
+  const note = el ? el.value.trim() : "";
+  if (note.length < 5) {
+    showToast("Farq sababini kamida bir gap bilan asoslang.", "warning");
+    if (el) el.focus();
+    return;
+  }
+  STATE.comparisonNote = note;
+  if (!STATE.token) { if (st) st.textContent = "Mehmon rejimi: izoh refleksiya bilan birga yuboriladi."; return; }
+  if (btn) btn.disabled = true;
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/comparison`, {
+      method: "POST", headers: lessonAuthHeaders(), body: JSON.stringify({ note })
+    });
+    if (st) st.textContent = res.ok ? "✓ Asos saqlandi" : "⚠️ Saqlanmadi (server)";
+  } catch (_) {
+    if (st) st.textContent = "⚠️ Serverga ulanishda xatolik";
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ---- 5-bosqich: REFLEKSIYA — metakognitiv aniqlik (rating_gap) ----
+async function loadRatingGap(retry) {
+  const box = document.getElementById("ratingGapBox");
+  if (!box) return;
+  if (!STATE.token) { box.style.display = "none"; return; }
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/lesson/5/actual-rating`, { headers: lessonAuthHeaders(false) });
+    if (res.status === 409 && !retry) { setTimeout(() => loadRatingGap(true), 900); return; } // o'z bahosi hali yozilmagan bo'lishi mumkin
+    if (!res.ok) { box.style.display = "none"; return; }
+    const data = await res.json();
+    if (data.rating_gap === null || data.rating_gap === undefined) { box.style.display = "none"; return; }
+    const g = Number(data.rating_gap);
+    const hint = g <= 0.5
+      ? "o'z bahoyingiz AI bahosiga juda yaqin — metakognitiv kalibrlash yuqori."
+      : (g <= 1.25 ? "farq o'rtacha — qaysi mezonda farq kattaligiga e'tibor bering." : "farq katta — o'zini baholash mezonlarini qayta ko'rib chiqing.");
+    box.style.display = "block";
+    box.innerHTML = `<b>🧭 Metakognitiv aniqlik (farq): ${escapeHtml(String(g))}</b><br>` +
+      `<span>4 mezon bo'yicha |siz − AI| o'rtacha farqi; 0 ga yaqinlashishi o'zini baholash aniqligini bildiradi — ${escapeHtml(hint)}</span>`;
+  } catch (_) {}
+}
+
+function resetMetacognitiveState() {
+  STATE.lessonPlanSaved = false;
+  STATE.lessonPlan = null;
+  STATE.comparisonNote = null;
+  STATE.feedbackDecisions = {};
+  STATE.dialogMessages = [];
+  stopStage3Timer();
+  STATE.stage3Accum = 0;
+  STATE.lessonInfo = null;
+  STATE.lessonVariant = null;
+  STATE.lessonTaskCache = {};
+  document.querySelectorAll(".self-check-box").forEach(cb => { cb.checked = false; delete cb.dataset.sent; });
+  const note = document.getElementById("planSavedNote"); if (note) note.style.display = "none";
+  const rem = document.getElementById("planReminder"); if (rem) rem.style.display = "none";
+  const cn = document.getElementById("comparisonNoteInput"); if (cn) cn.value = "";
+  const cs = document.getElementById("comparisonSavedNote"); if (cs) cs.textContent = "";
+  const alt = document.getElementById("alternativeOutput"); if (alt) { alt.style.display = "none"; alt.innerHTML = ""; }
+  const cb = document.getElementById("comparisonNoteBox"); if (cb) cb.style.display = "none";
+  // Server holati tozalangan — keyingi mashg'ulot uchun variant va topshiriq qayta olinadi
+  loadLessonVariant();
+}
+
+// switchLessonSkill (dissertation_features.js) dan keyin variantga mos topshiriqni qayta yuklash
+document.addEventListener("DOMContentLoaded", () => {
+  const install = (attempt) => {
+    const orig = window.switchLessonSkill;
+    if (typeof orig !== "function") { if (attempt < 20) setTimeout(() => install(attempt + 1), 150); return; }
+    if (orig.__tiloraVariantHook) return;
+    const wrapped = function (skill) {
+      const r = orig.apply(this, arguments);
+      STATE.lessonSkill = skill || "writing";
+      if (STATE.token && STATE.lessonInfo) refreshLessonTask(STATE.lessonSkill);
+      return r;
+    };
+    wrapped.__tiloraVariantHook = true;
+    window.switchLessonSkill = wrapped;
+  };
+  install(0);
+});
 
 // ---- 5-bosqich: AI bahosi ----
 STATE.aiEvaluation = null;
@@ -892,6 +1510,8 @@ async function renderAiEvaluation() {
       </tr>`;
     }).join("");
   }
+  // Metakognitiv aniqlik (rating_gap) — jadval yonida
+  if (typeof loadRatingGap === "function") loadRatingGap();
   const reasons = document.getElementById("aiEvalReasons");
   if (reasons) {
     reasons.innerHTML = crits.filter(c => data.rubric[c].reason).map(c => `
@@ -3601,6 +4221,31 @@ async function submitDiagnosticForm() {
       if (loadEl) loadEl.textContent = `${ca.load_capacity || 50}/100`;
       if (paceEl) paceEl.textContent = `${ca.pace_index || 60}/100`;
       if (autoEl) autoEl.textContent = `${ca.autonomy_readiness || 42}/100`;
+    }
+
+    // 3b. Metakognitiv komponentlar (1–5, MSLQ) va o'lchov turi (pre/post)
+    const metaBox = document.getElementById("resMetaBox");
+    if (metaBox) {
+      const m = data.metacognitive;
+      const keys = ["planning", "monitoring", "evaluation", "regulation"];
+      const has = m && keys.some(k => m[k] !== null && m[k] !== undefined);
+      if (has) {
+        const f = (v) => (v === null || v === undefined) ? "—" : String(v);
+        metaBox.style.display = "block";
+        metaBox.innerHTML = `🧠 <b>Metakognitiv komponentlar (1–5):</b> Rejalashtirish ${escapeHtml(f(m.planning))} · Monitoring ${escapeHtml(f(m.monitoring))} · Baholash ${escapeHtml(f(m.evaluation))} · O'zini boshqarish ${escapeHtml(f(m.regulation))}`;
+      } else {
+        metaBox.style.display = "none";
+      }
+    }
+    const atChip = document.getElementById("resAssessTypeChip");
+    if (atChip) {
+      if (data.assessment_type) {
+        const at = String(data.assessment_type);
+        atChip.style.display = "inline-block";
+        atChip.textContent = `📏 O'lchov: ${at === "pre" ? "pre (kirish)" : (at === "post" ? "post (yakuniy)" : at)}`;
+      } else {
+        atChip.style.display = "none";
+      }
     }
 
     // 4. Pedagogik va FLCAS tavsiyasi

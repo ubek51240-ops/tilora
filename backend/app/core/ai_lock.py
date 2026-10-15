@@ -15,7 +15,7 @@ class AILockGuard:
     """
     def __init__(self, tool_name: str):
         self.tool_name = tool_name
-        self.blocked_tools = {"generate", "translate", "complete", "answer"}
+        self.blocked_tools = {"generate", "translate", "complete", "answer", "dialog"}
 
     async def __call__(self, request: Request, user: Optional[dict] = Depends(get_optional_user)):
         if self.tool_name not in self.blocked_tools:

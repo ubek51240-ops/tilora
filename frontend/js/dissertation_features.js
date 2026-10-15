@@ -1182,24 +1182,105 @@
   // ==========================================
   // 4. DISSERTATSIYA 4-BOBI TADQIQOTCHI PANELI
   // ==========================================
-  let researchTablesData = null;
+  // Jadvallar manbadan qat'i nazar `currentResearchData` dan chiziladi:
+  //   'dissertation' → GET /research/tables (statik, oldindan hisoblangan to'plam)
+  //   'live'         → GET /research/live/tables (platformadagi assessments dan real vaqtda)
+  let currentResearchData = null;
+  let researchSource = 'dissertation';
+  let liveOverview = null;
   let activeResearchTab = 'tab_4_2';
   const esc = window.escapeHtml || (s => String(s == null ? '' : s));
+  const rArg = (v) => (typeof window.jsArg === 'function' ? window.jsArg(v) : esc(JSON.stringify(String(v == null ? '' : v))));
+  const LIVE_ROLES = ['researcher', 'teacher', 'admin'];
+  const rToast = (msg, type) => { if (typeof window.showToast === 'function') window.showToast(msg, type || 'info'); };
 
   function researchApiBase() {
     return (window.STATE && STATE.apiBaseUrl ? STATE.apiBaseUrl : '/api');
   }
+  function researchToken() {
+    return (window.STATE && STATE.token) ? STATE.token : (localStorage.getItem('tilora_token') || '');
+  }
   function researchAuthHeaders() {
     const h = {};
-    if (window.STATE && STATE.token) h['Authorization'] = 'Bearer ' + STATE.token;
+    const t = researchToken();
+    if (t) h['Authorization'] = 'Bearer ' + t;
     return h;
   }
+  function researchRole() {
+    return (window.STATE && STATE.currentUser) ? (STATE.currentUser.role || '') : '';
+  }
+  function canUseLiveResearch() {
+    return !!researchToken() && LIVE_ROLES.includes(researchRole());
+  }
+  function researchSourceQuery() {
+    return researchSource === 'live' ? '?source=live' : '';
+  }
+  function researchDetail(data, status) {
+    if (!data) return 'HTTP ' + status;
+    const d = data.detail;
+    if (typeof d === 'string') return d;
+    if (Array.isArray(d)) return d.map(x => ((x.loc && x.loc.length) ? x.loc[x.loc.length - 1] + ': ' : '') + (x.msg || '')).join('; ');
+    return data.message || ('HTTP ' + status);
+  }
+  // JSON so'rov (body: obyekt → JSON; FormData → multipart). Xatoda Error(detail) tashlaydi.
+  async function researchRequest(path, opts) {
+    opts = opts || {};
+    const headers = researchAuthHeaders();
+    let body = opts.body;
+    if (body !== undefined && !(body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+      body = JSON.stringify(body);
+    }
+    const res = await fetch(researchApiBase() + path, { method: opts.method || 'GET', headers, body });
+    let data = null;
+    try { data = await res.json(); } catch (e) { data = null; }
+    if (!res.ok) {
+      const err = new Error(researchDetail(data, res.status));
+      err.status = res.status;
+      throw err;
+    }
+    return data;
+  }
+  function researchNotice(html, tone) {
+    const bg = tone === 'error' ? 'var(--clay-soft, #F6E7E2)' : (tone === 'ok' ? 'var(--teal-soft)' : 'var(--amber-soft)');
+    const col = tone === 'error' ? 'var(--clay)' : (tone === 'ok' ? 'var(--teal)' : '#5F4A0F');
+    return '<div style="padding:12px 16px;border-radius:9px;background:' + bg + ';border:1px solid var(--line);color:' + col + ';font-size:13px;line-height:1.55">' + html + '</div>';
+  }
+  function effectLabel(d) {
+    const v = Math.abs(Number(d) || 0);
+    if (v >= 0.8) return 'Katta effekt (Large > 0.8)';
+    if (v >= 0.5) return "O'rta effekt (Medium 0.5–0.8)";
+    if (v >= 0.2) return 'Kichik effekt (Small 0.2–0.5)';
+    return 'Ahamiyatsiz effekt (< 0.2)';
+  }
+
+  // Manba almashtirish: "📚 Dissertatsiya to'plami" | "🟢 Jonli platforma ma'lumotlari"
+  window.setResearchSource = function(src) {
+    researchSource = (src === 'live') ? 'live' : 'dissertation';
+    document.querySelectorAll('.res-src-btn').forEach(b => {
+      const on = b.getAttribute('data-source') === researchSource;
+      b.classList.toggle('active', on);
+      b.style.background = on ? 'var(--teal)' : 'var(--surface-2)';
+      b.style.color = on ? '#fff' : 'var(--ink)';
+    });
+    const liveArea = document.getElementById('researchLiveArea');
+    const banner = document.getElementById('researchLiveBanner');
+    const badge = document.getElementById('researchSourceBadge');
+    if (liveArea) liveArea.style.display = 'none';
+    if (banner) banner.style.display = researchSource === 'live' ? 'block' : 'none';
+    if (badge) badge.textContent = researchSource === 'live' ? "Platformadagi pre/mid/post baholar — real vaqtda hisoblanadi" : "Oldindan hisoblangan yakuniy natijalar (2024–2026)";
+    const container = document.getElementById('dissertationTablesArea');
+    if (container) container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Jadvallar yuklanmoqda...</div>';
+    window.initResearchDashboard();
+  };
 
   window.initResearchDashboard = async function() {
+    if (researchSource === 'live') { await loadLiveResearch(); return; }
     try {
       const res = await fetch(researchApiBase() + '/research/tables', { headers: researchAuthHeaders() });
       if (res.ok) {
-        researchTablesData = await res.json();
+        currentResearchData = await res.json();
+        updateResearchKpis();
         renderResearchTables();
       }
     } catch (e) {
@@ -1207,9 +1288,107 @@
     }
   };
 
+  async function loadLiveResearch() {
+    const banner = document.getElementById('researchLiveBanner');
+    const container = document.getElementById('dissertationTablesArea');
+    const liveArea = document.getElementById('researchLiveArea');
+    if (!canUseLiveResearch()) {
+      currentResearchData = null;
+      const msg = !researchToken()
+        ? "Jonli ma'lumotlar faqat tizimga kirgan <b>tadqiqotchi</b>, <b>o'qituvchi</b> yoki <b>administrator</b> uchun ochiq. Iltimos, avval tizimga kiring."
+        : "Sizning rolingiz (<b>" + esc(researchRole() || "noma'lum") + "</b>) jonli tadqiqot ma'lumotlarini ko'rishga ruxsat bermaydi (kerak: researcher / teacher / admin).";
+      if (banner) { banner.style.display = 'block'; banner.innerHTML = researchNotice('🔒 ' + msg, 'warn'); }
+      if (container) container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Jonli jadvallar uchun ruxsat yo\'q. «📚 Dissertatsiya to\'plami» manbasini tanlang.</div>';
+      if (liveArea) liveArea.style.display = 'none';
+      updateResearchKpis();
+      return;
+    }
+    try {
+      const [ov, tables] = await Promise.all([
+        researchRequest('/research/live/overview'),
+        researchRequest('/research/live/tables'),
+      ]);
+      liveOverview = ov;
+      currentResearchData = tables;
+      renderLiveBanner(ov, tables);
+      updateResearchKpis();
+      renderResearchTables();
+      if (liveArea) liveArea.style.display = 'block';
+      fillResearchSkillSelect(ov.skills || []);
+      window.researchReloadAssessments();
+      loadProcessIndicators();
+    } catch (e) {
+      currentResearchData = null;
+      if (banner) { banner.style.display = 'block'; banner.innerHTML = researchNotice("Jonli ma'lumotlarni yuklab bo'lmadi: " + esc(e.message), 'error'); }
+      if (container) container.innerHTML = '';
+      updateResearchKpis();
+    }
+  }
+
+  // To'liqlik banneri (completeness): tayyor → yashil, aks holda amber + nima yetishmayotgani
+  function renderLiveBanner(ov, tables) {
+    const banner = document.getElementById('researchLiveBanner');
+    if (!banner) return;
+    const c = ov.completeness || {};
+    const sum = (tables && tables.table_4_2 && tables.table_4_2.summary) || {};
+    const arms = ov.groups_by_arm || {};
+    const missing = [];
+    if ((arms.experimental || 0) === 0) missing.push("tajriba (experimental) qanotidagi guruh yo'q");
+    if ((arms.control || 0) === 0) missing.push("nazorat (control) qanotidagi guruh yo'q");
+    if ((sum.experimental_total || 0) < 5) missing.push('tajriba guruhida kamida 5 talaba kerak (hozir ' + (sum.experimental_total || 0) + ')');
+    if ((sum.control_total || 0) < 5) missing.push('nazorat guruhida kamida 5 talaba kerak (hozir ' + (sum.control_total || 0) + ')');
+    if ((c.with_both || 0) < 10) missing.push('pre va post ikkalasi kiritilgan kamida 10 talaba kerak (hozir ' + (c.with_both || 0) + ')');
+    if ((c.with_metacognitive || 0) === 0) missing.push("metakognitiv shkala (meta_*) baholari kiritilmagan — 4.7 va 4.9 jadvallar to'liq bo'lmaydi");
+    const stats = '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:12px">'
+      + [['Qanotdagi talabalar', c.students_in_arms], ['Pre bor', c.with_pre], ['Post bor', c.with_post], ['Pre+Post', c.with_both], ['Metakognitiv', c.with_metacognitive], ['OTM', c.institutions], ['Baholar jami', ov.assessments_total], ["Mashg'ulot yozuvlari", ov.lesson_records_total]]
+        .map(([k, v]) => '<span style="background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:3px 9px;color:var(--ink)"><b>' + esc(v == null ? 0 : v) + '</b> ' + esc(k) + '</span>').join('')
+      + '</div>';
+    const insts = (ov.institutions || []).map(i => esc(i.short_name || i.name)).join(', ');
+    if (c.ready) {
+      banner.innerHTML = researchNotice('<b>🟢 Ma\'lumotlar statistik tahlil uchun yetarli.</b> Jadvallar platformadagi haqiqiy pre/post baholardan hisoblandi.' + (insts ? ' OTMlar: ' + insts + '.' : '') + stats, 'ok');
+    } else {
+      banner.innerHTML = researchNotice('<b>🟡 Ma\'lumotlar hali to\'liq emas</b> — jadvallar hisoblanadi, lekin xulosalar dastlabki.<ul style="margin:6px 0 0;padding-left:18px">' + missing.map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>' + stats, 'warn');
+    }
+    banner.style.display = 'block';
+  }
+
+  // KPI kartalari (N, χ² p, Cohen's d, K_s) — ikkala rejimda yuklangan ma'lumotdan
+  function updateResearchKpis() {
+    const d = currentResearchData;
+    const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+    const note = document.getElementById('researchDataSourceNote');
+    if (!d) {
+      set('kpiNValue', 'N = —'); set('kpiNSub', "Ma'lumot yuklanmagan");
+      set('kpiChiValue', 'p = —'); set('kpiChiSub', '—');
+      set('kpiDValue', 'd = —'); set('kpiDSub', '—');
+      set('kpiKsValue', 'K_s = —'); set('kpiKsSub', '—');
+      if (note) note.textContent = '';
+      return;
+    }
+    const s = (d.table_4_2 && d.table_4_2.summary) || {};
+    const nInst = (d.table_4_2 && d.table_4_2.rows) ? d.table_4_2.rows.length : 0;
+    set('kpiNValue', 'N = ' + esc(s.grand_total == null ? '—' : s.grand_total));
+    set('kpiNSub', 'Tajriba: ' + esc(s.experimental_total == null ? '—' : s.experimental_total) + ' | Nazorat: ' + esc(s.control_total == null ? '—' : s.control_total) + '<br><b>' + (researchSource === 'live' ? esc(nInst) + ' ta OTM (jonli)' : 'BuxDU asosiy baza: N=90') + '</b>');
+
+    const o4 = (d.table_4_4 && d.table_4_4.overall) || {};
+    const p = (typeof o4.p_value === 'number') ? o4.p_value : null;
+    set('kpiChiValue', 'p = ' + esc(p == null ? '—' : p));
+    set('kpiChiSub', 'χ² = ' + esc(o4.chi2 == null ? '—' : o4.chi2) + ', df = ' + esc(o4.df == null ? '—' : o4.df) + (p == null ? '' : (p > 0.05 ? ' (p > 0.05)' : ' (p ≤ 0.05)')) + '<br><b>' + esc(o4.conclusion || (p == null ? "Ma'lumot yetarli emas" : (p > 0.05 ? 'Guruhlar tengligi tasdiqlandi' : "Boshlang'ich farq mavjud"))) + '</b>');
+
+    const avgD = d.table_4_7 ? d.table_4_7.average_d : null;
+    set('kpiDValue', 'd = ' + esc(avgD == null ? '—' : avgD));
+    set('kpiDSub', esc(avgD == null ? '—' : effectLabel(avgD)) + '<br><b>' + (avgD == null ? "Ma'lumot yetarli emas" : (Math.abs(avgD) >= 0.8 ? 'Pedagogik yuqori samara' : (researchSource === 'live' ? "Metakognitiv komponentlar o'rtachasi (post, tajriba vs nazorat)" : 'Metakognitiv komponentlar o\'rtachasi'))) + '</b>');
+
+    const o8 = (d.table_4_8 && d.table_4_8.overall) || {};
+    set('kpiKsValue', 'K_s = ' + esc(o8.ratio_k == null ? '—' : o8.ratio_k));
+    set('kpiKsSub', 'Bespalko mezoni (K > 1.0)<br><b>' + esc(o8.diff_percent ? o8.diff_percent + (String(o8.diff_percent).startsWith('+') ? " yuqori o'zlashtirish" : '') : '—') + '</b>');
+
+    if (note) note.textContent = d.data_source_note ? ('ℹ️ ' + d.data_source_note) : '';
+  }
+
   window.switchResearchTab = function(tabKey) {
     activeResearchTab = tabKey;
-    document.querySelectorAll('.res-tab-btn').forEach(b => {
+    document.querySelectorAll('.res-tab-btn[data-tab]').forEach(b => {
       if (b.getAttribute('data-tab') === tabKey) {
         b.classList.add('active');
         b.style.background = 'var(--teal)';
@@ -1223,12 +1402,19 @@
     renderResearchTables();
   };
 
+  function researchTableMissing(container, what) {
+    container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">' + esc(what) + ' bu manbada mavjud emas.</div>';
+  }
+
   function renderResearchTables() {
     const container = document.getElementById('dissertationTablesArea');
-    if (!container || !researchTablesData) return;
+    if (!container) return;
+    if (!currentResearchData) return;
+    const researchTablesData = currentResearchData;
 
     if (activeResearchTab === 'tab_4_2') {
       const d = researchTablesData.table_4_2;
+      if (!d) { researchTableMissing(container, '4.2-jadval'); return; }
       let html = `
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
           <h4 style="margin:0;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
@@ -1259,7 +1445,7 @@
       html += `
           <tr style="background:#EBF5FF;font-weight:700;height:42px">
             <td style="padding:8px 12px">Jami</td>
-            <td style="padding:8px 12px;color:var(--muted)">3 ta oliy ta'lim muassasasi</td>
+            <td style="padding:8px 12px;color:var(--muted)">${esc(d.rows.length)} ta oliy ta'lim muassasasi</td>
             <td style="padding:8px 12px;text-align:center;color:var(--teal)">${esc(d.summary.experimental_total)}</td>
             <td style="padding:8px 12px;text-align:center">${esc(d.summary.control_total)}</td>
             <td style="padding:8px 12px;text-align:center;font-size:15px;color:#1E40AF">${esc(d.summary.grand_total)}</td>
@@ -1270,6 +1456,7 @@
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_4') {
       const d = researchTablesData.table_4_4;
+      if (!d) { researchTableMissing(container, '4.4-jadval'); return; }
       let html = `
         <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
@@ -1295,7 +1482,7 @@
             <td style="padding:8px 12px;text-align:center">${esc(r.exp_mid)}</td>
             <td style="padding:8px 12px;text-align:center">${esc(r.exp_low)}</td>
             <td style="padding:8px 12px;text-align:center;font-weight:600">${esc(r.exp_total)}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)" rowspan="2">χ² = ${esc(r.chi2)}<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p = ${esc(r.p_value)} > 0.05</span></td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:${Number(r.p_value) > 0.05 ? 'var(--teal)' : 'var(--clay)'}" rowspan="2">χ² = ${esc(r.chi2)}<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p = ${esc(r.p_value)} ${Number(r.p_value) > 0.05 ? '> 0.05' : '≤ 0.05'}</span></td>
           </tr>
           <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
             <td style="padding:8px 12px;color:var(--muted);font-weight:600">Nazorat</td>
@@ -1305,11 +1492,37 @@
             <td style="padding:8px 12px;text-align:center;font-weight:600">${esc(r.ctrl_total)}</td>
           </tr>`;
       });
+      const ov = d.overall;
+      if (ov) {
+        html += `
+          <tr style="background:#EBF5FF;font-weight:700">
+            <td style="padding:8px 12px" rowspan="2">Umumiy tanlanma</td>
+            <td style="padding:8px 12px;color:var(--teal)">Tajriba</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_high)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_mid)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_low)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_total)}</td>
+            <td style="padding:8px 12px;text-align:center;color:${Number(ov.p_value) > 0.05 ? '#1E40AF' : 'var(--clay)'}" rowspan="2">χ² = ${esc(ov.chi2)}<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p = ${esc(ov.p_value)}, df = ${esc(ov.df)}</span></td>
+          </tr>
+          <tr style="background:#EBF5FF;font-weight:700;border-bottom:1.5px solid var(--line)">
+            <td style="padding:8px 12px;color:var(--muted)">Nazorat</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_high)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_mid)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_low)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_total)}</td>
+          </tr>`;
+      }
+      const allEq = d.rows.length > 0 && d.rows.every(r => Number(r.p_value) > 0.05);
+      const concl = (ov && ov.conclusion) ? ov.conclusion : (allEq
+        ? "Barcha OTMlarda p > 0.05 bo'lib, Pearson Chi-Square mezoni bo'yicha tajriba va nazorat guruhlarining boshlang'ich tengligi isbotlangan."
+        : "Ayrim OTMlarda p ≤ 0.05 — boshlang'ich farq mavjud, natijalarni ehtiyotkor talqin qiling.");
       html += `</tbody></table></div>
-        <p style="margin-top:10px;font-size:12.5px;color:var(--muted);font-style:italic">Xulosa: Barcha OTMlarda p > 0.05 bo'lib, Pearson Chi-Square mezoni bo'yicha tajriba va nazorat guruhlarining boshlang'ich tengligi to'liq isbotlangan.</p>`;
+        <p style="margin-top:10px;font-size:12.5px;color:var(--muted);font-style:italic">Xulosa: ${esc(concl)}</p>`;
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_6') {
       const d = researchTablesData.table_4_6;
+      if (!d) { researchTableMissing(container, '4.6-jadval'); return; }
+      const hasD = (d.skills || []).some(sk => sk.cohens_d !== undefined && sk.cohens_d !== null);
       let html = `
         <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
@@ -1323,6 +1536,7 @@
                 <th style="padding:8px 12px;text-align:center">O'sish sur'ati</th>
                 <th style="padding:8px 12px;text-align:center">t-kriteriy</th>
                 <th style="padding:8px 12px;text-align:center">Ahamiyatlilik</th>
+                ${hasD ? `<th style="padding:8px 12px;text-align:center">Cohen's d</th>` : ''}
               </tr>
             </thead>
             <tbody>`;
@@ -1336,6 +1550,7 @@
             <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${esc(sk.exp_growth)}</td>
             <td style="padding:8px 12px;text-align:center;font-weight:700" rowspan="2">${esc(sk.t_stat)}</td>
             <td style="padding:8px 12px;text-align:center;color:var(--teal);font-weight:600" rowspan="2">${esc(sk.p_val)}</td>
+            ${hasD ? `<td style="padding:8px 12px;text-align:center;font-weight:700;color:#8B5CF6" rowspan="2">d = ${esc(sk.cohens_d == null ? '—' : sk.cohens_d)}<br><span style="font-size:11.5px;font-weight:400;color:var(--muted)">${esc(sk.cohens_d == null ? '' : effectLabel(sk.cohens_d))}</span></td>` : ''}
           </tr>
           <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
             <td style="padding:8px 12px;color:var(--muted)">Nazorat</td>
@@ -1348,6 +1563,7 @@
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_7') {
       const d = researchTablesData.table_4_7;
+      if (!d) { researchTableMissing(container, '4.7-jadval'); return; }
       let html = `
         <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
@@ -1383,10 +1599,11 @@
           </tr>`;
       });
       html += `</tbody></table></div>
-        <p style="margin-top:10px;font-size:13px;font-weight:600;color:var(--teal)">O'rtacha umumiy Cohen's d = ${esc(d.average_d)} (Juda katta effekt > 0.8)</p>`;
+        <p style="margin-top:10px;font-size:13px;font-weight:600;color:var(--teal)">O'rtacha umumiy Cohen's d = ${esc(d.average_d)} (${esc(effectLabel(d.average_d))})</p>`;
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_8') {
       const d = researchTablesData.table_4_8;
+      if (!d) { researchTableMissing(container, '4.8-jadval'); return; }
       let html = `
         <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
@@ -1423,6 +1640,7 @@
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_9') {
       const d = researchTablesData.table_4_9;
+      if (!d) { researchTableMissing(container, '4.9-jadval'); return; }
       let html = `
         <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
@@ -1449,6 +1667,306 @@
       });
       html += `</tbody></table></div>`;
       container.innerHTML = html;
+    } else if (activeResearchTab === 'tab_4_3') {
+      // 4.3-jadval: baholash mezonlari va shkalasi (level_scale)
+      const d = researchTablesData.level_scale;
+      if (!d) { researchTableMissing(container, '4.3-jadval'); return; }
+      let html = `
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
+            <thead>
+              <tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink);height:38px;text-align:left">
+                <th style="padding:8px 12px">Daraja</th>
+                <th style="padding:8px 12px;text-align:center">Ball oralig'i</th>
+                <th style="padding:8px 12px">Kommunikativ mezon</th>
+                <th style="padding:8px 12px">Metakognitiv mezon</th>
+              </tr>
+            </thead>
+            <tbody>`;
+      (d.rows || []).forEach(r => {
+        html += `
+          <tr style="border-bottom:1px solid var(--line);height:40px">
+            <td style="padding:8px 12px;font-weight:700;color:var(--teal)">${esc(r.level)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600;white-space:nowrap">${esc(r.range)}</td>
+            <td style="padding:8px 12px">${esc(r.communicative)}</td>
+            <td style="padding:8px 12px">${esc(r.metacognitive)}</td>
+          </tr>`;
+      });
+      html += `</tbody></table></div>
+        <p style="margin-top:10px;font-size:12.5px;color:var(--muted);font-style:italic">Shkala 4.4-jadvaldagi daraja taqsimoti (Yuqori / O'rta / Quyi) va Bespalko koeffitsiyenti uchun asos bo'ladi.</p>`;
+      container.innerHTML = html;
+    } else if (activeResearchTab === 'tab_4_5') {
+      // 4.5-jadval: har guruh ichidagi pre → post dinamika (bog'langan t-mezon)
+      const d = researchTablesData.table_4_5;
+      if (!d) { researchTableMissing(container, '4.5-jadval'); return; }
+      const hasN = (d.rows || []).some(r => r.exp_n !== undefined);
+      let html = `
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
+            <thead>
+              <tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink);height:38px;text-align:left">
+                <th style="padding:8px 12px">OTM</th>
+                <th style="padding:8px 12px">Guruh</th>
+                ${hasN ? `<th style="padding:8px 12px;text-align:center">n (pre+post)</th>` : ''}
+                <th style="padding:8px 12px;text-align:center">Boshida</th>
+                <th style="padding:8px 12px;text-align:center">Yakunida</th>
+                <th style="padding:8px 12px;text-align:center">O'sish</th>
+                <th style="padding:8px 12px;text-align:center">t (bog'langan)</th>
+              </tr>
+            </thead>
+            <tbody>`;
+      (d.rows || []).forEach(r => {
+        html += `
+          <tr style="border-bottom:1px solid var(--line)">
+            <td style="padding:8px 12px;font-weight:600" rowspan="2">${esc(r.institution)}</td>
+            <td style="padding:8px 12px;color:var(--teal);font-weight:600">Tajriba</td>
+            ${hasN ? `<td style="padding:8px 12px;text-align:center">${esc(r.exp_n == null ? '—' : r.exp_n)}</td>` : ''}
+            <td style="padding:8px 12px;text-align:center">${esc(r.exp_pre)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700">${esc(r.exp_post)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${esc(r.exp_growth)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700">${esc(r.exp_t)}</td>
+          </tr>
+          <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
+            <td style="padding:8px 12px;color:var(--muted);font-weight:600">Nazorat</td>
+            ${hasN ? `<td style="padding:8px 12px;text-align:center">${esc(r.ctrl_n == null ? '—' : r.ctrl_n)}</td>` : ''}
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_pre)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_post)}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--muted)">${esc(r.ctrl_growth)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_t)}</td>
+          </tr>`;
+      });
+      const ov = d.overall;
+      if (ov) {
+        html += `
+          <tr style="background:#EBF5FF;font-weight:700">
+            <td style="padding:8px 12px" rowspan="2">Umumiy</td>
+            <td style="padding:8px 12px;color:var(--teal)">Tajriba</td>
+            ${hasN ? `<td style="padding:8px 12px"></td>` : ''}
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_pre)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.exp_post)}</td>
+            <td style="padding:8px 12px;text-align:center;color:#16A34A">${esc(ov.exp_growth)}</td>
+            <td style="padding:8px 12px;text-align:center">t = ${esc(ov.exp_t)}${ov.p_value ? `<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p ${esc(ov.p_value)}</span>` : ''}</td>
+          </tr>
+          <tr style="background:#EBF5FF;font-weight:700">
+            <td style="padding:8px 12px;color:var(--muted)">Nazorat</td>
+            ${hasN ? `<td style="padding:8px 12px"></td>` : ''}
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_pre)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_post)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(ov.ctrl_growth)}</td>
+            <td style="padding:8px 12px;text-align:center">t = ${esc(ov.ctrl_t)}${ov.ctrl_p ? `<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p ${esc(ov.ctrl_p)}</span>` : ''}</td>
+          </tr>`;
+      }
+      html += `</tbody></table></div>`;
+      container.innerHTML = html;
+    } else if (activeResearchTab === 'tab_4_10') {
+      // 4.10-jadval: nazariy kutilma va tajriba natijasi muvofiqligi
+      let d = researchTablesData.table_4_10;
+      let fallbackNote = '';
+      if (!d && researchTablesData.table_4_6 && Array.isArray(researchTablesData.table_4_6.skills)) {
+        // Dissertatsiya to'plamida 4.10 alohida kelmaydi — 4.6/4.7 o'sish ko'rsatkichlaridan tuziladi
+        const EXPECT = {
+          "Og'zaki nutq": "Dialog tizimlari hisobiga sezilarli o'sish",
+          "Yozma nutq": "Izohli qaytar aloqa hisobiga o'rtacha o'sish",
+          "O'qish": "Materialni darajaga moslashtirish hisobiga o'sish",
+          "Tinglab tushunish": "Sur'at va variantlarni tabaqalashtirish hisobiga o'sish",
+        };
+        const rows = researchTablesData.table_4_6.skills.map(sk => {
+          const name = Object.keys(EXPECT).find(k => String(sk.skill_name || '').indexOf(k) === 0) || sk.skill_name;
+          const ok = typeof sk.exp_growth === 'string' && sk.exp_growth.startsWith('+') && sk.exp_growth !== '+0.0%';
+          return { indicator: name, expectation: EXPECT[name] || "O'sish kutiladi", result: sk.exp_growth, match: ok ? 'Muvofiq' : 'Tekshirilmoqda' };
+        });
+        const t47 = researchTablesData.table_4_7;
+        if (t47 && Array.isArray(t47.components)) {
+          const meta = t47.components.filter(c => !/tashvish|anxiety/i.test(c.component || ''));
+          if (meta.length) {
+            const nums = meta.map(c => parseFloat(String(c.exp_growth || '').replace('%', '').replace('+', ''))).filter(x => !isNaN(x));
+            const avg = nums.length ? (nums.reduce((a, b) => a + b, 0) / nums.length) : null;
+            rows.push({ indicator: 'Metakognitiv ko\'rsatkich', expectation: 'Refleksiv bosqich hisobiga yuqori o\'sish', result: avg == null ? '—' : ((avg >= 0 ? '+' : '') + avg.toFixed(1) + '%'), match: avg != null && avg > 0 ? 'Muvofiq' : 'Tekshirilmoqda' });
+          }
+          const anx = t47.components.find(c => /tashvish|anxiety/i.test(c.component || ''));
+          if (anx) rows.push({ indicator: 'Tashvish darajasi', expectation: 'Mashq muhitidagi xavfsizlik hisobiga pasayish', result: anx.exp_growth, match: String(anx.exp_growth || '').startsWith('-') ? 'Muvofiq' : 'Tekshirilmoqda' });
+        }
+        d = { title: '4.10-jadval. Nazariy kutilma va tajriba natijasining muvofiqligi', rows };
+        fallbackNote = "Dissertatsiya to'plamida 4.10-jadval 4.6 va 4.7 jadvallarning o'sish ko'rsatkichlaridan tuzildi.";
+      }
+      if (!d) { researchTableMissing(container, '4.10-jadval'); return; }
+      let html = `
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
+        <div style="overflow-x:auto">
+          <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
+            <thead>
+              <tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink);height:38px;text-align:left">
+                <th style="padding:8px 12px">Ko'rsatkich</th>
+                <th style="padding:8px 12px">Nazariy kutilma</th>
+                <th style="padding:8px 12px;text-align:center">Tajriba natijasi</th>
+                <th style="padding:8px 12px;text-align:center">Muvofiqlik</th>
+              </tr>
+            </thead>
+            <tbody>`;
+      (d.rows || []).forEach(r => {
+        const ok = r.match === 'Muvofiq';
+        html += `
+          <tr style="border-bottom:1px solid var(--line);height:40px">
+            <td style="padding:8px 12px;font-weight:600">${esc(r.indicator)}</td>
+            <td style="padding:8px 12px;color:var(--ink-2)">${esc(r.expectation)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:${ok ? '#16A34A' : 'var(--amber)'}">${esc(r.result)}</td>
+            <td style="padding:8px 12px;text-align:center"><span class="chip ${ok ? 'none' : 'part'}" style="font-weight:600">${ok ? '✔ ' : '⏳ '}${esc(r.match)}</span></td>
+          </tr>`;
+      });
+      html += `</tbody></table></div>` + (fallbackNote ? `<p style="margin-top:10px;font-size:12.5px;color:var(--muted);font-style:italic">${esc(fallbackNote)}</p>` : '');
+      container.innerHTML = html;
+    }
+  }
+
+  // ==========================================
+  // 4b. JONLI REJIM: baholash natijalarini kiritish, ro'yxat, jarayon ko'rsatkichlari
+  // ==========================================
+  function fillResearchSkillSelect(skills) {
+    const sel = document.getElementById('rmSkill');
+    if (!sel) return;
+    const cur = sel.value;
+    const list = (skills && skills.length) ? skills : ['listening', 'reading', 'speaking', 'writing'];
+    sel.innerHTML = list.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('');
+    if (list.includes(cur)) sel.value = cur;
+    else if (list.includes('writing')) sel.value = 'writing';
+  }
+
+  window.researchToggleCsvSample = function() {
+    const el = document.getElementById('researchCsvSample');
+    if (el) el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+  };
+
+  function importResultHtml(res) {
+    const errs = (res.errors || []);
+    let html = `<div style="color:${res.error_count ? 'var(--amber)' : '#16A34A'};font-weight:600">✔ Saqlandi: ${esc(res.saved || 0)}${res.received != null ? ' / ' + esc(res.received) : ''} · Xatolar: ${esc(res.error_count || 0)}</div>`;
+    if (errs.length) html += `<ul style="margin:4px 0 0;padding-left:18px;color:var(--clay);font-size:12px;max-height:140px;overflow-y:auto">${errs.map(e => `<li>${esc(e)}</li>`).join('')}</ul>`;
+    return html;
+  }
+
+  window.researchImportFile = async function() {
+    const inp = document.getElementById('researchImportFile');
+    const out = document.getElementById('researchImportResult');
+    if (!inp || !inp.files || !inp.files[0]) { rToast('Avval CSV yoki JSON faylni tanlang.', 'error'); return; }
+    const fd = new FormData();
+    fd.append('file', inp.files[0]);
+    if (out) out.innerHTML = '<span style="color:var(--muted)">Yuklanmoqda...</span>';
+    try {
+      const res = await researchRequest('/research/live/assessments/import', { method: 'POST', body: fd });
+      if (out) out.innerHTML = importResultHtml(res);
+      rToast('Import yakunlandi: ' + (res.saved || 0) + ' ta yozuv saqlandi.', res.error_count ? 'info' : 'success');
+      inp.value = '';
+      await loadLiveResearch();
+    } catch (e) {
+      if (out) out.innerHTML = `<span style="color:var(--clay)">Xatolik: ${esc(e.message)}</span>`;
+      rToast(e.message, 'error');
+    }
+  };
+
+  window.researchSubmitManual = async function() {
+    const out = document.getElementById('researchManualResult');
+    const g = (id) => { const el = document.getElementById(id); return el ? el.value : ''; };
+    const email = g('rmEmail').trim();
+    const score = parseFloat(g('rmScore'));
+    const max = parseFloat(g('rmMax')) || 100;
+    if (!email || isNaN(score)) { rToast('Email va ballni kiriting.', 'error'); return; }
+    if (score > max) { rToast('Ball maksimumdan katta bo\'lmasin.', 'error'); return; }
+    const item = { email, assessment_type: g('rmType') || 'pre', skill: g('rmSkill') || 'writing', score, max_score: max };
+    if (out) out.innerHTML = '<span style="color:var(--muted)">Saqlanmoqda...</span>';
+    try {
+      const res = await researchRequest('/research/live/assessments', { method: 'POST', body: { items: [item] } });
+      if (out) out.innerHTML = importResultHtml(res);
+      if (res.saved) {
+        rToast('Baho saqlandi.', 'success');
+        const sc = document.getElementById('rmScore'); if (sc) sc.value = '';
+        await loadLiveResearch();
+      } else {
+        rToast((res.errors && res.errors[0]) || 'Saqlanmadi.', 'error');
+      }
+    } catch (e) {
+      if (out) out.innerHTML = `<span style="color:var(--clay)">Xatolik: ${esc(e.message)}</span>`;
+      rToast(e.message, 'error');
+    }
+  };
+
+  window.researchReloadAssessments = async function() {
+    const box = document.getElementById('researchAssessmentsList');
+    if (!box) return;
+    if (!canUseLiveResearch()) { box.innerHTML = ''; return; }
+    const canDelete = ['researcher', 'admin'].includes(researchRole());
+    try {
+      const res = await researchRequest('/research/live/assessments?limit=50');
+      const items = res.items || [];
+      if (!items.length) { box.innerHTML = '<div style="color:var(--muted);font-size:12.5px;padding:10px">Hali baholar kiritilmagan.</div>'; return; }
+      const th = 'padding:7px 10px;font-size:12px;white-space:nowrap;text-align:left';
+      const td = 'padding:7px 10px;font-size:12.5px;white-space:nowrap';
+      let html = `<table style="width:100%;border-collapse:collapse;min-width:720px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">
+        <th style="${th}">Sana</th><th style="${th}">Talaba</th><th style="${th}">Guruh</th><th style="${th}">Tur</th><th style="${th}">Ko'nikma</th><th style="${th};text-align:center">Ball</th>${canDelete ? `<th style="${th}"></th>` : ''}</tr></thead><tbody>`;
+      items.forEach(it => {
+        const armTxt = it.arm === 'experimental' ? 'Tajriba' : (it.arm === 'control' ? 'Nazorat' : '');
+        html += `<tr style="border-bottom:1px solid var(--line)">
+          <td style="${td}">${esc(it.administered_at)}</td>
+          <td style="${td}"><b>${esc(it.student)}</b><br><span style="font-size:11px;color:var(--muted)">${esc(it.email)}</span></td>
+          <td style="${td}">${esc(it.group || '—')}${armTxt ? ` <span class="chip ${it.arm === 'experimental' ? 'none' : 'part'}" style="padding:1px 7px">${armTxt}</span>` : ''}</td>
+          <td style="${td};font-weight:600">${esc(it.assessment_type)}</td>
+          <td style="${td}">${esc(it.skill)}</td>
+          <td style="${td};text-align:center;font-weight:700">${esc(it.score)} / ${esc(it.max_score)}</td>
+          ${canDelete ? `<td style="${td}"><button onclick="window.researchDeleteAssessment(${rArg(it.id)})" title="O'chirish" style="cursor:pointer;border:1px solid var(--line);background:var(--surface-2);color:var(--clay);border-radius:6px;padding:3px 8px;font-size:12px">🗑</button></td>` : ''}
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = `<div style="color:var(--clay);font-size:12.5px;padding:10px">Ro'yxatni yuklab bo'lmadi: ${esc(e.message)}</div>`;
+    }
+  };
+
+  window.researchDeleteAssessment = async function(id) {
+    if (!id) return;
+    try {
+      await researchRequest('/research/live/assessments/' + encodeURIComponent(id), { method: 'DELETE' });
+      rToast('Baho o\'chirildi.', 'success');
+      await loadLiveResearch();
+    } catch (e) {
+      rToast(e.message, 'error');
+    }
+  };
+
+  async function loadProcessIndicators() {
+    const box = document.getElementById('researchProcessIndicators');
+    if (!box) return;
+    try {
+      const res = await researchRequest('/research/live/process-indicators');
+      const by = res.by_arm || {};
+      const arms = [['experimental', 'Tajriba'], ['control', 'Nazorat'], ['none', 'Qanotsiz']];
+      const th = 'padding:7px 10px;font-size:12px;white-space:nowrap;text-align:center';
+      const td = 'padding:7px 10px;font-size:12.5px;text-align:center';
+      const f = (v) => (v === null || v === undefined) ? '—' : esc(v);
+      let html = `<table style="width:100%;border-collapse:collapse;min-width:860px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">
+        <th style="${th};text-align:left">Qanot</th><th style="${th}">Yozuvlar</th><th style="${th}">O'rt. ball</th><th style="${th}" title="Mustaqil bosqichdagi o'rtacha vaqt">Mustaqil (daq)</th>
+        <th style="${th}" title="Mustaqil bosqichda qulflangan AI ga urinishlar">Yordam so'rovi</th><th style="${th}">O'z tekshiruvi</th><th style="${th}" title="O'z bahosi va tizim bahosi farqi">O'z bahosi farqi</th>
+        <th style="${th}">Izoh qabul %</th><th style="${th};text-align:left">Takror L1 naqshlar</th></tr></thead><tbody>`;
+      arms.forEach(([k, label]) => {
+        const s = by[k] || { records: 0 };
+        if (k === 'none' && !s.records) return;
+        const pats = (s.recurring_l1_patterns || []);
+        html += `<tr style="border-bottom:1px solid var(--line)">
+          <td style="${td};text-align:left;font-weight:700;color:${k === 'experimental' ? 'var(--teal)' : 'var(--ink)'}">${esc(label)}</td>
+          <td style="${td}">${f(s.records)}</td>
+          <td style="${td};font-weight:700">${f(s.avg_score)}</td>
+          <td style="${td}">${f(s.avg_independent_minutes)}</td>
+          <td style="${td}">${f(s.avg_help_requests)}</td>
+          <td style="${td}">${f(s.avg_self_checks)}</td>
+          <td style="${td}">${f(s.avg_rating_gap)}</td>
+          <td style="${td}">${typeof s.feedback_accept_rate === 'number' ? esc(Math.round(s.feedback_accept_rate * 100)) + '%' : '—'}</td>
+          <td style="${td};text-align:left">${pats.length ? pats.map(p => `<span class="chip full" style="padding:1px 7px;margin:1px;display:inline-block">${esc(p[0])} ×${esc(p[1])}</span>`).join('') : '<span style="color:var(--muted)">—</span>'}</td>
+        </tr>`;
+      });
+      html += `</tbody></table><p style="margin:8px 0 0;font-size:12px;color:var(--muted)">Jami mashg'ulot yozuvlari: <b>${esc(res.total_records || 0)}</b>.</p>`;
+      box.innerHTML = html;
+    } catch (e) {
+      box.innerHTML = `<div style="color:var(--clay);font-size:12.5px;padding:10px">Jarayon ko'rsatkichlarini yuklab bo'lmadi: ${esc(e.message)}</div>`;
     }
   }
 
@@ -1483,16 +2001,17 @@
     }
   }
 
+  // Jonli rejimda ?source=live — eksport platformadagi haqiqiy ma'lumotlardan tuziladi
   window.downloadDocxExport = function() {
-    downloadResearchExport('/research/export-docx', 'TILORA_4-bob_jadvallari.docx');
+    downloadResearchExport('/research/export-docx' + researchSourceQuery(), 'TILORA_4-bob_jadvallari_' + researchSource + '.docx');
   };
 
   window.downloadExcelExport = function() {
-    downloadResearchExport('/research/export-excel', 'TILORA_4-bob_jadvallari.xlsx');
+    downloadResearchExport('/research/export-excel' + researchSourceQuery(), 'TILORA_4-bob_jadvallari_' + researchSource + '.xlsx');
   };
 
   window.downloadCsvExport = function() {
-    downloadResearchExport('/research/export-csv', 'TILORA_4-bob_jadvallari.csv');
+    downloadResearchExport('/research/export-csv' + researchSourceQuery(), 'TILORA_4-bob_jadvallari_' + researchSource + '.csv');
   };
 
   // ==========================================

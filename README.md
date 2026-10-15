@@ -149,6 +149,21 @@ OK
 
 `/api/content/*` — ochiq: `overview`, `glossary` (50 ELT atamasi, qidiruv/toifa), `cefr-levels` (A1–C2, 4 ko'nikma + o'qituvchi treki), `l1-patterns` (44 o'zbek–ingliz interferensiya naqshi), `methodology` (muammo, 4 qoida, 5 bosqich, taqqoslash, adabiyotlar), `faq`, `curriculum`. Saytda: yon menyu → "Platforma haqida, glossariy, CEFR".
 
+## 🧩 4.3. Dissertatsiya modeliga mos modullar (v2.2)
+
+Dissertatsiya 3.3-bo'limidagi besh funksional modul va 4.1–4.2 tajriba-sinov talablari to'liq amalga oshirildi:
+
+| Modul | Endpointlar | Frontend |
+|---|---|---|
+| Metakognitiv sikl (reja → monitoring → asoslangan baholash → refleksiya) | `POST /lesson/{id}/plan`, `/monitor`, `/feedback-decision`, `/alternative`, `/comparison`, `/reflection` → `lesson_records` | Mashg'ulot 1–5 bosqichlari |
+| Tabaqalashtirish (A/B/C variantlar, 3 o'lchov) | `GET /lesson/{id}` (variant + sabab), `GET /teacher/panel/groups/{id}/differentiation`, `POST /teacher/panel/students/{id}/variant` | Guruh kuzatuv paneli |
+| Dialog tizimi (og'zaki nutq, faqat tayyorgarlik bosqichida) | `POST /ai/dialog` (mustaqil bosqichda 403) | 2-bosqich |
+| Dinamika (refleksiya moduli) | `GET /student/dynamics`, `GET /lesson/history` | "Mening dinamikam" |
+| Kuzatuv varaqasi, profilni tuzatish, izohni ko'tarish | `GET /teacher/panel/observation`, `POST .../profile-override`, `POST /teacher/panel/records/{id}/extend` | Guruh kuzatuv paneli |
+| Jonli statistika (χ², t, Cohen d, Bespalko K) | `GET /research/live/tables`, `/live/overview`, `POST /research/live/assessments[/import]`, eksport `?source=live` | Tadqiqotchi bo'limi |
+
+Metakognitiv anketa (MSLQ/MAI asosida 12 band: rejalashtirish, monitoring, baholash, o'zini boshqarish) kirish diagnostikasiga qo'shildi; natijalar `assessments` jadvaliga `pre`/`post` sifatida yoziladi. Statistika `app/services/statistics.py` da tashqi kutubxonasiz.
+
 ## 👥 5. Demo Hisoblar Ma'lumotlari
 
 Demo hisoblar paroli `SEED_PASSWORD` muhit o'zgaruvchisi bilan belgilanadi (standart: `tilora2026!`, faqat lokal demo uchun; ishlab chiqarishda o'zgartiring).

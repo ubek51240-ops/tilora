@@ -54,12 +54,16 @@
   }
 
   const DIM_LABELS = {
-    uz: { anxiety: "😰 Xavotir (FLCAS)", load_capacity: "🧠 Yuklama sig'imi", pace: "⏱ Sur'at", autonomy: "🧭 Avtonomiya", motivation: "🔥 Motivatsiya" },
-    en: { anxiety: "😰 Anxiety (FLCAS)", load_capacity: "🧠 Cognitive Load", pace: "⏱ Pace", autonomy: "🧭 Autonomy", motivation: "🔥 Motivation" },
-    ru: { anxiety: "😰 Тревожность (FLCAS)", load_capacity: "🧠 Когнитивная нагрузка", pace: "⏱ Темп", autonomy: "🧭 Автономия", motivation: "🔥 Мотивация" }
+    uz: { anxiety: "😰 Xavotir (FLCAS)", load_capacity: "🧠 Yuklama sig'imi", pace: "⏱ Sur'at", autonomy: "🧭 Avtonomiya", motivation: "🔥 Motivatsiya",
+          planning: "🗺️ Rejalashtirish", monitoring: "👁️ Monitoring", evaluation: "⚖️ Baholash", regulation: "🎛️ O'zini boshqarish" },
+    en: { anxiety: "😰 Anxiety (FLCAS)", load_capacity: "🧠 Cognitive Load", pace: "⏱ Pace", autonomy: "🧭 Autonomy", motivation: "🔥 Motivation",
+          planning: "🗺️ Planning", monitoring: "👁️ Monitoring", evaluation: "⚖️ Evaluation", regulation: "🎛️ Self-regulation" },
+    ru: { anxiety: "😰 Тревожность (FLCAS)", load_capacity: "🧠 Когнитивная нагрузка", pace: "⏱ Темп", autonomy: "🧭 Автономия", motivation: "🔥 Мотивация",
+          planning: "🗺️ Планирование", monitoring: "👁️ Мониторинг", evaluation: "⚖️ Оценивание", regulation: "🎛️ Саморегуляция" }
   };
   const DIM_COLORS = {
-    anxiety: "var(--clay)", load_capacity: "#2563EB", pace: "#7C3AED", autonomy: "var(--teal)", motivation: "#D97706"
+    anxiety: "var(--clay)", load_capacity: "#2563EB", pace: "#7C3AED", autonomy: "var(--teal)", motivation: "#D97706",
+    planning: "#0E7490", monitoring: "#4F46E5", evaluation: "#B45309", regulation: "#15803D"
   };
   function getDimMeta(dim) {
     const l = getLang();

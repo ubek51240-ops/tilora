@@ -25,6 +25,7 @@ def analyze_l1_interference(text: str) -> List[Dict[str, Any]]:
             match = re.search(pattern, text, re.IGNORECASE)
             if match:
                 findings.append({
+                    "pattern_id": item.get("id"),
                     "category": item.get("category", "grammar"),
                     "issue_short": item.get("issue_short", "L1 interferensiyasi"),
                     "issue_reason": item.get("issue_reason", "Ona tili ta'siri aniqlandi."),

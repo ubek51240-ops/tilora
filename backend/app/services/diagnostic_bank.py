@@ -28,7 +28,8 @@ MAX_AUDIO_BYTES = 15 * 1024 * 1024  # 15 MB
 
 VALID_SKILLS = {"listening", "reading", "writing", "speaking"}
 VALID_CEFR = {"A1", "A2", "B1", "B2", "C1", "C2"}
-VALID_DIMENSIONS = {"anxiety", "load_capacity", "pace", "autonomy", "motivation"}
+VALID_DIMENSIONS = {"anxiety", "load_capacity", "pace", "autonomy", "motivation",
+                    "planning", "monitoring", "evaluation", "regulation"}  # oxirgi 4 tasi — metakognitiv (MSLQ)
 
 
 def _read_json(name: str) -> List[Dict[str, Any]]:

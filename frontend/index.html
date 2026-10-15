@@ -72,6 +72,9 @@
       <button class="nav-btn" data-screen="s_student_materials">
         <span>📚</span> <span data-i18n="nav_materials">O'quv fanlari & Testlar</span>
       </button>
+      <button class="nav-btn" data-screen="s_dynamics">
+        <span>📈</span> <span>Mening dinamikam (refleksiya)</span>
+      </button>
       <button class="nav-btn" data-screen="s_teacher">
         <span>💡</span> <span data-i18n="nav_proposals">Takliflar va fikr-mulohazalar</span>
       </button>
@@ -88,6 +91,9 @@
       </button>
       <button class="nav-btn" data-screen="s_diag_manage">
         <span>🎧</span> <span data-i18n="nav_diag_manage">Diagnostika & Anketa savollari</span>
+      </button>
+      <button class="nav-btn" data-screen="s_teacher_panel">
+        <span>🧭</span> <span>Guruh kuzatuv paneli (tabaqalashtirish)</span>
       </button>
     </div>
 
@@ -414,7 +420,22 @@
             Ushbu darsda siz o'quvchilarning ingliz tilidagi yozma ishlarini ob'ektiv baholash mezonlari (Accuracy, Fluency, Coherence, Lexical Resource) 
             bo'yicha tahlil qilishni va kasbiy taqriz yozishni o'rganasiz.
           </p>
-          <button class="btn-primary" data-i18n="lesson_stage1_next" onclick="goToStage(2)">Tayyorgarlik bosqichiga o'tish →</button>
+          <!-- Tabaqalashtirish: variant va sababi (2-qoida: sabab ochiq) -->
+          <div id="variantBanner" style="display:none;margin-bottom:14px"></div>
+          <button class="btn-primary" data-i18n="lesson_stage1_next" onclick="proceedFromIntro()">Tayyorgarlik bosqichiga o'tish →</button>
+        </div>
+
+        <!-- Metakognitiv sikl 1-qadam: REJALASHTIRISH -->
+        <div class="card" style="margin-top:16px" id="planCard">
+          <h3>🗺️ Rejalashtirish (metakognitiv sikl, 1-qadam)</h3>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Ishni boshlashdan oldin maqsad va strategiyani o'zingiz belgilaysiz. Bu reja 3-bosqichda o'z-o'zini tekshirish uchun tayanch bo'ladi.</p>
+          <label for="planGoalInput" style="font-size:12.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:4px">Bu mashg'ulotdagi maqsadim <span style="color:var(--clay)">*</span></label>
+          <input type="text" id="planGoalInput" maxlength="1000" placeholder="Masalan: Ikki mezonni misol bilan aniq asoslab yozaman" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;margin-bottom:10px;background:var(--surface);color:var(--ink)">
+          <label for="planStrategyInput" style="font-size:12.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:4px">Strategiyam (qanday yondashaman)</label>
+          <textarea id="planStrategyInput" maxlength="1000" placeholder="Masalan: Avval reja tuzaman, so'ng har xatboshida bitta fikrni ochaman, oxirida terminlarni tekshiraman" style="width:100%;min-height:70px;padding:10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;margin-bottom:10px;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
+          <div id="planSavedNote" style="display:none;font-size:12.5px;color:var(--teal);font-weight:600;margin-bottom:10px"></div>
+          <button class="btn-primary" id="btnSavePlan" style="width:100%" onclick="saveLessonPlan()">Rejani saqlash va tayyorgarlikka o'tish →</button>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Tizimga kirmagan mehmonlar rejani saqlamasdan davom etishi mumkin; reja faqat kirgan talaba uchun saqlanadi.</div>
         </div>
       </div>
 
@@ -464,6 +485,40 @@
           </div>
           <div id="aiScaffoldResult" style="display:none;margin-top:14px;padding:14px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;font-size:13.5px;line-height:1.7;white-space:pre-wrap"></div>
         </div>
+
+        <!-- Dialog tizimi: jonli muloqotga TAYYORGARLIK (3.2) -->
+        <div class="card" style="margin-top:16px" id="dialogCard">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+            <div>
+              <h3 style="margin-bottom:4px">🗣️ Dialog mashqi (jonli muloqotga tayyorgarlik)</h3>
+              <p style="font-size:12.5px;color:var(--muted);margin:0">AI hamsuhbat rolga kiradi, qisqa javob beradi va savol qaytaradi. Grammatikani dialog davomida tuzatmaydi; oxirida "FEEDBACK" bilan 3 ta qisqa izoh so'rang.</p>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <select id="dialogScenario" onchange="resetDialog()" style="flex:1 1 180px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px">
+              <option value="classroom">O'quvchi bilan</option>
+              <option value="parent">Ota-ona bilan</option>
+              <option value="colleague">Hamkasb bilan</option>
+              <option value="interview">Suhbat (ish)</option>
+              <option value="conference">Konferensiya savollari</option>
+            </select>
+            <select id="dialogLevel" onchange="resetDialog()" style="flex:0 1 110px;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px">
+              <option value="A2">A2</option>
+              <option value="B1" selected>B1</option>
+              <option value="B2">B2</option>
+            </select>
+            <button type="button" class="btn-primary" style="padding:8px 12px;font-size:12px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="resetDialog()">♻️ Yangi dialog</button>
+          </div>
+          <div id="dialogLog" style="max-height:300px;overflow-y:auto;padding:10px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;display:flex;flex-direction:column;gap:8px;font-size:13.5px;line-height:1.55">
+            <div style="color:var(--muted);font-size:12.5px;text-align:center">Dialogni boshlash uchun ingliz tilida birinchi xabaringizni yozing (masalan: "Good morning! Today we'll talk about...").</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+            <input type="text" id="dialogInput" maxlength="2000" placeholder="Xabaringiz (ingliz tilida)..." onkeydown="if(event.key==='Enter'){event.preventDefault();sendDialogMessage();}" style="flex:1 1 200px;padding:10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;background:var(--surface);color:var(--ink)">
+            <button type="button" class="btn-primary" id="btnDialogSend" onclick="sendDialogMessage()" style="padding:10px 16px">Yuborish</button>
+            <button type="button" class="btn-primary" id="btnDialogFeedback" title="Dialog yakunida takrorlanuvchi xatolar bo'yicha 3 ta qisqa izoh" onclick="sendDialogMessage('FEEDBACK')" style="padding:10px 12px;font-size:11.5px;background:var(--amber);letter-spacing:.5px">FEEDBACK</button>
+          </div>
+          <div id="dialogNotice" style="display:none;margin-top:8px;font-size:12.5px;color:var(--muted)"></div>
+        </div>
       </div>
 
 
@@ -510,15 +565,17 @@
                   <div style="font-size:12px;color:var(--muted)">Audioni tinglang va tahliliy javobingizni yozing</div>
                 </div>
               </div>
-              <audio controls controlsList="nodownload" oncontextmenu="return false;" style="width:100%;margin-bottom:10px">
+              <audio id="listeningTaskAudio" controls controlsList="nodownload" oncontextmenu="return false;" style="width:100%;margin-bottom:6px">
                 <source src="audio_diag_01.wav" type="audio/wav">
               </audio>
+              <div id="listeningPlaybackInfo" style="display:none;font-size:12px;color:var(--ink-2);margin-bottom:10px;gap:8px;flex-wrap:wrap;align-items:center"></div>
               <textarea class="task-editor" style="min-height:90px" placeholder="Tinglangan audio bo'yicha tahliliy javobingizni bu yerga yozing..."></textarea>
             </div>
 
             <!-- O'qish (Reading) qutisi -->
             <div id="readingProductionBox" style="display:none;background:var(--surface-2);padding:14px;border-radius:12px;border:1px solid var(--line);margin-bottom:14px">
-              <div style="background:#fff;padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;max-height:160px;overflow-y:auto;font-size:13px;line-height:1.6">
+              <div id="readingSourceBadge" style="display:none;margin-bottom:8px"></div>
+              <div id="readingTextBox" style="background:var(--card);padding:12px;border:1px solid var(--line);border-radius:8px;margin-bottom:10px;max-height:200px;overflow-y:auto;font-size:13px;line-height:1.6">
                 <b>Academic Reading: "AI in Language Assessment"</b><br>
                 <i>Artificial Intelligence applications in English Language Teaching (ELT) offer diagnostic precision and real-time formative feedback. However, pedagogical mediation remains essential to foster metacognitive self-regulation...</i>
               </div>
@@ -536,6 +593,7 @@
                 <span style="background:var(--surface-2);padding:3px 8px;border-radius:6px;border:1px solid var(--line);color:var(--ink-3)">
                   📄 <strong id="lineCount">0</strong> <span data-i18n="lesson_stage3_lines">ta qator</span>
                 </span>
+                <span id="lessonWordHint" title="Variantga mos so'z chegarasi" style="display:none;background:var(--amber-soft);color:var(--amber);padding:3px 8px;border-radius:6px;border:1px solid #E7D9AE"></span>
                 <span id="qualityStat" title="Lokal tekshiruv (AI emas): ma'nosiz harf ketma-ketliklari va tushunarsiz so'zlar soni" style="display:none">
                   🔤 <strong id="qualityCount">0</strong> ta tushunarsiz so'z
                 </span>
@@ -563,6 +621,19 @@
               <div data-i18n="ai_lock_desc" style="font-size:12px;color:#8A6252;margin-top:12px;line-height:1.6">
                 Bu bosqichda tizim tayyor javob bermaydi. Ko'nikma talaba o'z aqliy mehnati bilan matn yaratgandagina shakllanadi.
               </div>
+            </div>
+
+            <!-- Metakognitiv sikl 2-qadam: MONITORING (o'z-o'zini tekshirish) -->
+            <div class="card" style="margin-top:16px" id="selfCheckCard">
+              <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+                <h3 style="margin:0">✅ O'z-o'zini tekshirish (monitoring)</h3>
+                <span style="font-family:var(--mono);font-size:12px;color:var(--ink-2)" title="Mustaqil ish vaqti">⏱ <span id="stage3Elapsed">00:00</span></span>
+              </div>
+              <div id="planReminder" style="display:none;font-size:12.5px;color:var(--ink-2);background:var(--surface-2);border-left:3px solid var(--teal);padding:8px 10px;border-radius:6px;margin-bottom:10px"></div>
+              <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" class="self-check-box" onchange="onSelfCheck(this)" style="margin-top:3px"> <span>Rejamga amal qilyapman</span></label>
+              <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:8px;cursor:pointer"><input type="checkbox" class="self-check-box" onchange="onSelfCheck(this)" style="margin-top:3px"> <span>Har xatboshi bitta fikrni ochadi</span></label>
+              <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:4px;cursor:pointer"><input type="checkbox" class="self-check-box" onchange="onSelfCheck(this)" style="margin-top:3px"> <span>Kasbiy terminlarni ishlatdim</span></label>
+              <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Belgilar kuzatuv varaqasiga yoziladi (yordam so'rovlari va vaqt bilan birga). Tizim bu yerda javob bermaydi.</div>
             </div>
 
             <div class="card" style="margin-top:16px">
@@ -610,6 +681,26 @@
             <button class="btn-primary" id="btnRunAiAnalysis" onclick="runDeepSeekAnalysis()">DeepSeek AI Tahlili ✨</button>
           </div>
           <div id="aiAnalysisOutput" style="display:none;margin-top:14px;padding:14px;background:var(--paper-2);border:1px solid var(--line);border-radius:6px;font-size:13.5px;line-height:1.7;white-space:pre-wrap"></div>
+        </div>
+
+        <!-- Qiyosiy usul (3.2, 5-guruh): AI muqobil varianti va farqni asoslash -->
+        <div class="card" style="margin-top:20px" id="comparisonCard">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+            <div>
+              <h3 style="margin-bottom:4px">⚖️ Qiyosiy usul: muqobil variant</h3>
+              <p style="margin:0;font-size:12.5px;color:var(--muted)">AI matningizning faqat birinchi xatboshisini muqobil akademik variantda qayta yozadi (yangi mazmun qo'shmaydi). Siz ikki variantni solishtirib, farqning sababini asoslaysiz.</p>
+            </div>
+            <button class="btn-primary" id="btnRequestAlternative" onclick="requestAlternative()">AI muqobil variantini olish</button>
+          </div>
+          <div id="alternativeOutput" style="display:none;margin-top:14px"></div>
+          <div id="comparisonNoteBox" style="display:none;margin-top:14px">
+            <label for="comparisonNoteInput" style="font-size:12.5px;font-weight:700;color:var(--ink-2);display:block;margin-bottom:4px">Farqning sababini asoslang</label>
+            <textarea id="comparisonNoteInput" maxlength="2000" placeholder="Masalan: Muqobil variantda bog'lovchilar ko'proq; mening variantimda fikr aniqroq, lekin gaplar bir xil tuzilgan..." style="width:100%;min-height:80px;padding:10px;border:1px solid var(--line);border-radius:6px;font-size:13.5px;background:var(--surface);color:var(--ink);resize:vertical"></textarea>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+              <button class="btn-primary" id="btnSaveComparison" style="padding:8px 16px;font-size:12.5px" onclick="saveComparisonNote()">Saqlash</button>
+              <span id="comparisonSavedNote" style="font-size:12.5px;color:var(--teal);font-weight:600"></span>
+            </div>
+          </div>
         </div>
 
         <button class="btn-primary" data-i18n="lesson_stage4_next" style="margin-top:18px" onclick="goToStage(5)">Refleksiyaga o'tish →</button>
@@ -708,6 +799,7 @@
                   </thead>
                   <tbody id="aiEvalCompareRows"></tbody>
                 </table>
+                <div id="ratingGapBox" style="display:none;margin-bottom:12px;padding:9px 12px;border-radius:6px;background:var(--teal-soft);border:1px solid #BCD9D3;font-size:12.5px;line-height:1.5;color:var(--teal-deep)"></div>
                 <div id="aiEvalQuality" style="display:none;margin-bottom:12px;padding:10px 12px;border-radius:6px;background:var(--amber-soft);font-size:12.5px;line-height:1.55"></div>
                 <div id="aiEvalReasons" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px"></div>
                 <div id="aiEvalLists" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px"></div>
@@ -721,6 +813,7 @@
               <input type="text" id="reflectionGoalInput" style="width:100%;padding:10px;border:1px solid var(--line);border-radius:5px;font-size:13.5px;margin-bottom:16px" placeholder="Masalan: Keyingi safar ona tili ta'siridagi xatolarni qayta tahrir qilaman">
 
               <button class="btn-primary" id="btnFinishLessonStage5" data-i18n="lesson_stage5_btn_finish" style="width:100%" onclick="finishLessonStage5()">Mashg'ulotni yakunlash</button>
+              <div id="lessonDoneBox" style="display:none;margin-top:12px;padding:12px;border-radius:8px;background:var(--teal-soft);border:1px solid #BCD9D3;font-size:13px;line-height:1.5;color:var(--teal-deep)"></div>
             </div>
           </div>
         </div>
@@ -869,6 +962,18 @@
           Materiallar yuklanmoqda...
         </div>
       </div>
+    </section>
+
+    <!-- ==================== 4.5. TALABA DINAMIKASI (REFLEKSIYA MODULI) ==================== -->
+    <section class="screen" id="s_dynamics">
+      <!-- about: dynamics.js / app.js renders here (GET /api/student/dynamics) -->
+      <div id="dynamicsRoot"><div style="text-align:center;padding:30px;color:var(--muted)">Dinamika yuklanmoqda...</div></div>
+    </section>
+
+    <!-- ==================== 4.6. O'QITUVCHI KUZATUV PANELI (TABAQALASHTIRISH) ==================== -->
+    <section class="screen" id="s_teacher_panel">
+      <!-- teacher_panel.js renders here (GET /api/teacher/panel/*) -->
+      <div id="teacherPanelRoot"><div style="text-align:center;padding:30px;color:var(--muted)">Kuzatuv paneli yuklanmoqda...</div></div>
     </section>
 
     <!-- ==================== 5. O'QITUVCHI PANELI ==================== -->
@@ -1106,6 +1211,10 @@
                 <option value="pace">⏱ O'zlashtirish sur'ati</option>
                 <option value="autonomy">🧭 Avtonomiya</option>
                 <option value="motivation">🔥 Motivatsiya</option>
+                <option value="planning">🗺️ Rejalashtirish (metakognitiv)</option>
+                <option value="monitoring">👁️ Monitoring (metakognitiv)</option>
+                <option value="evaluation">⚖️ Baholash (metakognitiv)</option>
+                <option value="regulation">🎛️ O'zini boshqarish (metakognitiv)</option>
               </select>
             </div>
             <div>
@@ -1398,29 +1507,43 @@
         </div>
       </div>
 
+      <!-- Ma'lumot manbai: dissertatsiya to'plami (statik) yoki platformadagi jonli ma'lumotlar (assessments) -->
+      <div class="card" style="padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-right:4px">Manba:</span>
+          <button class="res-src-btn res-tab-btn active" data-source="dissertation" onclick="window.setResearchSource && window.setResearchSource('dissertation')">📚 Dissertatsiya to'plami</button>
+          <button class="res-src-btn res-tab-btn" data-source="live" onclick="window.setResearchSource && window.setResearchSource('live')">🟢 Jonli platforma ma'lumotlari</button>
+        </div>
+        <span id="researchSourceBadge" style="font-size:12px;color:var(--muted)">Oldindan hisoblangan yakuniy natijalar (2024–2026)</span>
+      </div>
+
+      <!-- Jonli rejim: to'liqlik banneri (research/live/overview) -->
+      <div id="researchLiveBanner" style="display:none;margin-bottom:14px"></div>
+
       <!-- KPI Kartalari (4 ta asosiy statistik mezon) -->
-      <div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px">
+      <div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:10px">
         <div class="card" style="padding:14px;border-top:3px solid var(--teal)">
           <div style="font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase">Umumiy Tanlanma (N)</div>
-          <div style="font-size:24px;font-weight:700;color:var(--teal);margin:4px 0">N = 258</div>
-          <p style="font-size:12px;color:var(--muted);margin:0">Tajriba: 132 | Nazorat: 126<br><b>BuxDU asosiy baza: N=90</b></p>
+          <div id="kpiNValue" style="font-size:24px;font-weight:700;color:var(--teal);margin:4px 0">N = 258</div>
+          <p id="kpiNSub" style="font-size:12px;color:var(--muted);margin:0">Tajriba: 132 | Nazorat: 126<br><b>BuxDU asosiy baza: N=90</b></p>
         </div>
         <div class="card" style="padding:14px;border-top:3px solid #0EA5E9">
           <div style="font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase">Boshlang'ich Tenglik (χ²)</div>
-          <div style="font-size:24px;font-weight:700;color:#0EA5E9;margin:4px 0">p = 0.798</div>
-          <p style="font-size:12px;color:var(--muted);margin:0">χ² = 0.45, df = 2 (p > 0.05)<br><b>Guruhlar tengligi tasdiqlandi</b></p>
+          <div id="kpiChiValue" style="font-size:24px;font-weight:700;color:#0EA5E9;margin:4px 0">p = 0.798</div>
+          <p id="kpiChiSub" style="font-size:12px;color:var(--muted);margin:0">χ² = 0.45, df = 2 (p > 0.05)<br><b>Guruhlar tengligi tasdiqlandi</b></p>
         </div>
         <div class="card" style="padding:14px;border-top:3px solid #8B5CF6">
           <div style="font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase">Effekt Hajmi (Cohen's d)</div>
-          <div style="font-size:24px;font-weight:700;color:#8B5CF6;margin:4px 0">d = 1.66</div>
-          <p style="font-size:12px;color:var(--muted);margin:0">Katta effekt (Large > 0.8)<br><b>Pedagogik yuqori samara</b></p>
+          <div id="kpiDValue" style="font-size:24px;font-weight:700;color:#8B5CF6;margin:4px 0">d = 1.66</div>
+          <p id="kpiDSub" style="font-size:12px;color:var(--muted);margin:0">Katta effekt (Large > 0.8)<br><b>Pedagogik yuqori samara</b></p>
         </div>
         <div class="card" style="padding:14px;border-top:3px solid #16A34A">
           <div style="font-size:11.5px;color:var(--muted);font-weight:600;text-transform:uppercase">Samaradorlik Koeffitsiyenti</div>
-          <div style="font-size:24px;font-weight:700;color:#16A34A;margin:4px 0">K_s = 1.26</div>
-          <p style="font-size:12px;color:var(--muted);margin:0">Bespalko mezoni (K > 1.0)<br><b>+26.1% yuqori o'zlashtirish</b></p>
+          <div id="kpiKsValue" style="font-size:24px;font-weight:700;color:#16A34A;margin:4px 0">K_s = 1.26</div>
+          <p id="kpiKsSub" style="font-size:12px;color:var(--muted);margin:0">Bespalko mezoni (K > 1.0)<br><b>+26.1% yuqori o'zlashtirish</b></p>
         </div>
       </div>
+      <p id="researchDataSourceNote" style="font-size:12px;color:var(--muted);margin:0 0 20px;font-style:italic"></p>
 
       <!-- Dissertatsiya Jadvallari Tablari -->
       <div class="card" style="margin-bottom:20px;padding:16px">
@@ -1428,17 +1551,74 @@
           <span style="font-size:13px;font-weight:700;color:var(--ink)">Dissertatsiyaning 4-bobi uchun rasmiy jadvallar:</span>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button class="res-tab-btn btn-preset active" data-tab="tab_4_2" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_2')">4.2-jadval (Talabalar)</button>
+            <button class="res-tab-btn btn-preset" data-tab="tab_4_3" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_3')">4.3-jadval (Shkala)</button>
             <button class="res-tab-btn btn-preset" data-tab="tab_4_4" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_4')">4.4-jadval (Chi-Square)</button>
+            <button class="res-tab-btn btn-preset" data-tab="tab_4_5" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_5')">4.5-jadval (Pre → Post)</button>
             <button class="res-tab-btn btn-preset" data-tab="tab_4_6" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_6')">4.6-jadval (4 ta ko'nikma)</button>
             <button class="res-tab-btn btn-preset" data-tab="tab_4_7" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_7')">4.7-jadval (Metakognitsiya)</button>
             <button class="res-tab-btn btn-preset" data-tab="tab_4_8" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_8')">4.8-jadval (Bespalko K)</button>
             <button class="res-tab-btn btn-preset" data-tab="tab_4_9" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_9')">4.9-jadval (Umumiy xulosa)</button>
+            <button class="res-tab-btn btn-preset" data-tab="tab_4_10" onclick="window.switchResearchTab && window.switchResearchTab('tab_4_10')">4.10-jadval (Kutilma vs natija)</button>
           </div>
         </div>
 
         <!-- Jadvallar Chiziladigan Dinamik Hudud -->
         <div id="dissertationTablesArea">
           <div style="text-align:center;padding:24px;color:var(--muted)">Jadvallar yuklanmoqda...</div>
+        </div>
+      </div>
+
+      <!-- Jonli rejim: baholash natijalarini kiritish va jarayon ko'rsatkichlari (dissertation_features.js) -->
+      <div id="researchLiveArea" style="display:none">
+        <div class="card" style="margin-bottom:20px;padding:16px">
+          <h3 style="font-family:var(--serif);font-size:17px;text-transform:none;letter-spacing:0;margin-bottom:4px">📥 Baholash natijalarini kiritish</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">Pre / mid / post nazorat natijalari (AI'siz, muzlatilgan baho). Talaba email (login) orqali aniqlanadi; ball 0–100 (yoki max_score) shkalasida. Metakognitiv shkala uchun skill: meta_planning, meta_monitoring, meta_evaluation, meta_regulation (1–5), tashvish: anxiety.</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+            <div style="border:1px solid var(--line);border-radius:10px;padding:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">a) Fayl orqali import (CSV / JSON)</div>
+              <input type="file" id="researchImportFile" accept=".csv,.json,text/csv,application/json" style="font-size:12.5px;max-width:100%;margin-bottom:8px">
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="btn-primary" style="padding:7px 12px;font-size:12.5px" onclick="window.researchImportFile && window.researchImportFile()">⬆ Yuklash</button>
+                <button class="btn-primary" style="padding:7px 12px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.researchToggleCsvSample && window.researchToggleCsvSample()">CSV namunasi</button>
+              </div>
+              <pre id="researchCsvSample" style="display:none;margin:8px 0 0;padding:8px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:7px;font-family:var(--mono);font-size:11.5px;overflow-x:auto"><code>email,assessment_type,skill,score,max_score,administered_at
+talaba@example.uz,pre,writing,54,100,2025-09-10
+talaba@example.uz,post,writing,78,100,2026-01-20
+talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
+              <div id="researchImportResult" style="margin-top:8px;font-size:12.5px"></div>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:10px;padding:12px">
+              <div style="font-size:12px;font-weight:700;margin-bottom:6px">b) Qo'lda kiritish (bitta yozuv)</div>
+              <form id="researchManualForm" onsubmit="event.preventDefault(); window.researchSubmitManual && window.researchSubmitManual();" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <input type="email" id="rmEmail" required placeholder="Talaba email / login" style="grid-column:1 / -1;padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px">
+                <select id="rmType" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px">
+                  <option value="pre">pre (boshlang'ich)</option>
+                  <option value="mid">mid (oraliq)</option>
+                  <option value="post">post (yakuniy)</option>
+                </select>
+                <select id="rmSkill" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px">
+                  <option value="writing">writing</option>
+                </select>
+                <input type="number" id="rmScore" required min="0" step="0.1" placeholder="Ball" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px">
+                <input type="number" id="rmMax" required min="1" step="1" value="100" placeholder="Maks. ball" style="padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px">
+                <button type="submit" class="btn-primary" style="grid-column:1 / -1;padding:8px 12px;font-size:12.5px">💾 Saqlash</button>
+              </form>
+              <div id="researchManualResult" style="margin-top:8px;font-size:12.5px"></div>
+            </div>
+          </div>
+          <div style="margin-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">
+              <div style="font-size:12px;font-weight:700">d) So'nggi kiritilgan baholar (50 ta)</div>
+              <button class="btn-primary" style="padding:5px 10px;font-size:12px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.researchReloadAssessments && window.researchReloadAssessments()">🔄 Yangilash</button>
+            </div>
+            <div id="researchAssessmentsList" style="overflow-x:auto"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:20px;padding:16px">
+          <h3 style="font-family:var(--serif);font-size:17px;text-transform:none;letter-spacing:0;margin-bottom:4px">🧪 Jarayon ko'rsatkichlari (kuzatuv varaqasi, 4.1)</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Mashg'ulot yozuvlaridan tajriba qanoti bo'yicha: bajarish sur'ati, yordam so'rovlari, o'z-o'zini tekshirish, o'z bahosi aniqligi, izohlarni qabul qilish ulushi, takrorlanuvchi L1 xatolar.</p>
+          <div id="researchProcessIndicators" style="overflow-x:auto"><div style="color:var(--muted);font-size:12.5px;padding:10px">Yuklanmoqda...</div></div>
         </div>
       </div>
     </section>
@@ -1483,8 +1663,10 @@
       <div class="why-box" style="margin-bottom:22px"><b>Ko'mak (scaffolding) dinamikasi</b><br><span id="aboutScaffolding"></span></div>
 
       <!-- 2. Bosqichlar -->
-      <h3 id="aboutSecStages" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">2. Besh bosqichli mashg'ulot</h3>
-      <div class="card" id="aboutStages" style="margin-bottom:22px"></div>
+      <h3 id="aboutSecStages" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">2. Besh bosqichli mashg'ulot va metakognitiv sikl</h3>
+      <div class="card" id="aboutStages" style="margin-bottom:18px"></div>
+      <h3 style="font-family:var(--serif);font-size:19px;margin-bottom:8px">Platformaning besh funksional moduli (3.3-bo'lim)</h3>
+      <div id="aboutModules" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:22px"></div>
 
       <!-- 3. Taqqoslash -->
       <h3 id="aboutSecCompare" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">3. O'xshash tizimlar bilan taqqoslash</h3>
@@ -2375,6 +2557,7 @@
       <span class="chip" style="font-size:13.5px;background:var(--surface-2);color:var(--ink);padding:5px 12px;border:1px solid var(--line);font-weight:600" id="resCorrectCountBadge">
         ✅ Test natijasi: 6 / 8
       </span>
+      <span class="chip" id="resAssessTypeChip" style="display:none;font-size:13px;background:var(--amber-soft);color:var(--amber);padding:5px 12px;border:1px solid #E7D9AE;font-weight:600"></span>
     </div>
 
     <!-- 4 ta Ko'nikma Gridi -->
@@ -2402,6 +2585,9 @@
       ⚡ <b>FLCAS Tashvish darajasi:</b> <span id="resAnxiety" style="font-weight:700">71/100 (Yuqori)</span><br>
       🧠 <b>Yuklama sig'imi:</b> <span id="resLoad">50/100</span> · <b>Sur'at:</b> <span id="resPace">60/100</span> · <b>Mustaqillik:</b> <span id="resAutonomy">42/100</span>
     </div>
+
+    <!-- Metakognitiv komponentlar (Flavell / MSLQ, 1–5 shkala) -->
+    <div id="resMetaBox" style="display:none;background:var(--teal-soft);padding:12px;border-radius:8px;border:1px solid #BCD9D3;font-size:13px;color:var(--teal-deep);margin-bottom:14px;text-align:left;line-height:1.6"></div>
 
     <!-- Metodik Tavsiya va 1-Qoida Strategiyasi -->
     <div id="resPedagogicAdviceBox" style="background:var(--paper-2);padding:12px 14px;border-radius:8px;border:1px solid var(--line);font-size:12.5px;color:var(--ink);margin-bottom:14px;text-align:left;line-height:1.6">
@@ -3081,5 +3267,7 @@
 <script src="js/diag_manage.js?v=1.2"></script>
 <script src="js/dissertation_features.js?v=1.2"></script>
 <script src="js/about.js?v=1.0"></script>
+<script src="js/dynamics.js?v=1.0"></script>
+<script src="js/teacher_panel.js?v=1.0"></script>
 </body>
 </html>

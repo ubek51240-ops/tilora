@@ -12,11 +12,19 @@
     {"n": 4, "title": "Xulosani tizim emas, talaba chiqaradi", "basis": "Flavell metakognitsiya; Zimmerman o'z-o'zini boshqarib o'rganish sikli; Hattie & Timperley 'self-regulation' darajasi", "mechanism": "5-bosqichda talaba avval 4 mezon bo'yicha o'zini baholaydi; o'z bahosi saqlanmaguncha haqiqiy natija 409 SELF_RATING_REQUIRED bilan yopiq. Tizim xulosa yozmaydi — farq sababini talaba yozadi.", "endpoint": "POST /api/lesson/{id}/self-rating → GET /api/lesson/{id}/actual-rating"}
   ],
   "stages": [
-    {"n": 1, "name": "Kirish", "goal": "Dars maqsadi (SWBAT) va yo'nalishi", "ai": "ochiq"},
-    {"n": 2, "name": "Tayyorgarlik (skaffolding)", "goal": "Leksik va tarkibiy ko'mak: terminlar, namuna tuzilma, AI dan reja so'rash", "ai": "ochiq (faqat reja/namuna)"},
-    {"n": 3, "name": "Mustaqil bajarish", "goal": "Talaba o'z aqliy mehnati bilan nutqiy mahsulot yaratadi", "ai": "YOPIQ (403 AI_LOCKED)"},
-    {"n": 4, "name": "Tahlil va sababli izohlar", "goal": "L1 interferensiyasi, leksika, izchillik bo'yicha sababli izohlar; talaba har izohga rozi/norozi", "ai": "ochiq (tahlil, tuzatilgan matn bermaydi)"},
-    {"n": 5, "name": "Metakognitiv refleksiya", "goal": "Avval o'z bahosi, keyin AI bahosi; farq sababi va keyingi maqsadni talaba yozadi", "ai": "ochiq (faqat o'z bahosidan keyin)"}
+    {"n": 1, "name": "Kirish + Rejalashtirish", "goal": "Dars maqsadi (SWBAT); talaba o'z variantini (A/B/C) va uning sababini ko'radi, maqsad va strategiyasini yozadi (metakognitiv sikl: rejalashtirish)", "ai": "ochiq (diagnostik vazifa)"},
+    {"n": 2, "name": "Tayyorgarlik (skaffolding)", "goal": "Leksik va tarkibiy ko'mak: terminlar, namuna tuzilma, AI dan reja so'rash; og'zaki nutq uchun dialog tizimi bilan mashq (jonli muloqotga tayyorgarlik)", "ai": "ochiq (faqat reja/namuna/dialog)"},
+    {"n": 3, "name": "Mustaqil bajarish + Monitoring", "goal": "Talaba o'z aqliy mehnati bilan nutqiy mahsulot yaratadi; o'z-o'zini tekshirish belgilari, vaqt va yordamga urinishlar kuzatuv varaqasiga yoziladi", "ai": "YOPIQ (403 AI_LOCKED)"},
+    {"n": 4, "name": "Tahlil, baholash va qiyosiy usul", "goal": "Sababli izohlar; talaba har izohni ASOSLAB qabul qiladi yoki rad etadi; AI muqobil variantini o'z varianti bilan solishtirib farqni asoslaydi", "ai": "ochiq (tahlil va muqobil; tuzatilgan matn bermaydi)"},
+    {"n": 5, "name": "Metakognitiv refleksiya", "goal": "Avval o'z bahosi, keyin AI bahosi (metakognitiv aniqlik farqi); farq sababi va keyingi maqsadni talaba yozadi; yozuv dinamikaga saqlanadi", "ai": "ochiq (faqat o'z bahosidan keyin)"}
+  ],
+  "modules": [
+    {"name": "Diagnostika moduli", "text": "Kirish testi (4 ko'nikma × CEFR) va kognitiv-affektiv + metakognitiv anketa (FLCAS, MSLQ); natija uch o'lchov bo'yicha guruhlanadi; pre/mid/post o'lchov sifatida assessments jadvaliga yoziladi."},
+    {"name": "Mashqlar moduli", "text": "4 nutqiy faoliyat turi bo'yicha topshiriqlar banki, har biri A (kengaytirilgan) / B (asosiy) / C (tayanchli) variantlari bilan; tinglash sur'ati va takrorlash soni variantga qarab cheklanadi; o'qish matnining moslashtirilgani ko'rsatiladi."},
+    {"name": "Baholash moduli", "text": "Yozma/og'zaki mahsulotga sababli izoh (L1 interferensiya banki + AI); izoh darajasi talabaga moslashadi; o'qituvchi izohni jarayon va o'zini boshqarish darajasiga ko'taradi (Hattie & Timperley)."},
+    {"name": "Refleksiya moduli", "text": "O'zini baholash varaqasi (4 mezon), tizim bahosi bilan farq (metakognitiv aniqlik), farq sababi va keyingi maqsad; 'Mening dinamikam' bo'limida ballar, ko'mak yo'li, pre/post va profil tarixi."},
+    {"name": "O'qituvchi paneli", "text": "Guruh kuzatuv paneli: uch o'lchovli profil, A/B/C tabaqalashtirish (tizim taklifi + o'qituvchi qarori), profilni sabab bilan tuzatish, talaba yozuvlari, kuzatuv varaqasi (sur'at, yordam so'rovlari, takrorlanuvchi xatolar)."},
+    {"name": "Tadqiqotchi moduli", "text": "4.2–4.10 jadvallar ikki manbadan: dissertatsiya to'plami va platformadagi jonli ma'lumotlar (χ², bog'langan/mustaqil t-mezon, Cohen d, Bespalko K); CSV/JSON import, Word/Excel eksport."}
   ],
   "profile_dimensions": [
     {"key": "cefr", "name": "Til ko'nikmalari (CEFR)", "text": "To'rt ko'nikma alohida o'lchanadi (A1–C2); umumlashtirilmaydi, chunki bo'lajak o'qituvchida o'qish B2, og'zaki nutq A2 bo'lishi odatiy hol."},
@@ -31,7 +39,12 @@
     {"feature": "Avval o'z bahosi, keyin AI bahosi", "tilora": true, "generic_ai_tutors": false, "note": "Odatda baho darhol ko'rsatiladi."},
     {"feature": "Ona tili (o'zbek) interferensiyasi banki", "tilora": true, "generic_ai_tutors": false, "note": "Umumiy grammatika tekshiruvchilar L1-ga xos sababni ko'rsatmaydi."},
     {"feature": "CEFR bo'yicha 4 ko'nikma alohida diagnostika", "tilora": true, "generic_ai_tutors": true, "note": "Cambridge Write & Improve, British Council testlari ham CEFR ga tayanadi."},
-    {"feature": "FLCAS tashvish profili bo'yicha yo'l tuzish", "tilora": true, "generic_ai_tutors": false, "note": ""}
+    {"feature": "FLCAS tashvish profili bo'yicha yo'l tuzish", "tilora": true, "generic_ai_tutors": false, "note": ""},
+    {"feature": "Uch o'lchovli tabaqalashtirish (A/B/C variantlar, o'qituvchi qarori bilan)", "tilora": true, "generic_ai_tutors": false, "note": "Adaptiv tizimlar odatda faqat o'zlashtirish darajasiga tayanadi (bir o'lchov)."},
+    {"feature": "Metakognitiv sikl: reja → monitoring → asoslangan baholash → refleksiya", "tilora": true, "generic_ai_tutors": false, "note": "Duolingo/Quizlet kabi ilovalarda refleksiya alohida bosqich emas."},
+    {"feature": "Dinamika paneli (ballar, ko'mak yo'li, o'zini baholash aniqligi)", "tilora": true, "generic_ai_tutors": true, "note": "Duolingo 'streak' va progress; TILORA da metakognitiv aniqlik ham kuzatiladi."},
+    {"feature": "Tadqiqot moduli: pre/post, χ², t, Cohen d, Bespalko K jonli hisoblanadi", "tilora": true, "generic_ai_tutors": false, "note": "Moodle/LMS analitikasi statistik mezonlarni bermaydi."},
+    {"feature": "Dialog tizimi faqat tayyorgarlik bosqichida (jonli muloqotga tayyorlov)", "tilora": true, "generic_ai_tutors": true, "note": "ELSA/Duolingo dialoglari butun jarayon davomida faol."}
   ],
   "references": [
     "Vygotsky, L. S. (1978). Mind in Society: The Development of Higher Psychological Processes. Harvard University Press.",

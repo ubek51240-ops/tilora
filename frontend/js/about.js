@@ -87,6 +87,9 @@
           <td style="padding:8px;border-bottom:1px solid var(--line-2)"><span class="chip ${/YOPIQ/.test(s.ai) ? "full" : "none"}">${esc(s.ai)}</span></td>
         </tr>`).join("")}</tbody></table></div>`);
 
+      setHtml("aboutModules", (m.modules || []).map(d => `
+        <div class="card" style="padding:14px;border-top:3px solid var(--teal)"><div style="font-weight:700;margin-bottom:4px">${esc(d.name)}</div>
+        <div style="font-size:13px;color:var(--ink-2);line-height:1.6">${esc(d.text)}</div></div>`).join(""));
       setHtml("aboutDimensions", (m.profile_dimensions || []).map(d => `
         <div class="card" style="padding:14px"><div style="font-weight:700;margin-bottom:4px">${esc(d.name)}</div>
         <div style="font-size:13px;color:var(--ink-2);line-height:1.6">${esc(d.text)}</div></div>`).join(""));

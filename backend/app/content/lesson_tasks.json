@@ -10,6 +10,11 @@
     "word_count_min": 150,
     "word_count_max": 200,
     "duration_minutes": 30,
+    "variants": {
+      "A": {"prompt": "Yozma nutqni baholashda analitik va holistik rubrikalarni qiyoslang: har birining validlik, ishonchlilik va washback nuqtai nazaridan afzallik va cheklovlarini 200–250 so'zda, kamida uchta ilmiy manbaga (Hattie & Timperley, Black & Wiliam, CEFR) tayanib asoslang. Namuna va lug'at berilmaydi.", "scaffold_level": "none", "word_count_min": 200, "word_count_max": 260, "duration_minutes": 35},
+      "B": {"prompt": "O'quvchilarning yozma nutqini baholashda qanday mezonlardan foydalanish mumkin? O'z fikringizni 150–180 so'zda ilmiy-metodik tilda bayon eting. Kamida ikkita mezonni misol bilan izohlang.", "scaffold_level": "partial", "word_count_min": 150, "word_count_max": 200, "duration_minutes": 30},
+      "C": {"prompt": "O'quvchi yozma ishini baholashning IKKITA mezonini (masalan, grammatik aniqlik va mazmun) tanlang. Har biri uchun: (1) nima tekshiriladi, (2) bitta misol, (3) nega muhim — deb 100–130 so'zda yozing. Quyidagi tuzilma va lug'atdan foydalaning.", "scaffold_level": "full", "word_count_min": 100, "word_count_max": 140, "duration_minutes": 30}
+    },
     "scaffold_vocabulary": [
       {"term": "formative assessment rubrics", "uz": "shakllantiruvchi baholash rubrikalari"},
       {"term": "task achievement", "uz": "vazifaning bajarilganlik darajasi"},
@@ -46,6 +51,11 @@
     "duration_minutes": 20,
     "duration_seconds_min": 90,
     "duration_seconds_max": 120,
+    "variants": {
+      "A": {"prompt": "Vaziyat: aralash darajali guruhda kuchli talabalar passivlarni 'bosib' qo'ymoqda. 2–2.5 daqiqada ingliz tilida: muammoni tashxislang, uchta tabaqalashtirilgan texnikani (rollar, tiered tasks, wait time) taklif qiling va qaysi tadqiqotga tayanganingizni ayting. Tayyor iboralar berilmaydi.", "scaffold_level": "none", "duration_seconds_min": 120, "duration_seconds_max": 150},
+      "B": {"prompt": "Vaziyat: talabalar darsda passiv bo'lib qoldi. O'qituvchi sifatida ularni darsga jalb qilish metodlarini 1.5–2 daqiqa davomida ingliz tilida bayon eting. Kamida uchta aniq texnikani nomlang va asoslang.", "scaffold_level": "partial", "duration_seconds_min": 90, "duration_seconds_max": 120},
+      "C": {"prompt": "Vaziyat: talabalar darsda jim. 1–1.5 daqiqada ingliz tilida IKKITA oddiy texnikani ayting (masalan: 'think-pair-share', 'wait time'). Har biri uchun: nima qilaman + nega. Quyidagi iboralar va rejadan foydalaning.", "scaffold_level": "full", "duration_seconds_min": 60, "duration_seconds_max": 90}
+    },
     "scaffold_vocabulary": [
       {"term": "to elicit responses", "uz": "javoblarni chiqarib olish"},
       {"term": "think-pair-share", "uz": "o'yla–juftlash–ulash texnikasi"},
@@ -80,6 +90,12 @@
     "word_count_max": 150,
     "duration_minutes": 25,
     "audio_url": "/audio_diag_02.wav",
+    "playback": {"A": {"speed": 1.0, "max_replays": 1}, "B": {"speed": 1.0, "max_replays": 2}, "C": {"speed": 0.8, "max_replays": 3}},
+    "variants": {
+      "A": {"prompt": "Audioni BIR marta oddiy sur'atda tinglang. Ma'ruzachining uchta tavsiyasini ajrating, har biriga tanqidiy izoh yozing (qo'shilasizmi, qaysi sharoitda ishlamaydi) — jami 130–160 so'z. Transkript berilmaydi.", "scaffold_level": "none", "word_count_min": 130, "word_count_max": 180},
+      "B": {"prompt": "\"Language Assessment Rubrics\" audio parchasini (2 marta) tinglang. Ma'ruzachi aytgan uchta asosiy metodik tavsiyani ajrating va har biriga 2–3 gapli tahliliy izoh yozing (jami 100–130 so'z).", "scaffold_level": "partial", "word_count_min": 100, "word_count_max": 150},
+      "C": {"prompt": "Audioni sekinroq sur'atda 3 martagacha tinglang. Kalit so'zlar ro'yxatidan foydalanib, ma'ruzachining IKKITA tavsiyasini o'z so'zlaringiz bilan yozing (60–90 so'z). Tushunmagan joyni belgilab qo'ying.", "scaffold_level": "full", "word_count_min": 60, "word_count_max": 100}
+    },
     "scaffold_vocabulary": [
       {"term": "signposting phrases (firstly, in addition, to sum up)", "uz": "yo'naltiruvchi iboralar"},
       {"term": "gist vs. detail", "uz": "umumiy mazmun va tafsilot"},
@@ -112,6 +128,12 @@
     "word_count_min": 120,
     "word_count_max": 170,
     "duration_minutes": 30,
+    "reading_source": {"title": "AI in Language Assessment (o'quv maqsadida qisqartirilgan va B1–B2 darajaga moslashtirilgan parcha)", "adapted": true, "note": "Matn texnologiya yordamida darajaga moslashtirilgan; asl ilmiy maqola o'rnini bosmaydi (shaffoflik talabi)."},
+    "variants": {
+      "A": {"prompt": "Matnni o'qing. (1) Muallif tezisini bir gapda ifodalang; (2) dalillarini tanqidiy baholang — qaysi da'vo empirik asosga muhtoj; (3) O'zbekiston OTM konteksti uchun ikki qarama-qarshi pedagogik xulosa chiqarib, birini tanlang va asoslang. 160–200 so'z.", "scaffold_level": "none", "word_count_min": 160, "word_count_max": 220},
+      "B": {"prompt": "\"AI in Language Assessment\" matnini diqqat bilan o'qing. (1) Muallifning asosiy tezisini bir gapda ifodalang; (2) u keltirgan ikkita dalilni ajrating; (3) o'zbek auditoriyasi uchun pedagogik xulosa chiqaring. Jami 120–150 so'z.", "scaffold_level": "partial", "word_count_min": 120, "word_count_max": 170},
+      "C": {"prompt": "Matnni o'qing (lug'at berilgan). Quyidagi savollarga 2–3 gapdan javob yozing: Muallif AI haqida nima deydi? Nega o'qituvchi hali ham kerak? 'AI-free task' nima uchun kerak? Jami 80–110 so'z.", "scaffold_level": "full", "word_count_min": 80, "word_count_max": 120}
+    },
     "reading_text": "Artificial Intelligence applications in English Language Teaching (ELT) offer diagnostic precision and real-time formative feedback. However, pedagogical mediation remains essential to foster metacognitive self-regulation. Where learners outsource the act of writing to generative tools, the very processes that assessment is meant to capture — planning, drafting, revising — are bypassed. Consequently, assessment designers increasingly distinguish between AI-assisted and AI-free tasks, reserving the latter for diagnosing genuine productive competence. Teachers, in turn, retain the final decision on how AI-generated feedback is interpreted and acted upon.",
     "scaffold_vocabulary": [
       {"term": "thesis statement", "uz": "asosiy tezis"},

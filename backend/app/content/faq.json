@@ -55,6 +55,26 @@
     "a": "4-bob jadvallari 2024–2026 yillardagi tajriba-sinov ishlarining yakuniy, oldindan hisoblangan natijalari (BuxDU, NDPI, SamDChTI; N=258). Ular platformadagi joriy foydalanuvchilar ma'lumotlaridan real vaqtda qayta hisoblanmaydi — API javobida 'data_source: dissertation_dataset' belgisi bilan ko'rsatiladi. Eksport (.docx/.xlsx/.csv) faqat tadqiqotchi, o'qituvchi va admin uchun ochiq."
   },
   {
+    "audience": "student",
+    "q": "A, B, C variantlar nima? Bu mening 'darajam'mi?",
+    "a": "Yo'q, bu o'quv yo'lingizning varianti (tabaqalashtirish). Tizim uch o'lchov — CEFR ko'nikmalar, kasbiy yo'nalish, kognitiv-affektiv profil — asosida A (kengaytirilgan, ko'maksiz), B (asosiy, qisman ko'mak) yoki C (tayanchli, to'liq ko'mak) variantini taklif qiladi va sababini ochiq ko'rsatadi. Yakuniy qaror o'qituvchida: u variantni o'zgartira oladi. Uchta ketma-ket muvaffaqiyatli mashg'ulotdan so'ng ko'mak darajasini pasaytirish taklif qilinadi."
+  },
+  {
+    "audience": "student",
+    "q": "'Mening dinamikam' bo'limida nimalarni ko'raman?",
+    "a": "Har bir yakunlangan mashg'ulot yozuvi: ball, variant, ko'mak darajasi, o'z bahoyingiz bilan tizim bahosi farqi (metakognitiv aniqlik), mustaqil bosqichda sarflangan vaqt, keyingi maqsadingiz; ko'nikma bo'yicha o'sish, ko'mak yo'li, pre/post diagnostika natijalari va profil tarixi. Bu refleksiya modulining 'dinamika ko'rsatkichlari' qismi."
+  },
+  {
+    "audience": "teacher",
+    "q": "Guruh kuzatuv paneli nima beradi?",
+    "a": "Har talabaning uch o'lchovli profili, tizim taklif qilgan va siz biriktirgan variant (A/B/C), pre/post baholar, mashg'ulotlar soni va o'rtacha ball; tabaqalashtirish ko'rinishi (uchta kichik guruh); kuzatuv varaqasi — bajarish sur'ati, qulflangan AI ga urinishlar, o'z-o'zini tekshirish, takrorlanuvchi ona tili xatolari (fossilizatsiya xavfi), izohlarni qabul qilish ulushi; talaba yozuvlari (matn, asoslangan qarorlar, refleksiya) va izohni jarayon darajasiga ko'tarish imkoni. Profilni faqat sabab yozib tuzatish mumkin, tarix saqlanadi."
+  },
+  {
+    "audience": "researcher",
+    "q": "Jonli statistika qanday hisoblanadi va dissertatsiya jadvallariga mos keladimi?",
+    "a": "Platformadagi assessments jadvalidan (kirish diagnostikasi avtomatik 'pre', keyingisi 'post'; CSV/JSON import ham mumkin) 4.2–4.10 jadvallar real vaqtda hisoblanadi: guruhlar soni, boshlang'ich tenglik (Pirson χ², daraja taqsimoti), guruh ichidagi o'zgarish (bog'langan t-mezon), ko'nikmalar bo'yicha guruhlararo farq (mustaqil t-mezon, Cohen d), metakognitiv komponentlar (MSLQ 1–5) va tashvish dinamikasi, Bespalko K va samaradorlik koeffitsiyenti, nazariy kutilma bilan muvofiqlik. Jadval sxemasi dissertatsiya to'plami bilan bir xil, shuning uchun Word/Excel eksport ikkala manba uchun ishlaydi."
+  },
+  {
     "audience": "all",
     "q": "Ma'lumotlarim qanday himoyalanadi?",
     "a": "Parollar foydalanuvchiga xos tuz bilan PBKDF2-SHA256 (600 000 iteratsiya) orqali xeshlanadi; sessiya JWT tokeni 12 soat amal qiladi; login urinishlari cheklangan (brute-force himoyasi); barcha API so'rovlari rol va egalik bo'yicha tekshiriladi; AI so'rovlari foydalanuvchi bo'yicha chegaralanadi. Shaxsga doir ma'lumotlar O'RQ-547 qonuniga muvofiq faqat ta'lim maqsadida ishlatiladi."

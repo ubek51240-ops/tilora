@@ -108,6 +108,45 @@ async def ai_analyze(payload: AITextRequest, current_user: dict = Depends(ai_quo
     }
 
 
+class DialogRequest(BaseModel):
+    messages: List[ChatMessage] = Field(default_factory=list, max_length=20)
+    scenario: str = Field("classroom", max_length=60)
+    level: str = Field("B1", pattern="^(A1|A2|B1|B2|C1|C2)$")
+
+
+DIALOG_SCENARIOS = {
+    "classroom": "You are a curious 15-year-old pupil in an English lesson. The user is a trainee teacher practising classroom English.",
+    "parent": "You are a parent at a parent-teacher meeting asking about your child's progress in English.",
+    "colleague": "You are a fellow English teacher discussing lesson planning in the staff room.",
+    "interview": "You are a school principal interviewing the user for an English teacher position.",
+    "conference": "You are a participant asking questions after the user's short conference talk on language teaching.",
+}
+
+
+@router.post("/dialog", dependencies=[blocked_tool("dialog")])
+async def ai_dialog(payload: DialogRequest, current_user: dict = Depends(ai_quota)):
+    """
+    Og'zaki nutq uchun dialog tizimi (3.2: "dialog tizimi bilan mashq jonli muloqotga TAYYORGARLIK bosqichi sifatida").
+    Faqat 2-bosqichda (tayyorgarlik) va 4-bosqichda ochiq; mustaqil bosqichda 403 AI_LOCKED.
+    Boshlang'ich va o'rtadan past darajalarda kengroq qo'llanadi (Bibauw et al.).
+    """
+    role = DIALOG_SCENARIOS.get(payload.scenario, DIALOG_SCENARIOS["classroom"])
+    system = {"role": "system", "content": (
+        f"{role} Keep replies short (1–3 sentences) at CEFR {payload.level} level. Stay in character, ask one follow-up question each turn. "
+        "Do NOT correct the user's grammar during the dialog; at the very end, only if the user writes 'FEEDBACK', give 3 brief notes on recurring errors. "
+        "Never write a full essay or long monologue for the user.")}
+    msgs = [m.model_dump() for m in payload.messages if m.role != "system"]
+    if not msgs:
+        msgs = [{"role": "user", "content": "Hello! Let's start the dialog."}]
+    res = await ai_service.call_chat([system] + msgs, temperature=0.8, max_tokens=250)
+    if not res.get("success"):
+        return {"success": False, "ai_powered": False,
+                "content": "AI dialog xizmati hozir mavjud emas (balans yoki ulanish). Juftlikda jonli dialog bilan davom eting: sinfdosh 'o'quvchi' rolini o'ynasin.",
+                "error": res.get("error_message", "")}
+    return {"success": True, "ai_powered": True, "content": res.get("content", ""), "scenario": payload.scenario, "level": payload.level,
+            "marker": "AI tomonidan hosil qilingan muloqot (shaffoflik belgisi)"}
+
+
 @router.post("/chat")
 async def ai_chat(payload: ChatRequest, current_user: dict = Depends(ai_quota)):
     """Erkin pedagogik muloqot va AI bilan maslahatlashish (faqat tizimga kirganlar uchun)."""

@@ -35,6 +35,7 @@ from app.api.admin import router as admin_router
 from app.api.proposals import router as proposals_router
 from app.api.api_keys import router as api_keys_router
 from app.api.content import router as content_router
+from app.api.teacher_panel import router as teacher_panel_router
 
 # Ma'lumotlar bazasini yaratish
 Base.metadata.create_all(bind=engine)
@@ -221,6 +222,7 @@ app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(proposals_router, prefix=settings.API_V1_STR)
 app.include_router(api_keys_router, prefix=settings.API_V1_STR)
 app.include_router(content_router, prefix=settings.API_V1_STR)
+app.include_router(teacher_panel_router, prefix=settings.API_V1_STR)
 
 # 2. Frontend statik fayllarni ulash
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

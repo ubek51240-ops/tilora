@@ -5,7 +5,8 @@
     "prompt_uz": "Ingliz tilida auditoriya oldida nutq so'zlashdan oldin kuchli hayajon va xavotir sezaman.",
     "prompt_en": "I feel a strong sense of nervousness before speaking English in front of peers.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "FLCAS (Horwitz, Horwitz & Cope, 1986), item 1 — adapted"
   },
   {
     "id": "sq_02",
@@ -13,7 +14,8 @@
     "prompt_uz": "Ingliz tilida gapirayotganimda boshqa talabalar mening xatolarim ustidan kulyapti deb o'ylayman.",
     "prompt_en": "I worry that other students might laugh at my mistakes when I speak English.",
     "scale": "likert_5",
-    "weight": 1.2
+    "weight": 1.2,
+    "source": "FLCAS, item 31 — adapted"
   },
   {
     "id": "sq_03",
@@ -21,7 +23,8 @@
     "prompt_uz": "O'qituvchi ingliz tilida kutilmaganda mendan javob so'rasa, o'zimni yo'qotib qo'yaman.",
     "prompt_en": "I get flustered when the teacher unexpectedly calls on me in English.",
     "scale": "likert_5",
-    "weight": 1.1
+    "weight": 1.1,
+    "source": "FLCAS, item 3 — adapted"
   },
   {
     "id": "sq_04",
@@ -29,70 +32,151 @@
     "prompt_uz": "Darsda murakkab matn yoki audiomaterial berilganda darhol taslim bo'lish hissi paydo bo'ladi.",
     "prompt_en": "I feel overwhelmed when confronted with dense or authentic language materials.",
     "scale": "likert_5",
-    "weight": 0.9
+    "weight": 0.9,
+    "source": "FLCAS, item 4 — adapted"
   },
   {
     "id": "sq_05",
+    "dimension": "anxiety",
+    "prompt_uz": "Ingliz tili imtihoni yoki nazorat ishidan oldin yurak urishim tezlashadi, hatto tayyor bo'lsam ham.",
+    "prompt_en": "My heart pounds before an English test even when I am well prepared.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "FLCAS, items 8/20 — adapted (test anxiety)"
+  },
+  {
+    "id": "sq_06",
+    "dimension": "anxiety",
+    "prompt_uz": "O'qituvchi mening har bir xatomni tuzatsa, keyingi safar gapirishga jur'at qilmayman.",
+    "prompt_en": "When the teacher corrects every mistake I make, I lose the courage to speak next time.",
+    "scale": "likert_5",
+    "weight": 1.1,
+    "source": "FLCAS, item 19 — adapted (fear of negative evaluation)"
+  },
+  {
+    "id": "sq_07",
+    "dimension": "anxiety",
+    "prompt_uz": "Ingliz tilida yozgan ishimni boshqalar o'qishini tasavvur qilsam, noqulaylik sezaman.",
+    "prompt_en": "I feel uneasy imagining others reading what I have written in English.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "Second Language Writing Anxiety Inventory (Cheng, 2004) — adapted"
+  },
+  {
+    "id": "sq_08",
     "dimension": "load_capacity",
     "prompt_uz": "Bir mashg'ulotda 15-20 ta yangi kasbiy atama va murakkab sintaktik tuzilmani o'zlashtirish menga qiyinchilik tug'dirmaydi.",
     "prompt_en": "I comfortably absorb 15-20 new academic collocations in a single session.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "Cognitive load self-report — adapted (Paas, 1992)"
   },
   {
-    "id": "sq_06",
+    "id": "sq_09",
     "dimension": "load_capacity",
     "prompt_uz": "Uzoq (400-500 so'zli) ilmiy-pedagogik maqolalarni o'qib, asosiy tezislarini ajratib olishga sabrim yetadi.",
     "prompt_en": "I maintain focus while analyzing extended pedagogical observation texts.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "Cognitive load self-report — adapted"
   },
   {
-    "id": "sq_07",
+    "id": "sq_10",
+    "dimension": "load_capacity",
+    "prompt_uz": "Bir vaqtning o'zida audio tinglab, konspekt yozib va savolga javob tayyorlay olaman.",
+    "prompt_en": "I can listen, take notes and prepare an answer at the same time without losing track.",
+    "scale": "likert_5",
+    "weight": 1.0,
+    "source": "Cognitive load self-report — adapted"
+  },
+  {
+    "id": "sq_11",
     "dimension": "pace",
     "prompt_uz": "Yozma yoki og'zaki topshiriqlarni belgilangan vaqtdan oldinroq, tez va dadil bajarishga odatlanganman.",
     "prompt_en": "I usually complete written drafting tasks ahead of standard deadlines.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "Learning pace self-report"
   },
   {
-    "id": "sq_08",
+    "id": "sq_12",
     "dimension": "pace",
     "prompt_uz": "Javob berishdan oldin uzoq o'ylanib qolmayman, fikrimni tezkor ifoda eta olaman.",
     "prompt_en": "I articulate my thoughts promptly without prolonged hesitation.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "Learning pace self-report"
   },
   {
-    "id": "sq_09",
+    "id": "sq_13",
+    "dimension": "pace",
+    "prompt_uz": "Yangi grammatik qoidani bir marta tushuntirilgach, darhol mashqda qo'llay olaman.",
+    "prompt_en": "After a rule is explained once, I can apply it in practice straight away.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "Learning pace self-report"
+  },
+  {
+    "id": "sq_14",
     "dimension": "autonomy",
     "prompt_uz": "Topshiriq bajarishda tayyor namuna yoki o'qituvchi yordamisiz mustaqil strategiya tanlay olaman.",
     "prompt_en": "I can devise an autonomous writing strategy without leaning on templates.",
     "scale": "likert_5",
-    "weight": 1.2
+    "weight": 1.2,
+    "source": "Learner autonomy scale (Holec, 1981; Benson, 2011) — adapted"
   },
   {
-    "id": "sq_10",
+    "id": "sq_15",
     "dimension": "autonomy",
     "prompt_uz": "O'z xatolarimni mustaqil tahlil qilish va o'zlashtirish kamchiliklarini to'ldirish menga qulay.",
     "prompt_en": "I regularly conduct self-diagnosis of my linguistic errors.",
     "scale": "likert_5",
-    "weight": 1.1
+    "weight": 1.1,
+    "source": "Metacognitive Awareness Inventory (Schraw & Dennison, 1994) — adapted"
   },
   {
-    "id": "sq_11",
+    "id": "sq_16",
+    "dimension": "autonomy",
+    "prompt_uz": "Ishni topshirishdan oldin o'z matnimni rubrika mezonlari bo'yicha o'zim tekshirib chiqaman.",
+    "prompt_en": "Before submitting, I check my own text against the rubric criteria myself.",
+    "scale": "likert_5",
+    "weight": 1.1,
+    "source": "MAI — adapted (self-evaluation)"
+  },
+  {
+    "id": "sq_17",
+    "dimension": "autonomy",
+    "prompt_uz": "Sun'iy intellektdan tayyor javob olishdan ko'ra, avval o'zim urinib ko'rishni afzal ko'raman.",
+    "prompt_en": "I prefer to attempt a task myself first rather than get a ready answer from AI.",
+    "scale": "likert_5",
+    "weight": 1.2,
+    "source": "TILORA 1-qoida (AI-lock) — original item"
+  },
+  {
+    "id": "sq_18",
     "dimension": "motivation",
     "prompt_uz": "Ingliz tilini yaxshi o'rganishimdan maqsad — kelajakda kuchli, xalqaro tajribaga ega metodist-o'qituvchi bo'lish.",
     "prompt_en": "My primary drive is to become an inspiring, pedagogically proficient English educator.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "L2 Motivational Self System (Dörnyei, 2009) — ideal L2 self, adapted"
   },
   {
-    "id": "sq_12",
+    "id": "sq_19",
     "dimension": "motivation",
     "prompt_uz": "Men uchun faqat imtihondan yuqori baho olish emas, balki tilni chuqur his qilish muhim.",
     "prompt_en": "Intrinsic linguistic mastery matters to me far more than mere test scores.",
     "scale": "likert_5",
-    "weight": 1.0
+    "weight": 1.0,
+    "source": "Intrinsic motivation (Deci & Ryan, SDT) — adapted"
+  },
+  {
+    "id": "sq_20",
+    "dimension": "motivation",
+    "prompt_uz": "Dars tashqarisida ham ingliz tilida podkast, maqola yoki video tanlab o'rganishga vaqt ajrataman.",
+    "prompt_en": "Outside class I voluntarily spend time on English podcasts, articles or videos.",
+    "scale": "likert_5",
+    "weight": 0.9,
+    "source": "Intrinsic motivation — behavioural indicator"
   }
 ]

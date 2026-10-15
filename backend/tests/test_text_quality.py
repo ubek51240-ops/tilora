@@ -10,6 +10,8 @@ from app.services.feedback import analyze_production_heuristics
 from app.services.ai_service import ai_service
 
 client = TestClient(app)
+from app.core.security import create_access_token
+AUTH = {"Authorization": f"Bearer {create_access_token({'id': 'tq_student', 'role': 'student'})}"}
 
 CLEAN = ("Assessing students' writing requires clear and transparent criteria. Furthermore, teachers should consider "
          "content, grammatical accuracy, lexical resource and coherence when they evaluate essays. A well-designed rubric "
@@ -69,7 +71,7 @@ def test_ai_yuqori_ball_bersa_ham_cheklanadi(monkeypatch):
                        "lexis": {"score": 5, "reason": "c"}, "coherence": {"score": 5, "reason": "d"}},
             "total_score": 100, "cefr_estimate": "C1", "strengths": [], "improvements": [], "overall_comment": "ok"})}
     monkeypatch.setattr(ai_service, "call_chat", lenient_ai)
-    r = client.post("/api/lesson/5/ai-evaluate", json={"content_text": GIBBERISH})
+    r = client.post("/api/lesson/5/ai-evaluate", json={"content_text": GIBBERISH}, headers=AUTH)
     assert r.status_code == 200, r.text
     d = r.json()
     assert d["ai_powered"] is True

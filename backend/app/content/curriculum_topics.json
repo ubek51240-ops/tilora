@@ -7,7 +7,8 @@
     "title_en": "Professional rapport and introductory classroom exchanges",
     "difficulty_level": 3,
     "scaffold_default": "full",
-    "pedagogical_focus": "Establishing comfortable verbal interaction in a low-stakes pedagogical setting."
+    "pedagogical_focus": "Establishing comfortable verbal interaction in a low-stakes pedagogical setting.",
+    "learning_outcomes": ["O'zini va darsni tanishtira olish", "Oddiy ko'rsatma va iltimoslarni ifodalash", "Darsdagi 10 ta standart ibora (classroom English)"]
   },
   {
     "id": "top_02",
@@ -17,7 +18,8 @@
     "title_en": "Classroom management discourse: Delivering clear task instructions",
     "difficulty_level": 4,
     "scaffold_default": "partial",
-    "pedagogical_focus": "Imperative and modal structures for concise task framing."
+    "pedagogical_focus": "Imperative and modal structures for concise task framing.",
+    "learning_outcomes": ["ICQ (instruction checking questions) tuzish", "Buyruq va modal fe'llar bilan aniq ko'rsatma berish", "TTT/STT muvozanatini saqlash"]
   },
   {
     "id": "top_03",
@@ -27,7 +29,8 @@
     "title_en": "Evaluating learner writing: Criteria-referenced analytical essay",
     "difficulty_level": 5,
     "scaffold_default": "full",
-    "pedagogical_focus": "Synthesizing criteria for accuracy, coherence, lexical range, and task achievement."
+    "pedagogical_focus": "Synthesizing criteria for accuracy, coherence, lexical range, and task achievement.",
+    "learning_outcomes": ["Analitik rubrika tuzilishini tushuntirish", "150–180 so'zli metodik tahlil yozish", "Akademik bog'lovchilarni to'g'ri qo'llash"]
   },
   {
     "id": "top_04",
@@ -37,7 +40,8 @@
     "title_en": "Critical reading of empirical ELT research articles",
     "difficulty_level": 6,
     "scaffold_default": "partial",
-    "pedagogical_focus": "Identifying thesis statements, empirical evidence, and pedagogical implications."
+    "pedagogical_focus": "Identifying thesis statements, empirical evidence, and pedagogical implications.",
+    "learning_outcomes": ["Tezis va dalilni ajratish", "Hedging (ehtiyotkor da'vo) iboralarini tanish", "Maqola xulosasini 5 gapda umumlashtirish"]
   },
   {
     "id": "top_05",
@@ -47,7 +51,8 @@
     "title_en": "Authentic classroom observation audio: Regional accents and speech tempo",
     "difficulty_level": 5,
     "scaffold_default": "partial",
-    "pedagogical_focus": "Deciphering fast-paced pedagogical discourse and student questions."
+    "pedagogical_focus": "Deciphering fast-paced pedagogical discourse and student questions.",
+    "learning_outcomes": ["Tez nutqdagi asosiy fikrni ushlash", "Turli aksentlarni (BrE/AmE) farqlash", "Kuzatuv varaqasini to'ldirish"]
   },
   {
     "id": "top_06",
@@ -57,7 +62,8 @@
     "title_en": "Designing and defending communicative lesson plans",
     "difficulty_level": 7,
     "scaffold_default": "none",
-    "pedagogical_focus": "Holistic application of communicative language teaching principles."
+    "pedagogical_focus": "Holistic application of communicative language teaching principles.",
+    "learning_outcomes": ["PPP/TBLT asosida dars rejasi tuzish", "Rejani og'zaki himoya qilish", "Hamkasb tanqidiga javob berish"]
   },
   {
     "id": "top_07",
@@ -67,7 +73,8 @@
     "title_en": "Metacognitive teaching journal: Action research and self-regulation",
     "difficulty_level": 8,
     "scaffold_default": "none",
-    "pedagogical_focus": "Self-reflective evaluation of teaching strategies and student engagement."
+    "pedagogical_focus": "Self-reflective evaluation of teaching strategies and student engagement.",
+    "learning_outcomes": ["Gibbs refleksiya siklidan foydalanish", "O'z darsini tanqidiy baholash", "Keyingi harakat rejasini yozish"]
   },
   {
     "id": "top_08",
@@ -77,6 +84,51 @@
     "title_en": "Capstone microteaching demonstration and peer symposium",
     "difficulty_level": 9,
     "scaffold_default": "none",
-    "pedagogical_focus": "Full autonomous demonstration of pedagogical and linguistic competence."
+    "pedagogical_focus": "Full autonomous demonstration of pedagogical and linguistic competence.",
+    "learning_outcomes": ["15 daqiqalik mikrodars o'tkazish", "Ekspert savollariga javob berish", "Portfolio taqdimoti"]
+  },
+  {
+    "id": "top_09",
+    "skill": "listening",
+    "week_range": "1-2",
+    "title_uz": "Tinglash: Metodik podkast va konferensiya ma'ruzasini tushunish",
+    "title_en": "Listening to ELT podcasts and conference talks: note-taking strategies",
+    "difficulty_level": 4,
+    "scaffold_default": "full",
+    "pedagogical_focus": "Note-taking (Cornell method) and identifying signposting language in academic talks.",
+    "learning_outcomes": ["Signposting iboralarini tanish (firstly, to sum up)", "Cornell usulida konspekt olish", "Ma'ruzadagi 3 asosiy tavsiyani ajratish"]
+  },
+  {
+    "id": "top_10",
+    "skill": "reading",
+    "week_range": "3-4",
+    "title_uz": "O'qish: CEFR deskriptorlari va baholash rubrikalarini o'qish",
+    "title_en": "Reading CEFR descriptors and assessment rubrics as professional documents",
+    "difficulty_level": 4,
+    "scaffold_default": "full",
+    "pedagogical_focus": "Scanning and close reading of standard-setting documents (CEFR 'can-do' statements).",
+    "learning_outcomes": ["'Can-do' deskriptorlarini sharhlash", "Rubrika bandlarini darajalarga moslash", "Skimming va scanning strategiyalarini qo'llash"]
+  },
+  {
+    "id": "top_11",
+    "skill": "speaking",
+    "week_range": "9-10",
+    "title_uz": "Og'zaki nutq: Xatolarni og'zaki tuzatish va konstruktiv fikr bildirish",
+    "title_en": "Oral corrective feedback: recasts, prompts and constructive peer feedback",
+    "difficulty_level": 6,
+    "scaffold_default": "partial",
+    "pedagogical_focus": "Using hedged, polite formulae for corrective feedback (recast, elicitation, metalinguistic clue).",
+    "learning_outcomes": ["Recast va elicitation texnikasini qo'llash", "Muloyim tuzatish iboralari ('You might consider...')", "Tengdosh darsiga og'zaki fikr bildirish"]
+  },
+  {
+    "id": "top_12",
+    "skill": "writing",
+    "week_range": "9-10",
+    "title_uz": "Yozma nutq: Kuzatilgan dars bo'yicha hisobot (observation report)",
+    "title_en": "Writing a lesson observation report: objective description vs. evaluation",
+    "difficulty_level": 6,
+    "scaffold_default": "partial",
+    "pedagogical_focus": "Separating objective description from evaluative judgement; past tense narrative accuracy.",
+    "learning_outcomes": ["Tavsif va bahoni ajratib yozish", "O'tgan zamon noto'g'ri fe'llarini to'g'ri qo'llash", "Hisobot tuzilmasi: kontekst–kuzatuv–tavsiya"]
   }
 ]

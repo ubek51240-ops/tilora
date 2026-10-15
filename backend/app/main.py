@@ -1,5 +1,6 @@
 import os
 import sys
+import ipaddress
 
 # Windows Application Control ujson DLL bloklanishidan himoya
 sys.modules['ujson'] = None
@@ -16,7 +17,7 @@ except Exception:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.config import settings
 from app.database import engine, Base
@@ -33,6 +34,7 @@ from app.api.research import router as research_router
 from app.api.admin import router as admin_router
 from app.api.proposals import router as proposals_router
 from app.api.api_keys import router as api_keys_router
+from app.api.content import router as content_router
 
 # Ma'lumotlar bazasini yaratish
 Base.metadata.create_all(bind=engine)
@@ -95,6 +97,10 @@ tags_metadata = [
         "description": "Hattie & Timperley modeli asosidagi sababli pedagogik izohlar va ona tili (L1) interferensiyasi tahlili."
     },
     {
+        "name": "Ma'lumotnoma (Kontent)",
+        "description": "Ochiq ma'lumotnoma: ELT glossariysi, CEFR daraja tavsiflari, L1 interferensiya naqshlari, metodik asoslar va FAQ."
+    },
+    {
         "name": "Tadqiqotchi",
         "description": "DSc Dissertatsiyasi 4-bobi uchun matematik-statistik hisob-kitoblar, 4.2–4.9 jadvallar, Bespalko K ko'rsatkichi, Word (.docx) va Excel (.xlsx) eksporti."
     },
@@ -112,24 +118,24 @@ app_description = """
 # 🎓 TILORA Platformasi RESTful API Hujjatlari
 
 Mazkur API pedagogika fanlari doktori (DSc) ilmiy tadqiqoti doirasida yaratilgan:
-- **Tadqiqotchi:** Ikramova Aziza Aminovna  
-- **Ixtisoslik:** 13.00.02 – Ta'lim va tarbiya nazariyasi va metodikasi  
+- **Tadqiqotchi:** Ikramova Aziza Aminovna
+- **Ixtisoslik:** 13.00.02 – Ta'lim va tarbiya nazariyasi va metodikasi
 - **Mavzu:** «Ingliz tilini sun'iy intellekt texnologiyalari asosida o'qitish metodikasini takomillashtirish»
 - **Muassasa:** Buxoro davlat universiteti, Chet tillar fakulteti
 
 ---
 
 ### 🏛️ To'rt Asosiy Pedagogik Tamoyil:
-1. **1-Qoida: Mustaqil bosqichda AI yopiq** (`POST /api/lesson/save-production`) — talaba matn yaratayotganida tashqi AI qulflanadi.
-2. **2-Qoida: Sabab shablonda ochiq** (`GET /api/feedback/item/{id}`) — Hattie & Timperley modeli bo'yicha xato sababi ko'rsatiladi.
+1. **1-Qoida: Mustaqil bosqichda AI yopiq** (`POST /api/lesson/{id}/production`) — talaba matn yaratayotganida tashqi AI qulflanadi (server tomonda, foydalanuvchi holati bo'yicha).
+2. **2-Qoida: Sabab shablonda ochiq** (`GET /api/lesson/{id}/feedback`) — Hattie & Timperley modeli bo'yicha xato sababi ko'rsatiladi.
 3. **3-Qoida: Yakuniy qaror o'qituvchida** (`POST /api/proposals/{id}/approve`) — Pedagogik suverenitet saqlanadi.
-4. **4-Qoida: Xulosani talaba chiqaradi** (`POST /api/lesson/stage5/reflection`) — Talaba o'z bahosi va AI bahosi tafovutini tahlil qiladi.
+4. **4-Qoida: Xulosani talaba chiqaradi** (`POST /api/lesson/{id}/reflection`) — Talaba o'z bahosi va AI bahosi tafovutini tahlil qiladi.
 
 ---
 
 ### 🔐 Autentifikatsiya:
 Barcha himoyalangan endpointlar uchun HTTP sarlavhasi (Header) talab etiladi:
-`Authorization: Bearer <access_token>`  
+`Authorization: Bearer <access_token>`
 Token olish uchun: `POST /api/auth/login`
 """
 
@@ -138,33 +144,71 @@ app = FastAPI(
     version=settings.VERSION,
     description=app_description,
     openapi_tags=tags_metadata,
-    docs_url="/docs",
-    redoc_url="/redoc"
+    docs_url="/docs" if settings.DOCS_ENABLED else None,
+    redoc_url="/redoc" if settings.DOCS_ENABLED else None,
+    openapi_url="/openapi.json" if settings.DOCS_ENABLED else None,
 )
 
-# CORS (Barcha xavfsiz so'rovlar uchun)
+# CORS: ALLOWED_ORIGINS muhit o'zgaruvchisi bilan boshqariladi.
+# "*" (lokal demo) bo'lsa credentials o'chiriladi — brauzerlar "*" + credentials kombinatsiyasini rad etadi.
+_origins = settings.allowed_origins_list
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_origins,
+    allow_credentials=(_origins != ["*"]),
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "X-API-Key", "X-Lesson-Stage", "X-AI-Locked"],
 )
 
-# Frontend fayllari (HTML/JS/CSS) brauzerda keshlanib qolmasin — har yangilanish darhol ko'rinadi
+_MAX_BODY = settings.MAX_UPLOAD_MB * 1024 * 1024
+
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+    "font-src 'self' data: https://fonts.gstatic.com; "
+    "img-src 'self' data: blob: https:; "
+    "media-src 'self' blob: data:; "
+    "connect-src 'self' https:; "
+    "frame-ancestors 'self'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none'"
+)
+
+
 @app.middleware("http")
-async def no_cache_frontend(request, call_next):
+async def security_and_cache_headers(request: Request, call_next):
+    # Juda katta so'rov tanasi (DoS / xotira) — Content-Length bo'yicha oldindan rad etiladi
+    cl = request.headers.get("content-length")
+    if cl and cl.isdigit() and int(cl) > _MAX_BODY:
+        return JSONResponse(status_code=413, content={
+            "detail": f"So'rov hajmi {settings.MAX_UPLOAD_MB} MB dan oshmasligi kerak."
+        })
+
     response = await call_next(request)
     path = request.url.path
+
+    # Xavfsizlik sarlavhalari (nginx bo'lmasa ham ishlaydi)
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    response.headers.setdefault("Permissions-Policy", "camera=(), geolocation=(), payment=()")
+    if not path.startswith(("/docs", "/redoc", "/openapi.json")):
+        response.headers.setdefault("Content-Security-Policy", _CSP)
+
+    # Frontend fayllari (HTML/JS/CSS) brauzerda keshlanib qolmasin — har yangilanish darhol ko'rinadi
     if not path.startswith(settings.API_V1_STR) and (
         path in ("/", "") or path.endswith((".html", ".js", ".css"))
     ):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
+    elif path.startswith(settings.API_V1_STR):
+        response.headers.setdefault("Cache-Control", "no-store")
     return response
 
-# 1. API routerlarini ulash (51 ta endpoint)
+# 1. API routerlarini ulash
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(student_router, prefix=settings.API_V1_STR)
 app.include_router(lesson_router, prefix=settings.API_V1_STR)
@@ -176,10 +220,11 @@ app.include_router(research_router, prefix=settings.API_V1_STR)
 app.include_router(admin_router, prefix=settings.API_V1_STR)
 app.include_router(proposals_router, prefix=settings.API_V1_STR)
 app.include_router(api_keys_router, prefix=settings.API_V1_STR)
+app.include_router(content_router, prefix=settings.API_V1_STR)
 
 # 2. Frontend statik fayllarni ulash
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-frontend_dir = os.path.join(base_dir, "frontend")
+frontend_dir = os.path.realpath(os.path.join(base_dir, "frontend"))
 css_dir = os.path.join(frontend_dir, "css")
 js_dir = os.path.join(frontend_dir, "js")
 
@@ -200,13 +245,25 @@ def health_check():
         "app": settings.PROJECT_NAME,
         "version": settings.VERSION,
         "mode": "full_python_web_server",
-        "endpoints_count": 51,
         "rules_active": ["1_ai_lock", "2_rationale_transparent", "3_teacher_sovereignty", "4_student_reflection"]
     }
 
-# 3. Tarmoq va Wi-Fi ma'lumotlari API
+
+def _is_private_client(request: Request) -> bool:
+    """Faqat lokal/ichki tarmoqdagi mijozlarga (Wi-Fi demo) ichki IP ma'lumotlari beriladi."""
+    host = request.client.host if request.client else ""
+    try:
+        ip = ipaddress.ip_address(host)
+        return ip.is_private or ip.is_loopback or ip.is_link_local
+    except ValueError:
+        return host in ("localhost", "testclient")
+
+
+# 3. Tarmoq va Wi-Fi ma'lumotlari API (faqat lokal tarmoq mijozlari uchun)
 @app.get("/api/network-info")
-def get_network_info():
+def get_network_info(request: Request):
+    if not _is_private_client(request):
+        return JSONResponse(status_code=403, content={"detail": "Tarmoq ma'lumotlari faqat lokal tarmoqda ko'rsatiladi."})
     import socket
     ips = []
     try:
@@ -246,7 +303,6 @@ def serve_home():
 # Noma'lum /api yo'llari: har qanday metod uchun aniq 404 (SPA fallback 405 bermasin)
 @app.api_route("/api/{rest:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE"])
 def api_not_found(rest: str):
-    from fastapi.responses import JSONResponse
     return JSONResponse(status_code=404, content={
         "detail": f"API endpoint topilmadi: /api/{rest}. Agar kod yangilangan bo'lsa, serverni qayta ishga tushiring (start.bat)."
     })
@@ -256,13 +312,17 @@ def api_not_found(rest: str):
 def serve_spa(full_path: str):
     # Agar API marshrut bo'lmasa, index.html ga yo'naltirish
     if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("openapi.json"):
-        return {"error": "Not Found"}
-    
+        return JSONResponse(status_code=404, content={"error": "Not Found"})
+
     clean_path = full_path
     if clean_path.startswith("frontend/"):
         clean_path = clean_path[len("frontend/"):]
-    target_file = os.path.join(frontend_dir, clean_path)
-    if os.path.isfile(target_file):
+
+    # Path traversal himoyasi: faqat frontend papkasi ichidagi, nuqta bilan boshlanmaydigan fayllar
+    target_file = os.path.realpath(os.path.join(frontend_dir, clean_path))
+    inside = target_file == frontend_dir or target_file.startswith(frontend_dir + os.sep)
+    hidden = any(part.startswith(".") for part in clean_path.replace("\\", "/").split("/") if part)
+    if inside and not hidden and os.path.isfile(target_file):
         return FileResponse(target_file)
     index_file = os.path.join(frontend_dir, "index.html")
     if os.path.exists(index_file):

@@ -115,6 +115,14 @@
       </button>
     </div>
 
+    <!-- Ma'lumotnoma: hammaga ochiq -->
+    <div class="nav-role-group" data-nav-roles="student,teacher,admin,researcher,guest,developer">
+      <div class="nav-section-title">Ma'lumotnoma</div>
+      <button class="nav-btn" data-screen="s_about">
+        <span>ℹ️</span> <span>Platforma haqida, glossariy, CEFR</span>
+      </button>
+    </div>
+
     <div class="sidebar-footer">
       <strong data-i18n="principles_title">To'rt tamoyil:</strong><br>
       <span data-i18n="principle_1">1. Mustaqil bosqichda AI yopiq</span><br>
@@ -194,6 +202,21 @@
 
     <!-- ==================== 1. UCH O'LCHOVLI PROFIL ==================== -->
     <section class="screen active" id="s_profile">
+      <!-- Platforma haqida qisqa tanishtiruv (hammaga) -->
+      <div class="card" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;border-left:4px solid var(--teal)">
+        <div style="flex:1;min-width:260px">
+          <div style="font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:4px">TILORA — bo'lajak ingliz tili o'qituvchilari uchun adaptiv-metakognitiv platforma</div>
+          <div style="font-size:13px;color:var(--ink-2);line-height:1.6">
+            Kirish diagnostikasi (CEFR 4 ko'nikma + FLCAS tashvish profili) → 16 haftalik shaxsiy yo'l → 5 bosqichli mashg'ulot.
+            Mustaqil bosqichda AI yopiq, har qarorning sababi ochiq, yakuniy qaror o'qituvchida, xulosani talaba chiqaradi.
+          </div>
+          <div id="profileContentStat" style="font-size:12px;color:var(--muted);margin-top:6px">Kontent banki yuklanmoqda...</div>
+        </div>
+        <button class="btn-primary" style="padding:9px 16px;font-size:13px;background:var(--surface-2);color:var(--teal);border:1px solid var(--teal)" onclick="showScreen('s_about')">
+          ℹ️ Platforma haqida, glossariy va FAQ →
+        </button>
+      </div>
+
       <!-- Obuna va Tarif Holati Banneri -->
       <div id="profileSubscriptionBanner" class="card" style="margin-bottom:18px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;background:linear-gradient(135deg, rgba(138,106,23,0.08), rgba(13,110,110,0.08));border:1px solid rgba(138,106,23,0.3)">
         <div style="display:flex;align-items:center;gap:12px">
@@ -544,9 +567,10 @@
 
             <div class="card" style="margin-top:16px">
               <h3 data-i18n="allowed_tools_title">Foydalanish ruxsat etilgan vositalar</h3>
-              <button class="allowed-tool-btn" data-i18n="btn_review_prompt" onclick="alert('Topshiriq: Oquvchilar yozma nutqini baholash mezonlari boyicha 150-180 sozda tahlil yozing.')">Topshiriq shartini qayta o'qish</button>
-              <button class="allowed-tool-btn" data-i18n="btn_glossary" onclick="alert('Glossary: Criteria (mezonlar), Formative assessment, Scaffolding, Rapport.')">O'z lug'atingiz (Glossary)</button>
-              <button class="allowed-tool-btn" data-i18n="btn_archive" onclick="alert('Oldingi ish: 1-topshiriq 85 ball, 2-topshiriq 78 ball bilan yakunlangan.')">Oldingi ishlaringiz arxivi</button>
+              <button class="allowed-tool-btn" data-i18n="btn_review_prompt" onclick="window.showTaskPromptTool && window.showTaskPromptTool()">Topshiriq shartini qayta o'qish</button>
+              <button class="allowed-tool-btn" data-i18n="btn_glossary" onclick="window.showGlossaryTool && window.showGlossaryTool()">O'z lug'atingiz (Glossary)</button>
+              <button class="allowed-tool-btn" data-i18n="btn_archive" onclick="window.showArchiveTool && window.showArchiveTool()">Oldingi ishlaringiz arxivi</button>
+              <div id="allowedToolsOutput" style="display:none;margin-top:12px;padding:12px 14px;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.6"></div>
             </div>
           </div>
         </div>
@@ -744,7 +768,7 @@
       <div class="card" style="margin-bottom:20px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;border-bottom:1px solid var(--line-2);padding-bottom:10px">
           <h3 data-i18n="diag_sec2_title" style="margin:0">2. Kognitiv-Affektiv Anketa (FLCAS Shkalasi)</h3>
-          <span style="font-size:12px;color:var(--clay);font-weight:600">12 ta tasdiq (Likert 1–5)</span>
+          <span style="font-size:12px;color:var(--clay);font-weight:600">FLCAS asosida · Likert 1–5</span>
         </div>
         <div data-i18n="diag_sec2_desc" style="font-size:12.5px;color:var(--muted);margin-bottom:14px">
           Quyidagi tasdiqlarga qanchalik qo'shilishingizni 1 dan 5 gacha baholang (1 - Mutlaqo qo'shilmayman, 5 - To'liq qo'shilaman):
@@ -1419,6 +1443,97 @@
       </div>
     </section>
 
+    <!-- ==================== 6.5. PLATFORMA HAQIDA (MA'LUMOTNOMA) ==================== -->
+    <section class="screen" id="s_about">
+      <div style="margin-bottom:16px">
+        <h2 style="font-family:var(--serif);font-size:24px;margin-bottom:4px">ℹ️ Platforma haqida va ma'lumotnoma</h2>
+        <p style="font-size:13.5px;color:var(--muted)">Ilmiy-pedagogik asoslar, to'rt qoida, 5 bosqich, ELT glossariysi, CEFR darajalari, ona tili interferensiyasi naqshlari va tez-tez so'raladigan savollar</p>
+      </div>
+
+      <!-- Tezkor navigatsiya -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecModel')">Model va qoidalar</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecStages')">5 bosqich</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCompare')">O'xshash tizimlar bilan taqqoslash</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecGlossary')">Glossariy</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCefr')">CEFR darajalari</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecL1')">L1 interferensiyasi</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecFaq')">FAQ</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecPrivacy')">Maxfiylik va xavfsizlik</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecRefs')">Adabiyotlar</button>
+      </div>
+
+      <!-- Kontent banki ko'rsatkichlari -->
+      <div id="aboutOverviewTiles" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px"></div>
+
+      <!-- 1. Model va qoidalar -->
+      <h3 id="aboutSecModel" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">1. Muammo va model</h3>
+      <p style="font-size:13.5px;color:var(--ink-2);line-height:1.65;margin-bottom:12px">
+        TILORA — Buxoro davlat universitetida DSc tadqiqoti doirasida yaratilgan <b>tabaqalashtirilgan adaptiv-metakognitiv model (TAAM)</b> ning dasturiy majmuasi.
+        U Cambridge Write &amp; Improve, British Council LearnEnglish va umumiy AI repetitorlar kabi tizimlardan ikki muhim jihat bilan farq qiladi:
+        mustaqil bosqichda AI ataylab yopiladi va har bir avtomatik qaror o'qituvchi tasdig'i hamda ochiq sabab bilan keladi.
+      </p>
+      <div id="aboutProblems" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:18px"></div>
+
+      <h3 style="font-family:var(--serif);font-size:19px;margin-bottom:8px">To'rt mutlaq qoida</h3>
+      <div id="aboutRules" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;margin-bottom:18px"></div>
+
+      <h3 style="font-family:var(--serif);font-size:19px;margin-bottom:8px">Uch o'lchovli profil</h3>
+      <div id="aboutDimensions" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px"></div>
+      <div class="why-box" style="margin-bottom:22px"><b>Ko'mak (scaffolding) dinamikasi</b><br><span id="aboutScaffolding"></span></div>
+
+      <!-- 2. Bosqichlar -->
+      <h3 id="aboutSecStages" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">2. Besh bosqichli mashg'ulot</h3>
+      <div class="card" id="aboutStages" style="margin-bottom:22px"></div>
+
+      <!-- 3. Taqqoslash -->
+      <h3 id="aboutSecCompare" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">3. O'xshash tizimlar bilan taqqoslash</h3>
+      <div class="card" id="aboutComparison" style="margin-bottom:22px"></div>
+
+      <!-- 4. Glossariy -->
+      <h3 id="aboutSecGlossary" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">4. ELT metodikasi glossariysi</h3>
+      <div class="card" style="margin-bottom:22px">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+          <input type="text" id="aboutGlossarySearch" placeholder="🔍 Atama, tarjima yoki ta'rif bo'yicha qidirish..." oninput="window.filterAboutGlossary()" style="flex:1;min-width:220px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface)">
+          <select id="aboutGlossaryCat" onchange="window.filterAboutGlossary()" style="padding:9px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface)">
+            <option value="">Barcha toifalar</option>
+          </select>
+        </div>
+        <div id="aboutGlossaryList" style="display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto">Yuklanmoqda...</div>
+      </div>
+
+      <!-- 5. CEFR -->
+      <h3 id="aboutSecCefr" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">5. CEFR darajalari (A1–C2)</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Har bir ko'nikma alohida o'lchanadi. Quyida global tavsif, to'rt ko'nikma bo'yicha "qila olaman" bayonotlari va bo'lajak o'qituvchi uchun kasbiy moslashuv keltirilgan.</p>
+      <div id="aboutCefr" style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px">Yuklanmoqda...</div>
+
+      <!-- 6. L1 -->
+      <h3 id="aboutSecL1" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">6. Ona tili (o'zbek) interferensiyasi naqshlari</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Tizim yozma ishlarda quyidagi naqshlarni AI kalitisiz, darhol aniqlaydi va har biriga lingvistik sabab hamda to'g'ri shaklni ko'rsatadi (tayyor tuzatilgan matn bermaydi — 2-qoida).</p>
+      <div class="card" id="aboutL1" style="margin-bottom:22px">Yuklanmoqda...</div>
+
+      <!-- 7. FAQ -->
+      <h3 id="aboutSecFaq" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">7. Tez-tez so'raladigan savollar</h3>
+      <div id="aboutFaq" style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">Yuklanmoqda...</div>
+
+      <!-- 8. Maxfiylik -->
+      <h3 id="aboutSecPrivacy" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">8. Maxfiylik, ma'lumotlar himoyasi va akademik halollik</h3>
+      <div class="card" style="margin-bottom:22px;font-size:13px;line-height:1.7;color:var(--ink-2)">
+        <ul style="padding-left:20px;margin:0">
+          <li><b>Qaysi ma'lumotlar yig'iladi:</b> ism-sharif, login/email, telefon (ixtiyoriy), guruh, diagnostika va anketa javoblari, topshirilgan ishlar va baholar, mashg'ulot refleksiyalari.</li>
+          <li><b>Nima uchun:</b> shaxsiy o'quv yo'lini tuzish, o'qituvchiga natijalarni ko'rsatish va anonimlashtirilgan holda ilmiy tahlil (O'RQ-547 "Shaxsga doir ma'lumotlar to'g'risida", 2019).</li>
+          <li><b>Kim ko'radi:</b> talaba — faqat o'z ma'lumotlarini; guruh o'qituvchisi — o'z guruhini; administrator — tizimni boshqarish uchun. Boshqa talabalar sizning ma'lumotlaringizga kira olmaydi.</li>
+          <li><b>Texnik himoya:</b> parollar foydalanuvchiga xos tuz bilan PBKDF2-SHA256 (600 000 iteratsiya); 12 soatlik JWT sessiya; login urinishlari chegarasi; har so'rovda rol va egalik tekshiruvi; AI so'rovlari chegarasi; xavfsizlik sarlavhalari (CSP, nosniff, frame-ancestors).</li>
+          <li><b>AI va akademik halollik:</b> 3-bosqichda generativ AI yopiq; AI tomonidan yaratilgan materiallar "AI material" nishoni bilan belgilanadi; AI bahosi doimo talabaning o'z bahosidan keyin ochiladi.</li>
+          <li><b>Huquqlaringiz:</b> hisob sozlamalarida ma'lumotlaringizni o'zgartirish; tadqiqotda ishtirok roziligini istalgan vaqtda qaytarib olish (yuqoridagi "Etika &amp; Rozilik" tugmasi).</li>
+        </ul>
+      </div>
+
+      <!-- 9. Adabiyotlar -->
+      <h3 id="aboutSecRefs" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">9. Ilmiy-metodik asoslar (adabiyotlar)</h3>
+      <div class="card" id="aboutReferences" style="margin-bottom:30px">Yuklanmoqda...</div>
+    </section>
+
     <!-- ==================== 7. ADMINISTRATOR PANELI ==================== -->
     <section class="screen" id="s_admin">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px">
@@ -1512,7 +1627,7 @@
 
               <div>
                 <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px">Dastlabki Parol: <span style="color:var(--clay)">*</span></label>
-                <input type="text" id="admTeachPassword" required placeholder="Kamida 6 ta belgi (masalan: tilora2026!)" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface-2);color:var(--ink);box-sizing:border-box">
+                <input type="text" id="admTeachPassword" required minlength="8" placeholder="Kamida 8 ta belgi, harf va raqam bilan" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface-2);color:var(--ink);box-sizing:border-box">
               </div>
 
               <div>
@@ -1627,8 +1742,8 @@
             </div>
             <div style="padding:12px;background:var(--surface-2);border-radius:6px;border:1px solid var(--line)">
               <div style="font-size:12px;color:var(--muted)">API Kalit Holati</div>
-              <div style="font-weight:600;font-size:14px;margin-top:4px;color:var(--teal)">***REMOVED***</div>
-              <div style="font-size:11px;color:var(--muted);margin-top:2px">✓ Avtorizatsiyadan o'tdi</div>
+              <div id="adminAiKeyStatus" style="font-weight:600;font-size:14px;margin-top:4px;color:var(--teal)">Serverda (.env) saqlanadi</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Kalit brauzerga yuborilmaydi</div>
             </div>
             <div style="padding:12px;background:var(--surface-2);border-radius:6px;border:1px solid var(--line)">
               <div style="font-size:12px;color:var(--muted)">Hisob Balansi / Kvota</div>
@@ -2087,7 +2202,7 @@
 
         <div>
           <label style="display:block;font-size:12px;font-weight:600;margin-bottom:3px">Parol:</label>
-          <input type="password" id="regPassword" required placeholder="Kamida 6 ta belgi" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface-2);box-sizing:border-box">
+          <input type="password" id="regPassword" required minlength="8" placeholder="Kamida 8 ta belgi, harf va raqam bilan" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:var(--surface-2);box-sizing:border-box">
         </div>
 
         <div style="background:var(--amber-soft);border:1px solid rgba(138,106,23,0.3);border-radius:8px;padding:10px;font-size:12px;color:var(--ink-2);line-height:1.4">
@@ -2215,7 +2330,7 @@
 
       <div style="border-top:1px dashed var(--line);padding-top:10px;margin-top:4px">
         <label style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--ink-2)">Yangi parol:</label>
-        <input type="password" id="settingsNewPassword" placeholder="Yangi parol (kamida 4 ta belgi)" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-sizing:border-box;font-size:13px;color:var(--ink)">
+        <input type="password" id="settingsNewPassword" placeholder="Yangi parol (kamida 8 ta belgi, harf va raqam)" style="width:100%;height:38px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-sizing:border-box;font-size:13px;color:var(--ink)">
         <div style="font-size:11px;color:var(--muted);margin-top:3px">Parolni o'zgartirmoqchi bo'lmasangiz, bo'sh qoldiring.</div>
       </div>
 
@@ -2962,8 +3077,9 @@
 <!-- Toast bildirishnomalar konteyneri -->
 <div id="tiloraToastContainer" style="position:fixed;top:20px;right:20px;z-index:9999999;display:flex;flex-direction:column;gap:10px;pointer-events:none;"></div>
 
-<script src="js/app.js?v=4.0"></script>
+<script src="js/app.js?v=4.1"></script>
 <script src="js/diag_manage.js?v=1.2"></script>
-<script src="js/dissertation_features.js?v=1.1"></script>
+<script src="js/dissertation_features.js?v=1.2"></script>
+<script src="js/about.js?v=1.0"></script>
 </body>
 </html>

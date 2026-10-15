@@ -3,12 +3,20 @@ Description=TILORA Adaptiv Ta'lim Veb-Platformasi (FastAPI + Gunicorn)
 After=network.target
 
 [Service]
-User=root
-WorkingDirectory=/var/www/tilora
+# Xavfsizlik: root emas, alohida tizim foydalanuvchisi
+#   sudo useradd -r -s /usr/sbin/nologin tilora && sudo chown -R tilora:tilora /var/www/tilora
+User=tilora
+Group=tilora
+WorkingDirectory=/var/www/tilora/backend
+EnvironmentFile=/var/www/tilora/.env
+Environment=PYTHONPATH=/var/www/tilora/backend
 ExecStart=/var/www/tilora/venv/bin/gunicorn -c /var/www/tilora/gunicorn_conf.py app.main:app
 Restart=always
 RestartSec=5
-Environment=PYTHONPATH=/var/www/tilora/backend
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/www/tilora
 
 [Install]
 WantedBy=multi-user.target

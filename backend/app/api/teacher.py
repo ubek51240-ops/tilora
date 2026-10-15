@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
+import os
 import re
 
 from app.database import get_db
@@ -16,8 +17,25 @@ from app.core.deps import get_current_user, require_role
 from app.services.ai_service import ai_service
 from app.services import materials as matsvc
 from app.services.syllabus_parser import parse_syllabus_document
+from app.config import settings
 
 router = APIRouter(prefix="/teacher", tags=["O'qituvchi"], dependencies=[Depends(require_role(["teacher", "admin"]))])
+
+ALLOWED_DOC_EXT = (".docx", ".doc", ".txt", ".pdf")
+
+
+async def _read_upload(file: UploadFile, allowed_ext=ALLOWED_DOC_EXT) -> bytes:
+    """Yuklangan hujjatni hajm va kengaytma bo'yicha tekshirib o'qiydi."""
+    name = (file.filename or "").lower()
+    if allowed_ext and not name.endswith(allowed_ext):
+        raise HTTPException(status_code=400, detail=f"Fayl formati qo'llab-quvvatlanmaydi. Ruxsat: {', '.join(allowed_ext)}")
+    max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
+    content = await file.read(max_bytes + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Yuklangan fayl bo'sh.")
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"Fayl hajmi {settings.MAX_UPLOAD_MB} MB dan oshmasligi kerak.")
+    return content
 
 # Pydantic sxemalar
 class SubjectCreateRequest(BaseModel):
@@ -319,9 +337,7 @@ async def parse_syllabus_file(
     O'qituvchi yuklagan (.docx, .txt) o'quv dasturi yoki sillabus faylini
     intellektual tahlil qilib, fan nomi, kodi, tavsifi va barcha mavzularni ajratib berish.
     """
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Yuklangan fayl bo'sh.")
+    content = await _read_upload(file)
 
     try:
         parsed = parse_syllabus_document(content, file.filename)
@@ -366,9 +382,7 @@ async def upload_syllabus_file_to_subject(
     if not subj:
         raise HTTPException(status_code=404, detail="Fan topilmadi.")
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Fayl bo'sh.")
+    content = await _read_upload(file)
 
     try:
         parsed = parse_syllabus_document(content, file.filename)
@@ -391,7 +405,7 @@ async def upload_syllabus_file_to_subject(
 
     # Fan metadatalarini yangilash (agar mavjud bo'lsa)
     if parsed["subject_name"] and (not subj.name or subj.name.startswith("Yangi")):
-        subj.name = parsed["subject_name"]
+        subj.name = parsed["subject_name"][:255]
     if parsed["subject_code"] and not subj.code:
         subj.code = parsed["subject_code"]
     if parsed["semester"] and not subj.semester:
@@ -399,7 +413,7 @@ async def upload_syllabus_file_to_subject(
     if parsed["description"] and not subj.description:
         subj.description = parsed["description"]
 
-    subj.syllabus_filename = file.filename
+    subj.syllabus_filename = os.path.basename(file.filename or "sillabus")[:255]
     subj.syllabus_text = parsed["formatted_text"]
 
     # Mavzularni bazada yangilash
@@ -677,9 +691,7 @@ async def extract_book_content(
     if not book:
         raise HTTPException(status_code=404, detail="Kitob topilmadi.")
 
-    content = await file.read()
-    if not content:
-        raise HTTPException(status_code=400, detail="Fayl bo'sh.")
+    content = await _read_upload(file, (".pdf", ".docx", ".txt"))
 
     # Fayl turini aniqlash va matn ajratish
     filename = file.filename.lower()
@@ -701,7 +713,7 @@ async def extract_book_content(
             for para in doc.paragraphs:
                 extracted_text += para.text + "\n"
         elif filename.endswith('.txt'):
-            extracted_text = content.decode('utf-8')
+            extracted_text = content.decode('utf-8', errors='replace')
         else:
             raise HTTPException(status_code=400, detail="Qo'llab-quvvatlanmaydigan fayl formati. PDF, DOCX yoki TXT yuklang.")
 
@@ -714,7 +726,7 @@ async def extract_book_content(
             extracted_text = extracted_text[:max_chars] + "\n\n[... matn qisqartirildi ...]"
 
         book.content_text = extracted_text.strip()
-        book.file_url = file.filename
+        book.file_url = os.path.basename(file.filename or "")[:500]
         book.updated_at = datetime.utcnow()
         db.commit()
 

@@ -1,0 +1,80 @@
+[
+  {
+    "level": "A1",
+    "name_uz": "Boshlang'ich (Breakthrough)",
+    "name_en": "Breakthrough",
+    "band": "Basic user",
+    "global_uz": "Tanish kundalik iboralarni va juda oddiy gaplarni tushunadi va ishlata oladi. O'zini tanishtira oladi, shaxsiy ma'lumotlar bo'yicha savol bera va javob qaytara oladi. Suhbatdosh sekin va aniq gapirsa muloqot qila oladi.",
+    "global_en": "Can understand and use familiar everyday expressions and very basic phrases. Can introduce him/herself and others and can ask and answer questions about personal details. Can interact in a simple way provided the other person talks slowly and clearly.",
+    "listening": "Juda sekin va aniq nutqdagi tanish so'z va iboralarni tushunadi.",
+    "reading": "Tanish ism, so'z va juda oddiy gaplarni (e'lon, plakat) tushunadi.",
+    "speaking": "Oddiy iboralar bilan o'zi va yashash joyi haqida gapira oladi.",
+    "writing": "Qisqa oddiy otkritka yoza oladi, anketaga shaxsiy ma'lumot kirita oladi.",
+    "teacher_track": "Darsdagi eng oddiy ko'rsatmalar (Open your books, Listen) va salomlashuv."
+  },
+  {
+    "level": "A2",
+    "name_uz": "Elementar (Waystage)",
+    "name_en": "Waystage",
+    "band": "Basic user",
+    "global_uz": "Eng dolzarb sohalarga (oila, xarid, ish) oid gaplar va tez-tez uchraydigan iboralarni tushunadi. Oddiy va bevosita axborot almashinuvini talab qiladigan oddiy vazifalarda muloqot qila oladi. O'zining kelib chiqishi, atrof-muhiti va zarur ehtiyojlarini oddiy tilda bayon eta oladi.",
+    "global_en": "Can understand sentences and frequently used expressions related to areas of most immediate relevance. Can communicate in simple and routine tasks requiring a simple and direct exchange of information. Can describe in simple terms aspects of his/her background and immediate environment.",
+    "listening": "Qisqa, aniq va oddiy xabarlar, e'lonlarning asosiy fikrini tushunadi.",
+    "reading": "Qisqa oddiy matnlar, shaxsiy xatlar, reklama va menyuni tushunadi.",
+    "speaking": "Oddiy vazifalarda axborot almashadi; oilasi, ta'limi, ishi haqida qisqa gapiradi.",
+    "writing": "Qisqa oddiy eslatma va shaxsiy xat yoza oladi.",
+    "teacher_track": "Oddiy darslik ko'rsatmalarini bera oladi, o'quvchiga muloyim tuzatish iborasini ishlata oladi."
+  },
+  {
+    "level": "B1",
+    "name_uz": "O'rta (Threshold)",
+    "name_en": "Threshold",
+    "band": "Independent user",
+    "global_uz": "Ish, o'qish, dam olish kabi tanish mavzulardagi aniq standart nutqning asosiy fikrini tushunadi. Til hududida sayohat qilganda ko'pchilik vaziyatlarni hal qila oladi. Tanish yoki qiziqtirgan mavzularda oddiy bog'langan matn tuza oladi. Voqea, tajriba, orzu va rejalarni tasvirlab, fikr va rejalariga qisqacha asos bera oladi.",
+    "global_en": "Can understand the main points of clear standard input on familiar matters. Can deal with most situations likely to arise whilst travelling. Can produce simple connected text on topics which are familiar or of personal interest. Can describe experiences and events, dreams, hopes and ambitions and briefly give reasons and explanations for opinions and plans.",
+    "listening": "Aniq standart nutqdagi ma'ruza va radio dasturlarning asosiy fikrini tushunadi.",
+    "reading": "Kundalik yoki kasbiy tildagi matnlar, shaxsiy xatlardagi voqea va istaklarni tushunadi.",
+    "speaking": "Tayyorgarliksiz tanish mavzuda suhbatga kirisha oladi; fikriga asos keltira oladi.",
+    "writing": "Tanish mavzuda oddiy bog'langan matn, tajriba va taassurot haqida xat yoza oladi.",
+    "teacher_track": "Dars maqsadini SWBAT shaklida aytadi, ICQ savollar beradi, 150 so'zli metodik tahlil yoza oladi."
+  },
+  {
+    "level": "B2",
+    "name_uz": "O'rtadan yuqori (Vantage)",
+    "name_en": "Vantage",
+    "band": "Independent user",
+    "global_uz": "Aniq va mavhum mavzulardagi murakkab matnlarning, shu jumladan o'z sohasidagi texnik munozaralarning asosiy g'oyasini tushunadi. Ona tilida so'zlashuvchilar bilan ikkala tomon uchun ham qiyinchiliksiz, ravon va o'z-o'zidan muloqot qila oladi. Keng doiradagi mavzularda aniq, batafsil matn tuza oladi va dolzarb masalada turli variantlarning afzallik va kamchiliklarini ko'rsatib, nuqtai nazarini bayon eta oladi.",
+    "global_en": "Can understand the main ideas of complex text on both concrete and abstract topics, including technical discussions in his/her field of specialisation. Can interact with a degree of fluency and spontaneity that makes regular interaction with native speakers quite possible. Can produce clear, detailed text on a wide range of subjects and explain a viewpoint giving the advantages and disadvantages of various options.",
+    "listening": "Uzoq nutq va ma'ruzalarni, murakkab argumentatsiyani tushunadi.",
+    "reading": "Zamonaviy muammolarga oid maqola va hisobotlarni, muallif pozitsiyasini tushunadi.",
+    "speaking": "Ravon va o'z-o'zidan muloqot qiladi; munozarada faol ishtirok etib, fikrini himoya qiladi.",
+    "writing": "Aniq, batafsil matn, insho yoki hisobot yozib, dalil keltira oladi.",
+    "teacher_track": "Metodik maqolani tanqidiy tahlil qiladi, hamkasb bilan ehtiyotkor (hedged) munozara yuritadi, dars rejasini himoya qiladi."
+  },
+  {
+    "level": "C1",
+    "name_uz": "Ilg'or (Effective Operational Proficiency)",
+    "name_en": "Effective Operational Proficiency",
+    "band": "Proficient user",
+    "global_uz": "Keng doiradagi talabchan, uzun matnlarni tushunadi va yashirin ma'noni anglaydi. Iboralarni aniq izlamasdan ravon va o'z-o'zidan fikr bildira oladi. Tildan ijtimoiy, akademik va kasbiy maqsadlarda moslashuvchan va samarali foydalana oladi. Murakkab mavzularda aniq, yaxshi tuzilgan, batafsil matn tuza oladi.",
+    "global_en": "Can understand a wide range of demanding, longer texts, and recognise implicit meaning. Can express him/herself fluently and spontaneously without much obvious searching for expressions. Can use language flexibly and effectively for social, academic and professional purposes. Can produce clear, well-structured, detailed text on complex subjects.",
+    "listening": "Aniq tuzilmaga ega bo'lmagan uzun nutqni, yashirin ma'no va ohangni tushunadi.",
+    "reading": "Uzun murakkab badiiy va ilmiy matnlarni, uslub farqlarini tushunadi.",
+    "speaking": "Ravon, aniq, uslubiy jihatdan moslashuvchan nutq; taqdimotni mantiqiy yakunlaydi.",
+    "writing": "Murakkab mavzuda yaxshi tuzilgan, dalilli akademik matn yoza oladi.",
+    "teacher_track": "Konferensiya ma'ruzasi qiladi, kuzatuv hisobotida tavsif va bahoni ajratadi, ilmiy maqola uslubida yozadi."
+  },
+  {
+    "level": "C2",
+    "name_uz": "Mukammal (Mastery)",
+    "name_en": "Mastery",
+    "band": "Proficient user",
+    "global_uz": "Eshitgan yoki o'qigan deyarli hamma narsani osonlik bilan tushunadi. Turli og'zaki va yozma manbalardagi ma'lumotlarni umumlashtirib, dalil va izohlarni izchil bayon eta oladi. Murakkab vaziyatlarda ham o'z-o'zidan, juda ravon va aniq, ma'noning nozik jihatlarini farqlab fikr bildira oladi.",
+    "global_en": "Can understand with ease virtually everything heard or read. Can summarise information from different spoken and written sources, reconstructing arguments and accounts in a coherent presentation. Can express him/herself spontaneously, very fluently and precisely, differentiating finer shades of meaning even in the most complex situations.",
+    "listening": "Tez, aksentli, jonli nutqni ham qiyinchiliksiz tushunadi.",
+    "reading": "Har qanday matn turini, shu jumladan mavhum va murakkab ilmiy asarlarni tushunadi.",
+    "speaking": "Har qanday vaziyatda nozik ma'no farqlari bilan mukammal nutq.",
+    "writing": "Murakkab, uslubiy jihatdan mos, mantiqiy mukammal matn; ilmiy maqola va taqriz.",
+    "teacher_track": "Metodik qo'llanma muallifligi, ekspert taqriz, xalqaro ilmiy nashrlar."
+  }
+]

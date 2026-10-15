@@ -1,0 +1,138 @@
+[
+  {
+    "skill": "writing",
+    "week_range": "5–6-hafta",
+    "title": "Yozma nutq: dars tahlili va baholash mezonlari",
+    "title_en": "Writing: analysing criteria for assessing learner writing",
+    "prompt": "O'quvchilarning yozma nutqini baholashda qanday mezonlardan foydalanish mumkin? O'z fikringizni 150–180 so'zda ilmiy-metodik tilda bayon eting. Kamida ikkita mezonni misol bilan izohlang.",
+    "prompt_en": "Which criteria can be used to assess learners' writing? Give your view in 150–180 words in an academic-methodological register, illustrating at least two criteria with examples.",
+    "scaffold_level": "full",
+    "word_count_min": 150,
+    "word_count_max": 200,
+    "duration_minutes": 30,
+    "scaffold_vocabulary": [
+      {"term": "formative assessment rubrics", "uz": "shakllantiruvchi baholash rubrikalari"},
+      {"term": "task achievement", "uz": "vazifaning bajarilganlik darajasi"},
+      {"term": "syntactic complexity", "uz": "sintaktik murakkablik darajasi"},
+      {"term": "lexical diversity (TTR)", "uz": "lug'aviy rang-baranglik"},
+      {"term": "cohesive devices", "uz": "bog'lovchi vositalar"},
+      {"term": "constructive feedback", "uz": "konstruktiv pedagogik fikr-mulohaza"},
+      {"term": "inter-rater reliability", "uz": "baholovchilar o'rtasidagi moslik"}
+    ],
+    "sample_structure": [
+      "Kirish: yozma nutqni baholashdagi asosiy muammo (sub'ektivlik) va rubrikaning roli.",
+      "Asosiy qism: 2–3 ta mezon (mazmun, grammatik aniqlik, leksika, izchillik) va har biriga misol.",
+      "Xulosa: o'qituvchining xolis va shaffof baholashdagi mas'uliyati."
+    ],
+    "rubric": [
+      {"key": "content", "name": "Mazmun va vazifa bajarilishi", "descriptor_5": "Barcha talablar bajarilgan, mezonlar misol bilan dalillangan", "descriptor_3": "Mezonlar sanalgan, lekin misol va asos yetarli emas", "descriptor_1": "Mavzudan chetga chiqilgan yoki juda qisqa"},
+      {"key": "grammar", "name": "Grammatik aniqlik", "descriptor_5": "Xato deyarli yo'q, murakkab gaplar to'g'ri", "descriptor_3": "Bir nechta L1 ta'siridagi xato, ma'no tushunarli", "descriptor_1": "Xatolar tushunishga xalaqit beradi"},
+      {"key": "lexis", "name": "Leksik boylik", "descriptor_5": "Kasbiy terminlar o'rinli, takror yo'q", "descriptor_3": "Terminlar chegaralangan, ayrim takrorlar", "descriptor_1": "Umumiy so'zlar, terminlar yo'q"},
+      {"key": "coherence", "name": "Izchillik va bog'liqlik", "descriptor_5": "Aniq xatboshilar, bog'lovchilar to'g'ri", "descriptor_3": "Tuzilma bor, bog'lovchilar kam", "descriptor_1": "Yaxlit blok, mantiqiy tartib yo'q"}
+    ],
+    "allowed_tools": ["Topshiriq shartini qayta o'qish", "Shaxsiy glossariy", "Oldingi ishlar arxivi"],
+    "locked_tools": ["Matn generatsiyasi", "Tarjima", "Davomini yozish", "Tayyor javob"]
+  },
+  {
+    "skill": "speaking",
+    "week_range": "3–4-hafta",
+    "title": "Og'zaki nutq: pedagogik keys yechimi",
+    "title_en": "Speaking: resolving a pedagogical case",
+    "prompt": "Vaziyat: talabalar darsda passiv bo'lib qoldi. O'qituvchi sifatida ularni darsga jalb qilish metodlarini 1.5–2 daqiqa davomida ingliz tilida bayon eting. Kamida uchta aniq texnikani nomlang va asoslang.",
+    "prompt_en": "Situation: students have become passive in class. As the teacher, explain in 1.5–2 minutes of spoken English how you would re-engage them, naming and justifying at least three concrete techniques.",
+    "scaffold_level": "partial",
+    "word_count_min": 0,
+    "word_count_max": 0,
+    "duration_minutes": 20,
+    "duration_seconds_min": 90,
+    "duration_seconds_max": 120,
+    "scaffold_vocabulary": [
+      {"term": "to elicit responses", "uz": "javoblarni chiqarib olish"},
+      {"term": "think-pair-share", "uz": "o'yla–juftlash–ulash texnikasi"},
+      {"term": "wait time", "uz": "javob uchun kutish vaqti"},
+      {"term": "to lower the affective filter", "uz": "affektiv filtrni pasaytirish"},
+      {"term": "referential vs. display questions", "uz": "haqiqiy va tekshiruv savollari"},
+      {"term": "to assign roles", "uz": "rollarni taqsimlash"}
+    ],
+    "sample_structure": [
+      "Vaziyatni qisqa tavsiflash va mumkin bo'lgan sababni aytish (tashvish, qiziqish yo'qligi).",
+      "Uchta texnika: nima, qanday va nega ishlaydi.",
+      "Kutilayotgan natija va uni qanday tekshirish."
+    ],
+    "rubric": [
+      {"key": "content", "name": "Mazmun va keys yechimi", "descriptor_5": "Uchta texnika asoslangan, vaziyatga mos", "descriptor_3": "Texnikalar sanalgan, asos yuzaki", "descriptor_1": "Vaziyatga javob berilmagan"},
+      {"key": "grammar", "name": "Grammatik aniqlik", "descriptor_5": "Modal va shart gaplar to'g'ri", "descriptor_3": "Xatolar bor, ma'no tushunarli", "descriptor_1": "Xatolar tushunishga xalaqit beradi"},
+      {"key": "lexis", "name": "Kasbiy leksika va talaffuz", "descriptor_5": "Metodik terminlar aniq talaffuz bilan", "descriptor_3": "Umumiy so'zlar, ayrim terminlar", "descriptor_1": "Terminlar yo'q, talaffuz noaniq"},
+      {"key": "coherence", "name": "Ravonlik va tuzilma", "descriptor_5": "Yo'naltiruvchi iboralar, uzilishsiz", "descriptor_3": "Pauzalar bor, tartib saqlangan", "descriptor_1": "Uzuq-yuluq, tartibsiz"}
+    ],
+    "allowed_tools": ["Topshiriq shartini qayta o'qish", "Shaxsiy glossariy"],
+    "locked_tools": ["Matn generatsiyasi", "Tarjima", "Tayyor javob"]
+  },
+  {
+    "skill": "listening",
+    "week_range": "9–10-hafta",
+    "title": "Tinglab tushunish: kasbiy ma'ruza tahlili",
+    "title_en": "Listening: analysing a professional lecture",
+    "prompt": "\"Language Assessment Rubrics\" audio parchasini (2 marta) tinglang. Ma'ruzachi aytgan uchta asosiy metodik tavsiyani ajrating va har biriga 2–3 gapli tahliliy izoh yozing (jami 100–130 so'z).",
+    "prompt_en": "Listen (twice) to the excerpt \"Language Assessment Rubrics\". Identify the speaker's three main recommendations and write a 2–3 sentence analytical comment on each (100–130 words in total).",
+    "scaffold_level": "partial",
+    "word_count_min": 100,
+    "word_count_max": 150,
+    "duration_minutes": 25,
+    "audio_url": "/audio_diag_02.wav",
+    "scaffold_vocabulary": [
+      {"term": "signposting phrases (firstly, in addition, to sum up)", "uz": "yo'naltiruvchi iboralar"},
+      {"term": "gist vs. detail", "uz": "umumiy mazmun va tafsilot"},
+      {"term": "to paraphrase", "uz": "o'z so'zlari bilan ifodalash"},
+      {"term": "the speaker argues that...", "uz": "ma'ruzachi ... deb ta'kidlaydi"},
+      {"term": "note-taking (Cornell method)", "uz": "konspekt olish usuli"}
+    ],
+    "sample_structure": [
+      "Birinchi tinglash: umumiy mavzu va ma'ruzachi maqsadi.",
+      "Ikkinchi tinglash: uchta tavsiya va kalit so'zlar.",
+      "Har bir tavsiya: nima deyilgan (parafraza) + sizning izohingiz."
+    ],
+    "rubric": [
+      {"key": "content", "name": "Tushunish aniqligi", "descriptor_5": "Uchta tavsiya to'g'ri va to'liq", "descriptor_3": "Ikki tavsiya to'g'ri, biri noaniq", "descriptor_1": "Asosiy fikr tushunilmagan"},
+      {"key": "grammar", "name": "Grammatik aniqlik", "descriptor_5": "Hisobot uslubi (reported speech) to'g'ri", "descriptor_3": "Ayrim zamon xatolari", "descriptor_1": "Xatolar ko'p"},
+      {"key": "lexis", "name": "Parafraza va terminlar", "descriptor_5": "O'z so'zlari bilan, terminlar o'rinli", "descriptor_3": "Qisman so'zma-so'z ko'chirilgan", "descriptor_1": "Faqat ko'chirma yoki noaniq"},
+      {"key": "coherence", "name": "Izoh tuzilmasi", "descriptor_5": "Har tavsiya alohida, bog'langan", "descriptor_3": "Tuzilma bor, bog'lanish zaif", "descriptor_1": "Tartibsiz"}
+    ],
+    "allowed_tools": ["Audioni qayta tinglash (2 marta)", "Topshiriq shartini qayta o'qish", "Shaxsiy glossariy"],
+    "locked_tools": ["Transkript generatsiyasi", "Tarjima", "Tayyor javob"]
+  },
+  {
+    "skill": "reading",
+    "week_range": "7–8-hafta",
+    "title": "O'qish: ilmiy-metodik maqola tahlili",
+    "title_en": "Reading: critical analysis of a research article excerpt",
+    "prompt": "\"AI in Language Assessment\" matnini diqqat bilan o'qing. (1) Muallifning asosiy tezisini bir gapda ifodalang; (2) u keltirgan ikkita dalilni ajrating; (3) o'zbek auditoriyasi uchun pedagogik xulosa chiqaring. Jami 120–150 so'z.",
+    "prompt_en": "Read \"AI in Language Assessment\" carefully. (1) State the author's thesis in one sentence; (2) identify two supporting arguments; (3) draw a pedagogical implication for the Uzbek context. 120–150 words in total.",
+    "scaffold_level": "partial",
+    "word_count_min": 120,
+    "word_count_max": 170,
+    "duration_minutes": 30,
+    "reading_text": "Artificial Intelligence applications in English Language Teaching (ELT) offer diagnostic precision and real-time formative feedback. However, pedagogical mediation remains essential to foster metacognitive self-regulation. Where learners outsource the act of writing to generative tools, the very processes that assessment is meant to capture — planning, drafting, revising — are bypassed. Consequently, assessment designers increasingly distinguish between AI-assisted and AI-free tasks, reserving the latter for diagnosing genuine productive competence. Teachers, in turn, retain the final decision on how AI-generated feedback is interpreted and acted upon.",
+    "scaffold_vocabulary": [
+      {"term": "thesis statement", "uz": "asosiy tezis"},
+      {"term": "supporting evidence", "uz": "tasdiqlovchi dalil"},
+      {"term": "pedagogical implication", "uz": "pedagogik xulosa"},
+      {"term": "to outsource", "uz": "tashqariga topshirmoq"},
+      {"term": "to bypass", "uz": "chetlab o'tmoq"},
+      {"term": "productive competence", "uz": "ishlab chiqaruvchi (nutq yaratish) kompetensiyasi"}
+    ],
+    "sample_structure": [
+      "Tezis: muallif ... deb ta'kidlaydi (bir gap).",
+      "Dalillar: birinchidan ..., ikkinchidan ... (matndan parafraza).",
+      "Xulosa: O'zbekiston OTM konteksti uchun ... tavsiya etiladi."
+    ],
+    "rubric": [
+      {"key": "content", "name": "Tezis va dalillar aniqligi", "descriptor_5": "Tezis va ikki dalil aniq, xulosa asosli", "descriptor_3": "Tezis to'g'ri, dalil yoki xulosa yuzaki", "descriptor_1": "Matn noto'g'ri tushunilgan"},
+      {"key": "grammar", "name": "Grammatik aniqlik", "descriptor_5": "Murakkab gaplar to'g'ri", "descriptor_3": "Ayrim xatolar, ma'no aniq", "descriptor_1": "Xatolar tushunishga xalaqit beradi"},
+      {"key": "lexis", "name": "Akademik leksika va parafraza", "descriptor_5": "O'z so'zlari bilan, hedging bor", "descriptor_3": "Qisman ko'chirma", "descriptor_1": "To'liq ko'chirma yoki noaniq"},
+      {"key": "coherence", "name": "Tuzilma (tezis–dalil–xulosa)", "descriptor_5": "Uch qism aniq va bog'langan", "descriptor_3": "Qismlar bor, bog'lanish zaif", "descriptor_1": "Tuzilma yo'q"}
+    ],
+    "allowed_tools": ["Matnni qayta o'qish", "Topshiriq shartini qayta o'qish", "Shaxsiy glossariy"],
+    "locked_tools": ["Xulosa generatsiyasi", "Tarjima", "Tayyor javob"]
+  }
+]

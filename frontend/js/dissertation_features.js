@@ -1184,10 +1184,20 @@
   // ==========================================
   let researchTablesData = null;
   let activeResearchTab = 'tab_4_2';
+  const esc = window.escapeHtml || (s => String(s == null ? '' : s));
+
+  function researchApiBase() {
+    return (window.STATE && STATE.apiBaseUrl ? STATE.apiBaseUrl : '/api');
+  }
+  function researchAuthHeaders() {
+    const h = {};
+    if (window.STATE && STATE.token) h['Authorization'] = 'Bearer ' + STATE.token;
+    return h;
+  }
 
   window.initResearchDashboard = async function() {
     try {
-      const res = await fetch('/api/research/tables');
+      const res = await fetch(researchApiBase() + '/research/tables', { headers: researchAuthHeaders() });
       if (res.ok) {
         researchTablesData = await res.json();
         renderResearchTables();
@@ -1221,8 +1231,8 @@
       const d = researchTablesData.table_4_2;
       let html = `
         <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
-          <h4 style="margin:0;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
-          <span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:3px 8px;border-radius:12px;font-weight:600">Jami N = ${d.summary.grand_total}</span>
+          <h4 style="margin:0;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
+          <span style="font-size:12px;background:var(--teal-soft);color:var(--teal);padding:3px 8px;border-radius:12px;font-weight:600">Jami N = ${esc(d.summary.grand_total)}</span>
         </div>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
@@ -1239,20 +1249,20 @@
       d.rows.forEach(r => {
         html += `
           <tr style="border-bottom:1px solid var(--line);height:40px">
-            <td style="padding:8px 12px;font-weight:600">${r.institution}</td>
-            <td style="padding:8px 12px;color:var(--muted);font-size:12.5px">${r.specialty}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">${r.experimental}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700">${r.control}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;background:var(--surface-2)">${r.total}</td>
+            <td style="padding:8px 12px;font-weight:600">${esc(r.institution)}</td>
+            <td style="padding:8px 12px;color:var(--muted);font-size:12.5px">${esc(r.specialty)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">${esc(r.experimental)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700">${esc(r.control)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;background:var(--surface-2)">${esc(r.total)}</td>
           </tr>`;
       });
       html += `
           <tr style="background:#EBF5FF;font-weight:700;height:42px">
             <td style="padding:8px 12px">Jami</td>
             <td style="padding:8px 12px;color:var(--muted)">3 ta oliy ta'lim muassasasi</td>
-            <td style="padding:8px 12px;text-align:center;color:var(--teal)">${d.summary.experimental_total}</td>
-            <td style="padding:8px 12px;text-align:center">${d.summary.control_total}</td>
-            <td style="padding:8px 12px;text-align:center;font-size:15px;color:#1E40AF">${d.summary.grand_total}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--teal)">${esc(d.summary.experimental_total)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(d.summary.control_total)}</td>
+            <td style="padding:8px 12px;text-align:center;font-size:15px;color:#1E40AF">${esc(d.summary.grand_total)}</td>
           </tr>
         </tbody>
       </table>
@@ -1261,7 +1271,7 @@
     } else if (activeResearchTab === 'tab_4_4') {
       const d = researchTablesData.table_4_4;
       let html = `
-        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
             <thead>
@@ -1279,20 +1289,20 @@
       d.rows.forEach(r => {
         html += `
           <tr style="border-bottom:1px solid var(--line)">
-            <td style="padding:8px 12px;font-weight:600" rowspan="2">${r.institution}</td>
+            <td style="padding:8px 12px;font-weight:600" rowspan="2">${esc(r.institution)}</td>
             <td style="padding:8px 12px;color:var(--teal);font-weight:600">Tajriba</td>
-            <td style="padding:8px 12px;text-align:center">${r.exp_high}</td>
-            <td style="padding:8px 12px;text-align:center">${r.exp_mid}</td>
-            <td style="padding:8px 12px;text-align:center">${r.exp_low}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600">${r.exp_total}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)" rowspan="2">χ² = ${r.chi2}<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p = ${r.p_value} > 0.05</span></td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.exp_high)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.exp_mid)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.exp_low)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600">${esc(r.exp_total)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)" rowspan="2">χ² = ${esc(r.chi2)}<br><span style="font-size:12px;font-weight:400;color:var(--muted)">p = ${esc(r.p_value)} > 0.05</span></td>
           </tr>
           <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
             <td style="padding:8px 12px;color:var(--muted);font-weight:600">Nazorat</td>
-            <td style="padding:8px 12px;text-align:center">${r.ctrl_high}</td>
-            <td style="padding:8px 12px;text-align:center">${r.ctrl_mid}</td>
-            <td style="padding:8px 12px;text-align:center">${r.ctrl_low}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:600">${r.ctrl_total}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_high)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_mid)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_low)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:600">${esc(r.ctrl_total)}</td>
           </tr>`;
       });
       html += `</tbody></table></div>
@@ -1301,7 +1311,7 @@
     } else if (activeResearchTab === 'tab_4_6') {
       const d = researchTablesData.table_4_6;
       let html = `
-        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
             <thead>
@@ -1319,19 +1329,19 @@
       d.skills.forEach(sk => {
         html += `
           <tr style="border-bottom:1px solid var(--line)">
-            <td style="padding:8px 12px;font-weight:700" rowspan="2">${sk.skill_name}</td>
+            <td style="padding:8px 12px;font-weight:700" rowspan="2">${esc(sk.skill_name)}</td>
             <td style="padding:8px 12px;color:var(--teal);font-weight:600">Tajriba</td>
-            <td style="padding:8px 12px;text-align:center">${sk.exp_pre}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--ink)">${sk.exp_post}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${sk.exp_growth}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700" rowspan="2">${sk.t_stat}</td>
-            <td style="padding:8px 12px;text-align:center;color:var(--teal);font-weight:600" rowspan="2">${sk.p_val}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(sk.exp_pre)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--ink)">${esc(sk.exp_post)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${esc(sk.exp_growth)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700" rowspan="2">${esc(sk.t_stat)}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--teal);font-weight:600" rowspan="2">${esc(sk.p_val)}</td>
           </tr>
           <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
             <td style="padding:8px 12px;color:var(--muted)">Nazorat</td>
-            <td style="padding:8px 12px;text-align:center">${sk.ctrl_pre}</td>
-            <td style="padding:8px 12px;text-align:center">${sk.ctrl_post}</td>
-            <td style="padding:8px 12px;text-align:center;color:var(--muted)">${sk.ctrl_growth}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(sk.ctrl_pre)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(sk.ctrl_post)}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--muted)">${esc(sk.ctrl_growth)}</td>
           </tr>`;
       });
       html += `</tbody></table></div>`;
@@ -1339,7 +1349,7 @@
     } else if (activeResearchTab === 'tab_4_7') {
       const d = researchTablesData.table_4_7;
       let html = `
-        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
             <thead>
@@ -1357,28 +1367,28 @@
       d.components.forEach(c => {
         html += `
           <tr style="border-bottom:1px solid var(--line)">
-            <td style="padding:8px 12px;font-weight:600" rowspan="2">${c.component}</td>
+            <td style="padding:8px 12px;font-weight:600" rowspan="2">${esc(c.component)}</td>
             <td style="padding:8px 12px;color:var(--teal);font-weight:600">Tajriba</td>
-            <td style="padding:8px 12px;text-align:center">${c.exp_pre}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700">${c.exp_post}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${c.exp_growth}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)" rowspan="2">d = ${c.cohens_d}</td>
-            <td style="padding:8px 12px;font-size:12.5px" rowspan="2">${c.effect_level}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(c.exp_pre)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700">${esc(c.exp_post)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${esc(c.exp_growth)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)" rowspan="2">d = ${esc(c.cohens_d)}</td>
+            <td style="padding:8px 12px;font-size:12.5px" rowspan="2">${esc(c.effect_level)}</td>
           </tr>
           <tr style="border-bottom:1.5px solid var(--line);background:var(--surface-2)">
             <td style="padding:8px 12px;color:var(--muted)">Nazorat</td>
-            <td style="padding:8px 12px;text-align:center">${c.ctrl_pre}</td>
-            <td style="padding:8px 12px;text-align:center">${c.ctrl_post}</td>
-            <td style="padding:8px 12px;text-align:center;color:var(--muted)">${c.ctrl_growth}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(c.ctrl_pre)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(c.ctrl_post)}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--muted)">${esc(c.ctrl_growth)}</td>
           </tr>`;
       });
       html += `</tbody></table></div>
-        <p style="margin-top:10px;font-size:13px;font-weight:600;color:var(--teal)">O'rtacha umumiy Cohen's d = ${d.average_d} (Juda katta effekt > 0.8)</p>`;
+        <p style="margin-top:10px;font-size:13px;font-weight:600;color:var(--teal)">O'rtacha umumiy Cohen's d = ${esc(d.average_d)} (Juda katta effekt > 0.8)</p>`;
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_8') {
       const d = researchTablesData.table_4_8;
       let html = `
-        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
             <thead>
@@ -1394,27 +1404,27 @@
       d.rows.forEach(r => {
         html += `
           <tr style="border-bottom:1px solid var(--line);height:40px">
-            <td style="padding:8px 12px;font-weight:600">${r.institution}</td>
-            <td style="padding:8px 12px;text-align:center">${r.exp_k}</td>
-            <td style="padding:8px 12px;text-align:center">${r.ctrl_k}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">K = ${r.ratio_k}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${r.diff_percent}</td>
+            <td style="padding:8px 12px;font-weight:600">${esc(r.institution)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.exp_k)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(r.ctrl_k)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">K = ${esc(r.ratio_k)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:#16A34A">${esc(r.diff_percent)}</td>
           </tr>`;
       });
       html += `
           <tr style="background:#EBF5FF;font-weight:700;height:42px">
             <td style="padding:8px 12px">Umumiy o'rtacha ko'rsatkich</td>
-            <td style="padding:8px 12px;text-align:center">${d.overall.exp_k}</td>
-            <td style="padding:8px 12px;text-align:center">${d.overall.ctrl_k}</td>
-            <td style="padding:8px 12px;text-align:center;font-size:15px;color:#1E40AF">K_s = ${d.overall.ratio_k}</td>
-            <td style="padding:8px 12px;text-align:center;color:#16A34A">${d.overall.diff_percent}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(d.overall.exp_k)}</td>
+            <td style="padding:8px 12px;text-align:center">${esc(d.overall.ctrl_k)}</td>
+            <td style="padding:8px 12px;text-align:center;font-size:15px;color:#1E40AF">K_s = ${esc(d.overall.ratio_k)}</td>
+            <td style="padding:8px 12px;text-align:center;color:#16A34A">${esc(d.overall.diff_percent)}</td>
           </tr>
         </tbody></table></div>`;
       container.innerHTML = html;
     } else if (activeResearchTab === 'tab_4_9') {
       const d = researchTablesData.table_4_9;
       let html = `
-        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${d.title}</h4>
+        <h4 style="margin:0 0 12px;font-size:15px;color:var(--ink);font-weight:700">${esc(d.title)}</h4>
         <div style="overflow-x:auto">
           <table style="width:100%;font-size:13.5px;border-collapse:collapse;border:1px solid var(--line)">
             <thead>
@@ -1430,11 +1440,11 @@
       d.indicators.forEach(ind => {
         html += `
           <tr style="border-bottom:1px solid var(--line);height:44px">
-            <td style="padding:8px 12px;font-weight:600">${ind.group}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">${ind.calculated}</td>
-            <td style="padding:8px 12px;text-align:center;color:var(--muted);font-size:12.5px">${ind.table_crit}</td>
-            <td style="padding:8px 12px;text-align:center;font-weight:700">${ind.effect_size}</td>
-            <td style="padding:8px 12px;font-size:13px">${ind.conclusion}</td>
+            <td style="padding:8px 12px;font-weight:600">${esc(ind.group)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700;color:var(--teal)">${esc(ind.calculated)}</td>
+            <td style="padding:8px 12px;text-align:center;color:var(--muted);font-size:12.5px">${esc(ind.table_crit)}</td>
+            <td style="padding:8px 12px;text-align:center;font-weight:700">${esc(ind.effect_size)}</td>
+            <td style="padding:8px 12px;font-size:13px">${esc(ind.conclusion)}</td>
           </tr>`;
       });
       html += `</tbody></table></div>`;
@@ -1442,16 +1452,47 @@
     }
   }
 
+  // Eksport: Authorization sarlavhasi bilan fetch qilib, blob orqali yuklab olish
+  async function downloadResearchExport(path, filename) {
+    const toast = (msg, type) => { if (typeof window.showToast === 'function') window.showToast(msg, type); };
+    try {
+      const token = (window.STATE && STATE.token) ? STATE.token : (localStorage.getItem('tilora_token') || '');
+      const res = await fetch(researchApiBase() + path, {
+        headers: token ? { 'Authorization': 'Bearer ' + token } : {}
+      });
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast('Eksport uchun tizimga kiring', 'error');
+        } else {
+          toast('Eksport muvaffaqiyatsiz (HTTP ' + res.status + ')', 'error');
+        }
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      console.warn('Eksport xatoligi:', e);
+      toast('Eksport muvaffaqiyatsiz', 'error');
+    }
+  }
+
   window.downloadDocxExport = function() {
-    window.location.href = '/api/research/export-docx';
+    downloadResearchExport('/research/export-docx', 'TILORA_4-bob_jadvallari.docx');
   };
 
   window.downloadExcelExport = function() {
-    window.location.href = '/api/research/export-excel';
+    downloadResearchExport('/research/export-excel', 'TILORA_4-bob_jadvallari.xlsx');
   };
 
   window.downloadCsvExport = function() {
-    window.location.href = '/api/research/export-csv';
+    downloadResearchExport('/research/export-csv', 'TILORA_4-bob_jadvallari.csv');
   };
 
   // ==========================================

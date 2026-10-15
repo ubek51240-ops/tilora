@@ -13,7 +13,7 @@ const STATE = {
   currentTheme: "light",
   apiBaseUrl: window.location.protocol.startsWith("http") ? (window.location.origin + "/api") : "http://127.0.0.1:8010/api",
   token: localStorage.getItem("tilora_token") || null,
-  currentUser: JSON.parse(localStorage.getItem("tilora_user") || "null"),
+  currentUser: (function () { try { return JSON.parse(localStorage.getItem("tilora_user") || "null"); } catch (_) { return null; } })(),
   diagAnswers: {},
   surveyAnswers: {}
 };
@@ -93,7 +93,8 @@ const SCREEN_PERMISSIONS = {
   "s_diag_manage": ["teacher", "admin"],
   "s_research": ["researcher", "admin", "teacher", "guest", "student", "developer"],
   "s_admin": ["admin"],
-  "s_api_docs": ["developer", "admin"]
+  "s_api_docs": ["developer", "admin"],
+  "s_about": ["student", "teacher", "admin", "researcher", "guest", "developer"]
 };
 
 function canAccessScreen(screenId, role) {
@@ -246,6 +247,10 @@ function showScreen(screenId) {
     }
   }
 
+  if (screenId === "s_about" && typeof window.loadAboutScreen === "function") {
+    window.loadAboutScreen();
+  }
+
   if (screenId === "s_lesson" && typeof goToStage === "function") {
     goToStage(STATE.lessonStage || 1);
   }
@@ -305,17 +310,21 @@ async function triggerAILockNotice(toolName) {
   }
 
   try {
+    const lockHeaders = {
+      "Content-Type": "application/json",
+      "X-Lesson-Stage": "independent",
+      "X-AI-Locked": "true"
+    };
+    if (STATE.token) lockHeaders["Authorization"] = `Bearer ${STATE.token}`;
     const res = await fetch(`${STATE.apiBaseUrl}/ai/generate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Lesson-Stage": "independent",
-        "X-AI-Locked": "true"
-      },
+      headers: lockHeaders,
       body: JSON.stringify({ prompt: toolName })
     });
 
-    if (res.status === 403) {
+    if (res.status === 401) {
+      if (noticeBox) noticeBox.innerHTML = `<strong style="color:var(--clay)">● AI vositalari yopiq:</strong> 1-qoida — mustaqil bosqichda yordam berilmaydi (AI endpointlari tizimga kirgan foydalanuvchilar uchun ham bu bosqichda 403 qaytaradi).`;
+    } else if (res.status === 403) {
       const data = await res.json();
       const reason = data.detail?.details?.reason || "Talaba o'z javobini o'zi yaratmaguncha tayyor javob yoki generatsiya berilmaydi.";
       if (noticeBox) {
@@ -347,21 +356,29 @@ async function requestAiScaffold() {
   if (btn) btn.disabled = true;
 
   try {
+    if (!STATE.token) {
+      resBox.innerHTML = "🔑 AI yordamchisidan foydalanish uchun avval profilga kiring.";
+      if (window.openLoginModal) window.openLoginModal();
+      return;
+    }
+    const scaffoldHeaders = { "Content-Type": "application/json", "Authorization": `Bearer ${STATE.token}` };
+    // Serverda holat 'preparation' bo'lishi uchun bosqichni bildiramiz (AI qulfi serverda hal qilinadi)
+    await fetch(`${STATE.apiBaseUrl}/lesson/5/stage/next?target_stage=preparation`, { method: "POST", headers: scaffoldHeaders }).catch(() => {});
     const res = await fetch(`${STATE.apiBaseUrl}/ai/generate`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Lesson-Stage": "preparation",
-        "X-AI-Locked": "false"
-      },
+      headers: scaffoldHeaders,
       body: JSON.stringify({
         prompt: "Yozma nutqni baholash mezonlari (rubrics, syntactic complexity, formative feedback)",
         context: "BuxDU talabalari uchun akademik insho yozishga tayyorgarlik"
       })
     });
 
-    const data = await res.json();
-    resBox.innerHTML = `<strong>🤖 DeepSeek (${data.model || "deepseek-v4-flash-vision-exp"}):</strong>\n\n${data.result}`;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      resBox.innerHTML = `⚠️ ${escapeHtml(data.detail || ("Server xatosi (HTTP " + res.status + ")"))}`;
+      return;
+    }
+    resBox.innerHTML = `<strong>🤖 DeepSeek (${escapeHtml(data.model || "deepseek-v4-flash-vision-exp")}):</strong>\n\n${escapeHtml(data.result)}`;
   } catch (e) {
     resBox.innerHTML = "⚠️ Serverga ulanishda xatolik yuz berdi.";
   } finally {
@@ -388,13 +405,22 @@ async function runDeepSeekAnalysis() {
   if (btn) btn.disabled = true;
 
   try {
+    if (!STATE.token) {
+      outBox.innerHTML = "🔑 AI tahlili uchun avval profilga kiring.";
+      if (window.openLoginModal) window.openLoginModal();
+      return;
+    }
     const res = await fetch(`${STATE.apiBaseUrl}/ai/analyze`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${STATE.token}` },
       body: JSON.stringify({ prompt: text, context: "Yozma nutq baholash mezonlari (5-hafta)" })
     });
-    const data = await res.json();
-    outBox.innerHTML = `<strong>📊 DeepSeek & Kognitiv Tahlil Natijasi:</strong>\n\n${data.analysis || data.message}`;
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      outBox.innerHTML = `⚠️ ${escapeHtml(data.detail || ("Server xatosi (HTTP " + res.status + ")"))}`;
+      return;
+    }
+    outBox.innerHTML = `<strong>📊 DeepSeek & Kognitiv Tahlil Natijasi:</strong>\n\n${escapeHtml(data.analysis || data.message)}`;
   } catch (e) {
     outBox.innerHTML = "⚠️ Tahlil so'rovida server bilan aloqa xatoligi yuz berdi.";
   } finally {
@@ -405,7 +431,9 @@ async function runDeepSeekAnalysis() {
 // AI Holatini tekshirish
 async function checkAiStatus() {
   try {
-    const res = await fetch(`${STATE.apiBaseUrl}/ai/status`);
+    // AI holati faqat tizimga kirganlarga ko'rsatiladi (pullik kalit holati ommaviy emas)
+    if (!STATE.token) return;
+    const res = await fetch(`${STATE.apiBaseUrl}/ai/status`, { headers: { "Authorization": `Bearer ${STATE.token}` } });
     if (!res.ok) return;
     const data = await res.json();
     
@@ -514,6 +542,10 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+// Inline onclick="fn(${jsArg(x)})" uchun: JSON-string + HTML-escape (apostrof va qo'shtirnoq xavfsiz)
+function jsArg(v) { return escapeHtml(JSON.stringify(v === undefined || v === null ? "" : String(v))); }
+window.jsArg = jsArg;
 
 // 3-bosqichdan 4-bosqichga (Tahlil) o'tish
 async function finishProduction() {
@@ -763,6 +795,16 @@ function goToStage(stageNum) {
   document.querySelectorAll(".stage-content").forEach(c => c.style.display = "none");
   const targetContent = document.getElementById(`stageContent${stageNum}`);
   if (targetContent) targetContent.style.display = "block";
+
+  // 1-QOIDA: bosqichni serverga bildiramiz — mustaqil bosqichda AI qulfi serverda yoqiladi,
+  // mijoz sarlavha yoki UI orqali uni chetlab o'ta olmaydi.
+  if (STATE.token) {
+    const stageNames = { 1: "intro", 2: "preparation", 3: "independent", 4: "analysis", 5: "reflection" };
+    const target = stageNames[stageNum] || "intro";
+    fetch(`${STATE.apiBaseUrl}/lesson/5/stage/next?target_stage=${target}`, {
+      method: "POST", headers: { "Authorization": `Bearer ${STATE.token}` }
+    }).catch(() => {});
+  }
 
   // 5-bosqich: AI bahosini fonda tayyorlab qo'yamiz (o'z bahosi qo'yilgach ochiladi).
   // Talabaning o'z bahosi AVTOMATIK TO'LDIRILMAYDI (4-qoida).
@@ -1051,7 +1093,7 @@ window.loadTeacherProposals = async function() {
       return;
     }
 
-    const esc = (t) => String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    const esc = escapeHtml;
 
     box.innerHTML = items.map(p => {
       const st = PROPOSAL_STATUS[p.status] || PROPOSAL_STATUS.pending;
@@ -1099,10 +1141,10 @@ window.loadTeacherProposals = async function() {
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;flex-wrap:wrap">
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <span style="font-size:11.5px;font-weight:700;color:${dirInfo.color};background:${dirInfo.bg};padding:3px 9px;border-radius:6px">
-                ${dirInfo.label}
+                ${esc(dirInfo.label)}
               </span>
               <span style="font-size:11.5px;font-weight:600;color:var(--ink-2);background:var(--surface-2);padding:3px 9px;border-radius:6px;border:1px solid var(--line)">
-                ${catLabel}
+                ${esc(catLabel)}
               </span>
               ${p.created_at ? `<span style="font-size:11px;color:var(--muted)">📅 ${esc(p.created_at)}</span>` : ""}
             </div>
@@ -1125,11 +1167,11 @@ window.loadTeacherProposals = async function() {
           <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:8px;font-size:12px;color:var(--muted);background:var(--surface-2);padding:10px 14px;border-radius:8px;margin-top:8px">
             <div>
               <b>📤 Yuboruvchi:</b> <span style="color:var(--ink)">${esc(p.sender_name)}</span>
-              ${p.sender_role ? `<span style="font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--line);margin-left:4px">${p.sender_role}</span>` : ""}
+              ${p.sender_role ? `<span style="font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--line);margin-left:4px">${esc(p.sender_role)}</span>` : ""}
             </div>
             <div>
               <b>📥 Qabul qiluvchi:</b> <span style="color:var(--ink)">${esc(p.receiver_name)}</span>
-              ${p.receiver_role ? `<span style="font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--line);margin-left:4px">${p.receiver_role}</span>` : ""}
+              ${p.receiver_role ? `<span style="font-size:10.5px;padding:1px 5px;border-radius:4px;background:var(--line);margin-left:4px">${esc(p.receiver_role)}</span>` : ""}
             </div>
             ${p.basis ? `<div style="grid-column:1/-1"><b>🎯 Sabab / Asos:</b> <i>${esc(p.basis)}</i></div>` : ""}
             ${p.teacher_comment ? `<div style="grid-column:1/-1;border-top:1px dashed var(--line);padding-top:6px;color:#0284c7"><b>💬 Qaror izohi:</b> ${esc(p.teacher_comment)}</div>` : ""}
@@ -1144,7 +1186,7 @@ window.loadTeacherProposals = async function() {
     }
   } catch (err) {
     console.error("Takliflarni yuklashda xatolik:", err);
-    box.innerHTML = `<div style="text-align:center;padding:24px;color:var(--clay)">Xatolik: ${err.message}</div>`;
+    box.innerHTML = `<div style="text-align:center;padding:24px;color:var(--clay)">Xatolik: ${escapeHtml(err.message)}</div>`;
   }
 };
 
@@ -1236,7 +1278,7 @@ window.onPropRecipientTypeChange = function() {
       recSelect.innerHTML = `<option value="">O'qituvchilar topilmadi</option>`;
     } else {
       recSelect.innerHTML = `<option value="" disabled selected>-- O'qituvchini tanlang (${teachers.length} nafar) --</option>` +
-        teachers.map(t => `<option value="${t.id}">👨‍🏫 ${t.full_name} (${t.email})${t.is_me ? " [Siz]" : ""}</option>`).join("");
+        teachers.map(t => `<option value="${escapeHtml(t.id)}">👨‍🏫 ${escapeHtml(t.full_name)} (${escapeHtml(t.email)})${t.is_me ? " [Siz]" : ""}</option>`).join("");
     }
     if (dirBadge) {
       dirBadge.innerHTML = (currentRole === "student") 
@@ -1250,7 +1292,7 @@ window.onPropRecipientTypeChange = function() {
       recSelect.innerHTML = `<option value="">Talabalar topilmadi</option>`;
     } else {
       recSelect.innerHTML = `<option value="" disabled selected>-- Talabani tanlang (${students.length} nafar) --</option>` +
-        students.map(s => `<option value="${s.id}">👨‍🎓 ${s.full_name} · ${s.group_name}${s.is_me ? " [Siz]" : ""}</option>`).join("");
+        students.map(s => `<option value="${escapeHtml(s.id)}">👨‍🎓 ${escapeHtml(s.full_name)} · ${escapeHtml(s.group_name)}${s.is_me ? " [Siz]" : ""}</option>`).join("");
     }
     if (dirBadge) {
       dirBadge.innerHTML = (currentRole === "student") 
@@ -1557,7 +1599,12 @@ function showToast(message, type = "info") {
   toast.style.cssText = `background:${bg};color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;font-weight:600;box-shadow:0 8px 20px rgba(0,0,0,0.2);display:flex;align-items:center;gap:8px;pointer-events:auto;transition:all 0.3s ease;transform:translateY(-10px);opacity:0;`;
   
   const icon = type === "success" ? "✓" : (type === "error" ? "⚠️" : "ℹ️");
-  toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  const iconSpan = document.createElement("span");
+  iconSpan.textContent = icon;
+  const msgSpan = document.createElement("span");
+  msgSpan.textContent = message === undefined || message === null ? "" : String(message);
+  toast.appendChild(iconSpan);
+  toast.appendChild(msgSpan);
   container.appendChild(toast);
 
   requestAnimationFrame(() => {
@@ -1669,7 +1716,8 @@ function initAuth() {
   }
 
   // Sahifa ochilganda saqlangan foydalanuvchini yuklash
-  const savedUser = JSON.parse(localStorage.getItem("tilora_user") || "null");
+  let savedUser = null;
+  try { savedUser = JSON.parse(localStorage.getItem("tilora_user") || "null"); } catch (_) { savedUser = null; }
   const wasLoggedOut = localStorage.getItem("tilora_logged_out") === "true";
 
   const savedToken = localStorage.getItem("tilora_token");
@@ -2385,19 +2433,19 @@ async function loadUserProfile() {
         if (lang === "ru") {
           whyBox.innerHTML = `
             <b>Основание Правила 2: Почему профиль и траектория сформированы именно так?</b><br>
-            Уровень устной речи ${studentName} (${spkLvl}), а языковая тревожность ${anxStatus.toLowerCase()} (${anx}/100).
+            Уровень устной речи ${escapeHtml(studentName)} (${spkLvl}), а языковая тревожность ${anxStatus.toLowerCase()} (${anx}/100).
             Поэтому учебная траектория персонализирована с учётом допустимой учебной нагрузки (${ca.load_capacity || 45}/100) и темпа усвоения (${ca.pace_index || 62}/100).
           `;
         } else if (lang === "en") {
           whyBox.innerHTML = `
             <b>Rule 2 Rationale: Why was this profile and learning trajectory generated this way?</b><br>
-            ${studentName}'s speaking proficiency is (${spkLvl}), with ${anxStatus.toLowerCase()} foreign language anxiety (${anx}/100).
+            ${escapeHtml(studentName)}'s speaking proficiency is (${spkLvl}), with ${anxStatus.toLowerCase()} foreign language anxiety (${anx}/100).
             Therefore, the learning trajectory is personalized according to their cognitive load capacity (${ca.load_capacity || 45}/100) and learning pace (${ca.pace_index || 62}/100).
           `;
         } else {
           whyBox.innerHTML = `
             <b>2-Qoida Asosi: Nima uchun profil va o'quv yo'li aynan shunday shakllantirildi?</b><br>
-            ${studentName}ning og'zaki nutq ko'rsatkichi (${spkLvl}), chet tili tashvishi esa ${anxStatus.toLowerCase()} (${anx}/100).
+            ${escapeHtml(studentName)}ning og'zaki nutq ko'rsatkichi (${spkLvl}), chet tili tashvishi esa ${anxStatus.toLowerCase()} (${anx}/100).
             Shu sababli o'quv yo'li uning yuklama sig'imi (${ca.load_capacity || 45}/100) va sur'atiga (${ca.pace_index || 62}/100) mos ravishda shaxsiylashtirilgan.
           `;
         }
@@ -3168,14 +3216,14 @@ function renderDiagnosticQuestions(container) {
           <span style="font-size:12px;color:var(--muted)">${questionWord} ${qIdx + 1} / ${DIAG_QUESTIONS.length}</span>
         </div>
         <p style="font-size:14.5px;color:var(--ink);font-weight:600;margin-bottom:${isAudio ? '10px' : '14px'};line-height:1.6">
-          ${q.instruction || q.question}
+          ${escapeHtml(q.instruction || q.question)}
         </p>
         ${audioPlayerHtml}
         <div style="display:flex;flex-direction:column;gap:8px">
           ${q.options.map((opt, optIdx) => `
             <label id="opt_label_${q.id}_${optIdx}" style="display:flex;gap:10px;align-items:center;padding:10px 14px;background:${selected === optIdx ? "rgba(16, 185, 129, 0.08)" : "var(--card)"};border-radius:8px;border:1px solid ${selected === optIdx ? "var(--teal)" : "var(--line)"};cursor:pointer;font-size:13.5px;transition:all 0.2s">
               <input type="radio" name="diag_${q.id}" value="${optIdx}" ${selected === optIdx ? "checked" : ""} onchange="window.setDiagAnswer('${q.id}', ${optIdx})">
-              <span><b>${String.fromCharCode(65 + optIdx)})</b> ${opt}</span>
+              <span><b>${String.fromCharCode(65 + optIdx)})</b> ${escapeHtml(opt)}</span>
             </label>
           `).join("")}
         </div>
@@ -3818,7 +3866,7 @@ window.loadTeacherSubjects = async function() {
     if (selectSubj) {
       const curVal = selectSubj.value;
       selectSubj.innerHTML = `<option value="">-- Fanni tanlang --</option>` +
-        STATE.teacherSubjects.map(s => `<option value="${s.id}" ${curVal === s.id ? 'selected' : ''}>${s.name} (${s.group_name})</option>`).join("");
+        STATE.teacherSubjects.map(s => `<option value="${escapeHtml(s.id)}" ${curVal === s.id ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.group_name)})</option>`).join("");
       if (curVal) window.onGenSubjectChange();
       window.renderGenExtraSubjects();
     }
@@ -3842,11 +3890,11 @@ window.loadTeacherSubjects = async function() {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
           <div>
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-              <span style="font-size:11px;font-weight:700;padding:2px 7px;background:var(--teal-soft);color:var(--teal);border-radius:4px">${s.code || 'FAN'}</span>
-              <span style="font-size:12px;color:var(--muted)">${s.course_year}-kurs · ${s.group_name} · ${s.semester}</span>
+              <span style="font-size:11px;font-weight:700;padding:2px 7px;background:var(--teal-soft);color:var(--teal);border-radius:4px">${escapeHtml(s.code || 'FAN')}</span>
+              <span style="font-size:12px;color:var(--muted)">${escapeHtml(s.course_year)}-kurs · ${escapeHtml(s.group_name)} · ${escapeHtml(s.semester)}</span>
             </div>
-            <h3 style="margin:0 0 6px;font-size:18px;font-family:var(--serif)">${s.name}</h3>
-            <p style="margin:0 0 10px;font-size:13px;color:var(--ink-2)">${s.description || "Ushbu fan bo'yicha sillabus va dars materiallari."}</p>
+            <h3 style="margin:0 0 6px;font-size:18px;font-family:var(--serif)">${escapeHtml(s.name)}</h3>
+            <p style="margin:0 0 10px;font-size:13px;color:var(--ink-2)">${escapeHtml(s.description || "Ushbu fan bo'yicha sillabus va dars materiallari.")}</p>
             
             <div style="display:flex;gap:12px;font-size:12.5px;color:var(--muted);flex-wrap:wrap">
               <span>📋 <b>${s.topics_count} ta</b> mavzu</span>
@@ -3859,7 +3907,7 @@ window.loadTeacherSubjects = async function() {
             <button class="btn-primary" style="padding:7px 13px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.toggleSubjectTopics('${s.id}')">
               📑 Mavzular (${s.topics_count})
             </button>
-            <button class="btn-primary" style="padding:7px 13px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.openUploadSyllabusModal('${s.id}', '${escapeHtml(s.name)}')">
+            <button class="btn-primary" style="padding:7px 13px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line)" onclick="window.openUploadSyllabusModal('${s.id}', ${jsArg(s.name)})">
               📄 Sillabus yuklash
             </button>
             <button class="btn-primary" style="padding:7px 13px;font-size:12.5px" onclick="window.prepareGenerateForTopic('${s.id}', '', 'test')">
@@ -3911,7 +3959,7 @@ window.toggleSubjectTopics = async function(subjectId) {
       container.innerHTML = `
         <div style="padding:14px;background:var(--surface-2);border-radius:8px;font-size:13px;text-align:center">
           Ushbu fanga hali sillabus kiritilmagan.
-          <button class="btn-primary" style="margin-left:10px;padding:4px 10px;font-size:12px" onclick="window.openUploadSyllabusModal('${subjectId}', '${escapeHtml(data.subject_name)}')">
+          <button class="btn-primary" style="margin-left:10px;padding:4px 10px;font-size:12px" onclick="window.openUploadSyllabusModal('${subjectId}', ${jsArg(data.subject_name)})">
             Sillabus yuklash
           </button>
         </div>
@@ -3927,17 +3975,17 @@ window.toggleSubjectTopics = async function(subjectId) {
         ${topics.map(t => `
           <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:var(--surface-2);border-radius:8px;border:1px solid var(--line);font-size:13px">
             <div style="display:flex;align-items:center;gap:10px">
-              <span style="font-weight:700;color:var(--teal);min-width:55px">${t.week_number}-hafta:</span>
-              <span style="font-weight:600;color:var(--ink)">${t.title}</span>
+              <span style="font-weight:700;color:var(--teal);min-width:55px">${escapeHtml(t.week_number)}-hafta:</span>
+              <span style="font-weight:600;color:var(--ink)">${escapeHtml(t.title)}</span>
             </div>
             <div style="display:flex;gap:6px">
-              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--card);color:var(--ink);border:1px solid var(--line)" onclick="window.prepareGenerateForTopic('${subjectId}', '${escapeHtml(t.title)}', 'test')" title="Ushbu mavzu bo'yicha AI test tuzish">
+              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--card);color:var(--ink);border:1px solid var(--line)" onclick="window.prepareGenerateForTopic('${subjectId}', ${jsArg(t.title)}, 'test')" title="Ushbu mavzu bo'yicha AI test tuzish">
                 📝 Test
               </button>
-              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--teal);color:#fff" onclick="window.prepareGenerateForTopic('${subjectId}', '${escapeHtml(t.title)}', 'presentation')" title="Ushbu mavzu bo'yicha AI slaydlar tayyorlash">
+              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--teal);color:#fff" onclick="window.prepareGenerateForTopic('${subjectId}', ${jsArg(t.title)}, 'presentation')" title="Ushbu mavzu bo'yicha AI slaydlar tayyorlash">
                 📊 Slayd
               </button>
-              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--surface);color:var(--ink);border:1px solid var(--line)" onclick="window.prepareGenerateForTopic('${subjectId}', '${escapeHtml(t.title)}', 'lesson_plan')" title="5 bosqichli dars ssenariysi">
+              <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--surface);color:var(--ink);border:1px solid var(--line)" onclick="window.prepareGenerateForTopic('${subjectId}', ${jsArg(t.title)}, 'lesson_plan')" title="5 bosqichli dars ssenariysi">
                 📋 Dars rejasi
               </button>
             </div>
@@ -3947,7 +3995,7 @@ window.toggleSubjectTopics = async function(subjectId) {
     `;
 
   } catch (err) {
-    container.innerHTML = `<div style="color:var(--clay);font-size:13px">Xatolik: ${err.message}</div>`;
+    container.innerHTML = `<div style="color:var(--clay);font-size:13px">Xatolik: ${escapeHtml(err.message)}</div>`;
   }
 };
 
@@ -4164,7 +4212,7 @@ window.handleSyllabusFileUpload = async function(e) {
 
   const noticeEl = document.getElementById("fileUploadStatusNotice");
   if (noticeEl) {
-    noticeEl.innerHTML = `⏳ <strong>${file.name}</strong> tahlil qilinmoqda...`;
+    noticeEl.innerHTML = `⏳ <strong>${escapeHtml(file.name)}</strong> tahlil qilinmoqda...`;
     noticeEl.style.color = "var(--teal)";
   }
 
@@ -4208,7 +4256,7 @@ window.handleSyllabusFileUpload = async function(e) {
     }
 
     if (noticeEl) {
-      noticeEl.innerHTML = `✅ <strong>${file.name}</strong>: ${data.lecture_count} ta ma'ruza, ${data.seminar_count} ta seminar, ${data.independent_count} ta mustaqil ta'lim topildi!`;
+      noticeEl.innerHTML = `✅ <strong>${escapeHtml(file.name)}</strong>: ${escapeHtml(data.lecture_count)} ta ma'ruza, ${escapeHtml(data.seminar_count)} ta seminar, ${escapeHtml(data.independent_count)} ta mustaqil ta'lim topildi!`;
       noticeEl.style.color = "var(--teal)";
     }
 
@@ -4357,7 +4405,7 @@ window.onGenSubjectChange = async function() {
       return;
     }
 
-    topicSel.innerHTML = topics.map(t => `<option value="${escapeHtml(t.title)}" data-id="${t.id || ""}">${t.title}</option>`).join("");
+    topicSel.innerHTML = topics.map(t => `<option value="${escapeHtml(t.title)}" data-id="${escapeHtml(t.id || "")}">${escapeHtml(t.title)}</option>`).join("");
 
   } catch (e) {
     topicSel.innerHTML = `<option value="Umumiy dars">1. Umumiy dars mavzusi</option>`;
@@ -4423,7 +4471,7 @@ window.describeGenCounts = function(matType, data) {
   if (!data) return "";
   if (matType === "writing") {
     let t = `✍️ ${data.min_words}–${data.max_words} so'z, ${(data.criteria || []).length} ta baholash mezoni` + (data.ai_generated ? " (AI vazifa)" : " (shablon vazifa)");
-    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${data.ai_error}</div>`;
+    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${escapeHtml(data.ai_error)}</div>`;
     return t;
   }
   if (matType === "test") {
@@ -4432,7 +4480,7 @@ window.describeGenCounts = function(matType, data) {
     const ai = data.ai_questions_count;
     let t = `📝 ${got} / ${req} ta savol tayyorlandi`;
     if (typeof ai === "number" && ai < got) t += ` (${ai} tasi AI, ${got - ai} tasi pedagogik shablon)`;
-    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${data.ai_error}</div>`;
+    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${escapeHtml(data.ai_error)}</div>`;
     return t;
   }
   if (matType === "presentation") {
@@ -4442,7 +4490,7 @@ window.describeGenCounts = function(matType, data) {
     const im = data.image_mode === "ai" ? "har slaydga AI rasm" : (data.image_mode === "photo" ? "tayyor fotolar" : "rasmsiz");
     let t = `📊 ${got} / ${req} ta slayd tayyorlandi · ${im}`;
     if (typeof ai === "number" && ai < got) t += ` (${ai} tasi AI, ${got - ai} tasi shablon)`;
-    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${data.ai_error}</div>`;
+    if (data.ai_error) t += `<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--amber-soft);color:var(--ink);font-size:12px">⚠️ ${escapeHtml(data.ai_error)}</div>`;
     return t;
   }
   return "";
@@ -4555,8 +4603,8 @@ window.submitGenerateMaterial = async function() {
               <span style="font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:4px;background:var(--teal-soft);color:var(--teal)">
                 ${matType === 'test' ? '📝 NAZORAT TESTI' : (matType === 'presentation' ? '📊 INTERAKTIV PREZENTATSIYA' : (matType === 'writing' ? '✍️ YOZMA TOPSHIRIQ' : '📋 DARS ISHLANMASI'))}
               </span>
-              <h3 style="margin:6px 0 2px;font-size:20px;font-family:var(--serif)">${respData.title}</h3>
-              <p style="margin:0;font-size:13px;color:var(--muted)">Fan: <b>${(respData.assigned_subjects || [respData.subject_name]).join(", ")}</b> · Mavzu: <b>${respData.topic_title}</b></p>
+              <h3 style="margin:6px 0 2px;font-size:20px;font-family:var(--serif)">${escapeHtml(respData.title)}</h3>
+              <p style="margin:0;font-size:13px;color:var(--muted)">Fan: <b>${escapeHtml((respData.assigned_subjects || [respData.subject_name]).join(", "))}</b> · Mavzu: <b>${escapeHtml(respData.topic_title)}</b></p>
               <div style="font-size:12px;color:var(--teal);margin-top:4px">💾 Ushbu material profilingizda saqlandi va o'chib ketmaydi.</div>
               <div style="font-size:12px;color:var(--ink-2);margin-top:4px">${window.describeGenCounts(matType, itemData)}</div>
             </div>
@@ -4643,10 +4691,10 @@ window.loadTeacherMaterials = async function() {
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
               <span style="font-size:11px;font-weight:700;padding:2px 7px;background:${badgeBg};color:${badgeColor};border-radius:4px">${typeBadge}</span>
               ${langBadge ? `<span style="font-size:11px;font-weight:700;padding:2px 6px;background:var(--surface-2);color:var(--ink-2);border-radius:4px">${langBadge}</span>` : ''}
-              <span style="font-size:12px;color:var(--muted)">${m.subject_name} · ${m.created_at}</span>
+              <span style="font-size:12px;color:var(--muted)">${escapeHtml(m.subject_name)} · ${escapeHtml(m.created_at)}</span>
             </div>
-            <h4 style="margin:0 0 4px;font-size:16px;font-family:var(--serif)">${m.title}</h4>
-            <div style="font-size:13px;color:var(--ink-2)">Mavzu: <b>${m.topic_title}</b></div>
+            <h4 style="margin:0 0 4px;font-size:16px;font-family:var(--serif)">${escapeHtml(m.title)}</h4>
+            <div style="font-size:13px;color:var(--ink-2)">Mavzu: <b>${escapeHtml(m.topic_title)}</b></div>
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -4912,12 +4960,12 @@ window.regenerateCurrentSlideImage = async function() {
   }
 
   try {
-    const token = localStorage.getItem("token") || "";
+    const token = STATE.token || localStorage.getItem("tilora_token") || "";
     let updated = false;
 
     // 1) Agar taqdimot bazada mavjud bo'lsa, backend orqali yangilab bazaga saqlash
     if (matId) {
-      const resp = await fetch(`/api/teacher/materials/${matId}/slides/${idx + 1}/regenerate-image`, {
+      const resp = await fetch(`${STATE.apiBaseUrl}/teacher/materials/${matId}/slides/${idx + 1}/regenerate-image`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -4936,7 +4984,7 @@ window.regenerateCurrentSlideImage = async function() {
 
     // 2) Agar material hali saqlanmagan yoki offline bo'lsa, umumiy generator orqali
     if (!updated) {
-      const resp = await fetch("/api/teacher/materials/regenerate-slide-image", {
+      const resp = await fetch(`${STATE.apiBaseUrl}/teacher/materials/regenerate-slide-image`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -5012,7 +5060,7 @@ window.renderCurrentSlide = function() {
   // Orqa fonga mavzuga oid rasmni joylashtirish
   if (canvasEl) {
     if (s.image_url) {
-      canvasEl.style.backgroundImage = `linear-gradient(135deg, rgba(10, 15, 30, 0.85) 0%, rgba(15, 23, 42, 0.94) 100%), url('${s.image_url}')`;
+      canvasEl.style.backgroundImage = "linear-gradient(135deg, rgba(10, 15, 30, 0.85) 0%, rgba(15, 23, 42, 0.94) 100%), url(" + JSON.stringify(String(s.image_url)) + ")";
       canvasEl.style.backgroundSize = "cover";
       canvasEl.style.backgroundPosition = "center";
       canvasEl.style.color = "#f8fafc";
@@ -5046,7 +5094,7 @@ window.renderCurrentSlide = function() {
   }
 
   if (bulletsEl) {
-    bulletsEl.innerHTML = (s.bullets || []).map(b => `<li style="margin-bottom:10px;line-height:1.6">${b}</li>`).join("");
+    bulletsEl.innerHTML = (s.bullets || []).map(b => `<li style="margin-bottom:10px;line-height:1.6">${escapeHtml(b)}</li>`).join("");
   }
 
   if (notesText) {
@@ -5168,7 +5216,7 @@ window.renderTestQuestions = function() {
     return `
       <div style="padding:14px 16px;background:var(--surface-2);border-radius:10px;border:1px solid var(--line)">
         <div style="font-weight:700;font-size:14px;color:var(--ink);margin-bottom:10px">
-          ${idx + 1}. ${q.question}
+          ${idx + 1}. ${escapeHtml(q.question)}
         </div>
         <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
           ${(q.options || []).map((opt, oIdx) => {
@@ -5180,7 +5228,7 @@ window.renderTestQuestions = function() {
             return `
               <div style="padding:8px 12px;border-radius:6px;font-size:13px;display:flex;align-items:center;gap:8px;${style}">
                 <span style="font-weight:700;min-width:20px">${letters[oIdx]})</span>
-                <span>${opt}</span>
+                <span>${escapeHtml(opt)}</span>
                 ${(STATE.showAnswerKeys && isCorrect) ? '<span style="margin-left:auto;font-size:12px;color:var(--teal)">✓ To\'g\'ri javob</span>' : ''}
               </div>
             `;
@@ -5188,7 +5236,7 @@ window.renderTestQuestions = function() {
         </div>
         ${(STATE.showAnswerKeys && q.explanation) ? `
           <div style="font-size:12px;color:var(--muted);background:rgba(0,0,0,0.03);padding:8px 10px;border-radius:6px;border-left:3px solid var(--teal)">
-            <b>Izoh:</b> ${q.explanation}
+            <b>Izoh:</b> ${escapeHtml(q.explanation)}
           </div>
         ` : ''}
       </div>
@@ -5278,11 +5326,22 @@ window.loadAdminDashboard = async function() {
   };
 
   try {
+    let adminErrShown = false;
+    const adminJson = (r) => {
+      if (!r.ok) {
+        if (!adminErrShown) {
+          adminErrShown = true;
+          showToast(`Admin ma'lumotlari yuklanmadi (HTTP ${r.status})`, "error");
+        }
+        throw new Error("HTTP " + r.status);
+      }
+      return r.json();
+    };
     const [pendingRes, paymentsRes, allUsersRes, teachersRes] = await Promise.all([
-      fetch(`${STATE.apiBaseUrl}/admin/pending-users`, { headers }).then(r => r.json()).catch(() => ({ pending_users: [] })),
-      fetch(`${STATE.apiBaseUrl}/admin/payments`, { headers }).then(r => r.json()).catch(() => ({ payments: [] })),
-      fetch(`${STATE.apiBaseUrl}/admin/users`, { headers }).then(r => r.json()).catch(() => ({ users: [] })),
-      fetch(`${STATE.apiBaseUrl}/admin/teachers`, { headers }).then(r => r.json()).catch(() => ({ teachers: [] }))
+      fetch(`${STATE.apiBaseUrl}/admin/pending-users`, { headers }).then(adminJson).catch(() => ({ pending_users: [] })),
+      fetch(`${STATE.apiBaseUrl}/admin/payments`, { headers }).then(adminJson).catch(() => ({ payments: [] })),
+      fetch(`${STATE.apiBaseUrl}/admin/users`, { headers }).then(adminJson).catch(() => ({ users: [] })),
+      fetch(`${STATE.apiBaseUrl}/admin/teachers`, { headers }).then(adminJson).catch(() => ({ teachers: [] }))
     ]);
 
     const pendingUsers = pendingRes.pending_users || [];
@@ -5359,19 +5418,19 @@ window.renderAdminPendingUsers = function(users) {
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;border-left:4px solid var(--amber)">
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-weight:700;font-size:15px;color:var(--ink)">${u.full_name}</span>
+            <span style="font-weight:700;font-size:15px;color:var(--ink)">${escapeHtml(u.full_name)}</span>
             ${roleBadge}
             <span style="font-size:11px;color:var(--muted)">${new Date(u.created_at).toLocaleString('uz-UZ')}</span>
           </div>
           <div style="font-size:13px;color:var(--ink-2);line-height:1.5">
-            <b>Login / Email:</b> ${u.email} · <b>Telefon:</b> ${u.phone_number || "Ko'rsatilmagan"} · <b>Guruh:</b> ${u.group_name || "-"}
+            <b>Login / Email:</b> ${escapeHtml(u.email)} · <b>Telefon:</b> ${escapeHtml(u.phone_number || "Ko'rsatilmagan")} · <b>Guruh:</b> ${escapeHtml(u.group_name || "-")}
           </div>
         </div>
         <div style="display:flex;gap:8px">
-          <button class="btn-primary" style="background:none;color:var(--clay);border:1px solid var(--clay);font-size:12.5px;padding:6px 14px" onclick="window.rejectUser('${u.id}', '${u.full_name}')">
+          <button class="btn-primary" style="background:none;color:var(--clay);border:1px solid var(--clay);font-size:12.5px;padding:6px 14px" onclick="window.rejectUser('${u.id}', ${jsArg(u.full_name)})">
             ✕ Rad etish
           </button>
-          <button class="btn-primary" style="background:var(--teal);font-size:12.5px;padding:6px 16px" onclick="window.approveUser('${u.id}', '${u.full_name}')">
+          <button class="btn-primary" style="background:var(--teal);font-size:12.5px;padding:6px 16px" onclick="window.approveUser('${u.id}', ${jsArg(u.full_name)})">
             ✓ Tasdiqlash (Ruxsat berish)
           </button>
         </div>
@@ -5407,13 +5466,13 @@ window.renderAdminPayments = function(payments) {
       <div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;border-left:4px solid ${isPending ? 'var(--amber)' : (p.status === 'approved' ? 'var(--teal)' : 'var(--line)')}">
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-            <span style="font-weight:700;font-size:15px;color:var(--ink)">${p.user_name || p.user_email}</span>
+            <span style="font-weight:700;font-size:15px;color:var(--ink)">${escapeHtml(p.user_name || p.user_email)}</span>
             <span style="font-size:12px;font-weight:700;color:var(--teal)">${p.amount.toLocaleString()} so'm</span>
             ${statusBadge}
             <span style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleString('uz-UZ')}</span>
           </div>
           <div style="font-size:13px;color:var(--ink-2);line-height:1.5">
-            <b>To'lov usuli:</b> ${(p.payment_method || '').toUpperCase()} · <b>Tranzaksiya / Chek ID:</b> <code>${p.transaction_id || "Kiritilmagan"}</code> · <b>Roli:</b> ${p.role}
+            <b>To'lov usuli:</b> ${escapeHtml((p.payment_method || '').toUpperCase())} · <b>Tranzaksiya / Chek ID:</b> <code>${escapeHtml(p.transaction_id || "Kiritilmagan")}</code> · <b>Roli:</b> ${escapeHtml(p.role)}
           </div>
         </div>
         ${isPending ? `
@@ -5421,7 +5480,7 @@ window.renderAdminPayments = function(payments) {
             <button class="btn-primary" style="background:none;color:var(--clay);border:1px solid var(--clay);font-size:12.5px;padding:6px 14px" onclick="window.rejectPayment('${p.id}')">
               ✕ Rad etish
             </button>
-            <button class="btn-primary" style="background:var(--amber);color:#fff;border:none;font-size:12.5px;padding:6px 16px;font-weight:700" onclick="window.approvePayment('${p.id}', '${p.user_name || p.user_email}')">
+            <button class="btn-primary" style="background:var(--amber);color:#fff;border:none;font-size:12.5px;padding:6px 16px;font-weight:700" onclick="window.approvePayment('${p.id}', ${jsArg(p.user_name || p.user_email)})">
               👑 Tasdiqlash (PRO ga o'tkazish)
             </button>
           </div>
@@ -5455,9 +5514,9 @@ window.renderAdminAllUsers = function(users) {
 
     return `
       <tr style="border-bottom:1px solid var(--line);height:44px">
-        <td><b>${u.full_name || "-"}</b></td>
-        <td>${u.email}</td>
-        <td><span style="font-size:12px;text-transform:capitalize">${u.role}</span></td>
+        <td><b>${escapeHtml(u.full_name || "-")}</b></td>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span style="font-size:12px;text-transform:capitalize">${escapeHtml(u.role)}</span></td>
         <td>${apprBadge}</td>
         <td>${tierBadge}</td>
         <td>
@@ -5465,7 +5524,7 @@ window.renderAdminAllUsers = function(users) {
             <button class="btn-primary" style="padding:4px 8px;font-size:11.5px;background:none;border:1px solid var(--line);color:var(--ink)" onclick="window.toggleUserTier('${u.id}', '${nextTier}')">
               ${tierBtnLabel}
             </button>
-            <button class="btn-primary" style="padding:4px 8px;font-size:11.5px;background:none;border:1px solid var(--teal);color:var(--teal)" onclick="window.adminResetUserPassword('${u.id}', '${(u.full_name || '').replace(/'/g, '')}', '${u.email}')" title="Yangi parol o'rnatish">
+            <button class="btn-primary" style="padding:4px 8px;font-size:11.5px;background:none;border:1px solid var(--teal);color:var(--teal)" onclick="window.adminResetUserPassword('${u.id}', ${jsArg(u.full_name || '')}, ${jsArg(u.email)})" title="Yangi parol o'rnatish">
               🔑 Parol
             </button>
           </div>
@@ -5477,9 +5536,9 @@ window.renderAdminAllUsers = function(users) {
 
 window.adminResetUserPassword = async function(userId, userName, userEmail) {
   if (!STATE.token) return;
-  const newPass = prompt(`${userName} (${userEmail}) uchun yangi parol kiriting:\n(Kamida 4 ta belgi)`, "123456");
-  if (!newPass || newPass.trim().length < 4) {
-    if (newPass !== null) showToast("Parol kamida 4 belgidan iborat bo'lishi kerak!", "error");
+  const newPass = prompt(`${userName} (${userEmail}) uchun yangi parol kiriting:\n(Kamida 8 ta belgi)`, "");
+  if (!newPass || newPass.trim().length < 8) {
+    if (newPass !== null) showToast("Parol kamida 8 belgidan iborat bo'lishi kerak!", "error");
     return;
   }
 
@@ -5494,7 +5553,7 @@ window.adminResetUserPassword = async function(userId, userName, userEmail) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Parol yangilashda xatolik");
-    showToast(`✓ ${userName} paroli '${newPass.trim()}' ga muvaffaqiyatli yangilandi!`, "success");
+    showToast(`✓ ${userName}: Parol yangilandi`, "success");
     window.loadAdminDashboard();
   } catch (err) {
     showToast(err.message || "Xatolik yuz berdi", "error");
@@ -5668,7 +5727,7 @@ window.renderAdminTeachers = function(teachers) {
         <td>${tierBadge}</td>
         <td><span style="color:var(--teal);font-weight:600;font-size:12px">✓ Faol</span></td>
         <td>
-          <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:none;border:1px solid var(--clay);color:var(--clay)" onclick="window.deleteTeacher('${t.id}', '${escapeHtml(t.full_name)}')">
+          <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:none;border:1px solid var(--clay);color:var(--clay)" onclick="window.deleteTeacher('${t.id}', ${jsArg(t.full_name)})">
             🗑 O'chirish
           </button>
         </td>
@@ -5853,7 +5912,7 @@ window.loadStudentSubjectsAndMaterials = async function() {
             matCount = lang === "ru" ? ` (${s.materials_count} материалов)` : (lang === "en" ? ` (${s.materials_count} materials)` : ` (${s.materials_count} ta material)`);
           }
           const subjFallback = lang === "ru" ? "Предмет" : (lang === "en" ? "Course" : "Fan");
-          optHtml += `<option value="${s.id}">${s.title} [${s.code || s.semester || subjFallback}]${matCount}</option>`;
+          optHtml += `<option value="${escapeHtml(s.id)}">${escapeHtml(s.title)} [${escapeHtml(s.code || s.semester || subjFallback)}]${matCount}</option>`;
         });
         select.innerHTML = optHtml;
         if (STATE.studentSubjectFilter) {
@@ -6303,7 +6362,7 @@ window.startStudentTest = async function(materialId) {
         <div id="testQuestionBlock_${qId}" style="padding:16px 18px;background:var(--surface-2);border-radius:12px;border:1px solid var(--line)">
           <div style="font-weight:700;font-size:14.5px;color:var(--ink);margin-bottom:12px;line-height:1.4">
             <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--teal);color:#fff;text-align:center;line-height:24px;font-size:12px;margin-right:6px">${idx + 1}</span>
-            ${q.question}
+            ${escapeHtml(q.question)}
           </div>
 
           <div style="display:flex;flex-direction:column;gap:8px" id="optionsGroup_${qId}">
@@ -6312,7 +6371,7 @@ window.startStudentTest = async function(materialId) {
                 <label id="optLabel_${qId}_${oIdx}" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:var(--card);border:1.5px solid var(--line);cursor:pointer;transition:all 0.15s">
                   <input type="radio" name="st_ans_${qId}" value="${oIdx}" onchange="window.onSelectStudentOption('${qId}', ${oIdx})" style="accent-color:var(--teal);cursor:pointer">
                   <span style="font-weight:700;min-width:22px;color:var(--ink)">${letters[oIdx]})</span>
-                  <span style="font-size:13.5px;color:var(--ink-2);flex:1">${opt}</span>
+                  <span style="font-size:13.5px;color:var(--ink-2);flex:1">${escapeHtml(opt)}</span>
                 </label>
               `;
             }).join("")}
@@ -6510,7 +6569,7 @@ window.renderStudentTestResult = function(result) {
       expBox.style.display = "block";
       expBox.innerHTML = `
         <div style="font-weight:700;color:var(--teal);margin-bottom:2px">${expTitle}</div>
-        <div>${r.explanation}</div>
+        <div>${escapeHtml(r.explanation)}</div>
       `;
     }
   });
@@ -6791,7 +6850,7 @@ window.renderCurrentStudentSlide = function() {
 
   if (bulletsEl) {
     const bullets = slide.bullets || [];
-    bulletsEl.innerHTML = bullets.map(b => `<li style="margin-bottom:10px">${b}</li>`).join("");
+    bulletsEl.innerHTML = bullets.map(b => `<li style="margin-bottom:10px">${escapeHtml(b)}</li>`).join("");
   }
 
   if (notesBox && notesText) {
@@ -6898,15 +6957,15 @@ window.generateAndDownloadPresentationHtml = function(material) {
   const subject = material.subject_title || material.subject_name || content.subject || "TILORA Ta'lim Platformasi";
   const topic = material.topic_title || content.topic || "";
 
-  // Slaydlar HTML kontenti
-  const slidesJsonString = JSON.stringify(slides);
+  // Slaydlar HTML kontenti (<script> ichida xavfsiz bo'lishi uchun "</" ni ekranlaymiz)
+  const slidesJsonString = JSON.stringify(slides).replace(/<\//g, '<\\/');
 
   const htmlSource = `<!DOCTYPE html>
 <html lang="uz">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${title} — Slaydlar (TILORA)</title>
+  <title>${escapeHtml(title)} — Slaydlar (TILORA)</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
   <style>
@@ -7075,9 +7134,9 @@ window.generateAndDownloadPresentationHtml = function(material) {
 
   <header>
     <div>
-      <span class="badge">${subject}</span>
-      <h3 style="font-size:16px;margin-top:4px;font-family:'Playfair Display', serif">${title}</h3>
-      <div style="font-size:12px;color:var(--text-muted)">Mavzu: ${topic}</div>
+      <span class="badge">${escapeHtml(subject)}</span>
+      <h3 style="font-size:16px;margin-top:4px;font-family:'Playfair Display', serif">${escapeHtml(title)}</h3>
+      <div style="font-size:12px;color:var(--text-muted)">Mavzu: ${escapeHtml(topic)}</div>
     </div>
     <div style="display:flex;align-items:center;gap:12px">
       <span id="counter" style="font-size:14px;font-weight:700;color:var(--teal-light)">1 / ${slides.length}</span>
@@ -7126,7 +7185,7 @@ window.generateAndDownloadPresentationHtml = function(material) {
       document.getElementById('slideTitle').textContent = s.title || ('Slayd ' + (currentIdx + 1));
 
       const bulletsEl = document.getElementById('slideBullets');
-      bulletsEl.innerHTML = (s.bullets || []).map(b => '<li>' + b + '</li>').join('');
+      bulletsEl.innerHTML = (s.bullets || []).map(b => '<li>' + String(b == null ? '' : b).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</li>').join('');
 
       const imgWrap = document.getElementById('slideImageWrap');
       const img = document.getElementById('slideImage');
@@ -7267,18 +7326,18 @@ window.viewStudentLessonPlan = async function(materialId) {
             <div style="border-radius:10px;padding:14px 16px;background:var(--surface-2);border:1px solid var(--line);border-left:4px solid var(--teal)">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px">
                 <div style="font-weight:700;font-size:14.5px;color:var(--ink)">
-                  ${stageTitle}
+                  ${escapeHtml(stageTitle)}
                 </div>
                 <span style="font-size:11.5px;padding:2px 8px;border-radius:6px;background:var(--teal-soft);color:var(--teal);font-weight:700">
-                  ⏱️ ${stageDuration}
+                  ⏱️ ${escapeHtml(stageDuration)}
                 </span>
               </div>
               <div style="font-size:13px;color:var(--ink-2);margin-bottom:8px;line-height:1.5">
-                <b>${actLabel}:</b> ${st.activity || st.description || ''}
+                <b>${actLabel}:</b> ${escapeHtml(st.activity || st.description || '')}
               </div>
               <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:8px;font-size:12.5px;color:var(--muted);background:var(--card);padding:10px 12px;border-radius:8px">
-                <div><b>${teacherRoleLabel}</b> ${st.teacher_role || defaultTeacherRole}</div>
-                <div><b>${studentRoleLabel}</b> ${st.student_role || defaultStudentRole}</div>
+                <div><b>${teacherRoleLabel}</b> ${escapeHtml(st.teacher_role || defaultTeacherRole)}</div>
+                <div><b>${studentRoleLabel}</b> ${escapeHtml(st.student_role || defaultStudentRole)}</div>
               </div>
             </div>
           `;
@@ -7288,7 +7347,7 @@ window.viewStudentLessonPlan = async function(materialId) {
   } catch (err) {
     console.error("Dars rejasini ochishda xatolik:", err);
     showToast(err.message || (lang === "ru" ? "Не удалось открыть план урока" : (lang === "en" ? "Could not open lesson plan" : "Dars rejasini ochib bo'lmadi")), "error");
-    contentArea.innerHTML = `<div style="text-align:center;padding:20px;color:var(--clay)">${err.message || (lang === "ru" ? "Произошла ошибка" : (lang === "en" ? "An error occurred" : "Xatolik yuz berdi"))}</div>`;
+    contentArea.innerHTML = `<div style="text-align:center;padding:20px;color:var(--clay)">${escapeHtml(err.message || (lang === "ru" ? "Произошла ошибка" : (lang === "en" ? "An error occurred" : "Xatolik yuz berdi")))}</div>`;
   }
 };
 
@@ -7372,8 +7431,8 @@ window.addEventListener("keydown", function(e) {
       principle: null,
       auth: false,
       body: {
-        email: "oqituvchi1@tilora.uz",
-        password: "tilora2026!"
+        email: "sizning_loginingiz",
+        password: "********"
       },
       response: {
         access_token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -7802,7 +7861,7 @@ window.addEventListener("keydown", function(e) {
 
     if (badge && text) {
       if (token) {
-        badge.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981"></span> <span>Faol JWT Token mavjud (${STATE.currentUser ? STATE.currentUser.full_name : 'Ulangan'})</span>`;
+        badge.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#10B981"></span> <span>Faol JWT Token mavjud (${escapeHtml(STATE.currentUser ? STATE.currentUser.full_name : 'Ulangan')})</span>`;
       } else {
         badge.innerHTML = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#F59E0B"></span> <span>Mehmon rejimi (Anonim)</span>`;
       }
@@ -7971,7 +8030,7 @@ window.addEventListener("keydown", function(e) {
     if (!ep) return;
 
     const token = STATE.token || localStorage.getItem("tilora_token") || "YOUR_ACCESS_TOKEN";
-    let cmd = `curl -X ${ep.method} "http://127.0.0.1:8010${ep.path}" \\\n`;
+    let cmd = `curl -X ${ep.method} "${window.location.origin}${ep.path}" \\\n`;
     if (ep.auth) {
       cmd += `  -H "Authorization: Bearer ${token}" \\\n`;
     }
@@ -8326,7 +8385,7 @@ window.addEventListener("keydown", function(e) {
             <td style="padding:12px;font-size:11.5px;color:var(--muted)">${escapeHtml(k.last_used_at)}</td>
             <td style="padding:12px;text-align:right;white-space:nowrap">
               ${k.is_active ? `
-                <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:none;color:var(--clay);border:1px solid var(--clay);margin-right:4px" onclick="window.revokeApiKey('${k.id}', '${escapeHtml(k.name)}')">
+                <button class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:none;color:var(--clay);border:1px solid var(--clay);margin-right:4px" onclick="window.revokeApiKey('${k.id}', ${jsArg(k.name)})">
                   Bekor qilish
                 </button>
               ` : `
@@ -8334,7 +8393,7 @@ window.addEventListener("keydown", function(e) {
                   Faollashtirish
                 </button>
               `}
-              <button class="btn-primary" style="padding:4px 8px;font-size:11.5px;background:none;color:var(--muted);border:1px solid var(--line)" title="O'chirish" onclick="window.deleteApiKey('${k.id}', '${escapeHtml(k.name)}')">
+              <button class="btn-primary" style="padding:4px 8px;font-size:11.5px;background:none;color:var(--muted);border:1px solid var(--line)" title="O'chirish" onclick="window.deleteApiKey('${k.id}', ${jsArg(k.name)})">
                 🗑
               </button>
             </td>

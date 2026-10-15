@@ -2,7 +2,25 @@ __pycache__/
 *.py[cod]
 *.class
 .pytest_cache/
+
+# Maxfiy sozlamalar va kalitlar — hech qachon git'ga qo'shilmaydi
 .env
+.env.*
+!.env.example
+.secret_key
+
+# Ma'lumotlar bazasi va foydalanuvchi yuklagan fayllar
+*.db
+*.db.bak
+*.sqlite3
+uploads/
+
+# Avtomatik yaratiladigan fayllar
+wifi_qr.png
+wifi_qr_kod.png
+scratch/
+
+# Virtual muhit
 .venv/
 env/
 venv/

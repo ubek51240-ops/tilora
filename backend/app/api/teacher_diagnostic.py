@@ -124,7 +124,9 @@ def _resolve_subject(db: Session, subject_id: Optional[str], user: dict) -> Opti
 
 
 async def _read_json_list(file: UploadFile) -> List[Dict[str, Any]]:
-    raw = await file.read()
+    raw = await file.read(5 * 1024 * 1024 + 1)
+    if len(raw) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="JSON fayl 5 MB dan oshmasligi kerak.")
     if not raw:
         raise HTTPException(status_code=400, detail="Fayl bo'sh.")
     try:
@@ -367,7 +369,7 @@ async def upload_diag_audio(
 ):
     """Savolga audio fayl biriktirish (mp3/wav/ogg/m4a/aac/webm/flac, 15 MB gacha)."""
     q = _get_diag(db, qid, current_user)
-    content = await file.read()
+    content = await file.read(bank.MAX_AUDIO_BYTES + 1)
     try:
         saved = bank.save_audio_file(content, file.filename, q.teacher_id)
     except ValueError as e:

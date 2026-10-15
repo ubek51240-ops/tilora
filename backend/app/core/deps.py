@@ -1,8 +1,54 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
-from fastapi import Depends, Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from app.core.security import decode_access_token
+from app.core.ratelimit import SlidingWindowLimiter
+
+# API kalitlar uchun daqiqalik chegara (kalitdagi rate_limit maydoni asosida)
+_api_key_limiter = SlidingWindowLimiter(max_events=120, window_seconds=60)
+
+
+def _utcnow_naive() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _refresh_from_db(payload: dict) -> dict:
+    """
+    JWT ichidagi rol/obuna ma'lumotlari eskirib qolishi mumkin (admin o'zgartirgan bo'lsa).
+    Foydalanuvchi bazada topilsa, dolzarb qiymatlar olinadi; nofaol yoki tasdiqlanmagan
+    hisob uchun token rad etiladi. Bazada topilmasa (masalan, test tokenlari) payload o'zgarmaydi.
+    """
+    uid = payload.get("id") or payload.get("sub")
+    if not uid:
+        return payload
+    from app.database import SessionLocal
+    from app.models.entities import User
+
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == uid).first()
+    finally:
+        db.close()
+    if not user:
+        return payload
+    if not bool(getattr(user, "is_active", True)):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Hisob nofaol holatda. Administratorga murojaat qiling.")
+    if not bool(getattr(user, "is_approved", True)) and user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Hisob hali administrator tomonidan tasdiqlanmagan.")
+    payload = dict(payload)
+    payload.update({
+        "id": user.id,
+        "email": user.email,
+        "role": user.role,
+        "full_name": user.full_name,
+        "institution_id": user.institution_id,
+        "group_id": user.group_id,
+        "subscription_tier": getattr(user, "subscription_tier", "free") or "free",
+        "is_approved": bool(getattr(user, "is_approved", True)),
+    })
+    return payload
+
 
 async def get_current_user(
     authorization: Optional[str] = Header(None),
@@ -34,7 +80,7 @@ async def get_current_user(
                     detail="Yaroqsiz yoki bekor qilingan API kalit (Invalid or revoked API key)."
                 )
 
-            if api_key_obj.expires_at and api_key_obj.expires_at < datetime.utcnow():
+            if api_key_obj.expires_at and api_key_obj.expires_at < _utcnow_naive():
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
                     detail="API kalitning amal qilish muddati tugagan (API key has expired)."
@@ -47,8 +93,16 @@ async def get_current_user(
                     detail="API kalit egasi bo'lgan foydalanuvchi hisobi faol emas."
                 )
 
+            # Kalitga belgilangan daqiqalik chegara
+            per_minute = int(api_key_obj.rate_limit or 120)
+            limiter = _api_key_limiter if per_minute == 120 else SlidingWindowLimiter(per_minute, 60)
+            limiter.check_and_record(
+                f"apikey:{api_key_obj.id}",
+                f"API kalit uchun so'rovlar chegarasi oshdi (daqiqasiga {per_minute} ta). Biroz kuting."
+            )
+
             # Oxirgi ishlatilgan vaqtni yangilash
-            api_key_obj.last_used_at = datetime.utcnow()
+            api_key_obj.last_used_at = _utcnow_naive()
             db.commit()
 
             return {
@@ -81,8 +135,10 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Autentifikatsiya muddati tugagan yoki token yaroqsiz."
         )
+    payload = _refresh_from_db(payload)
     payload["auth_type"] = "jwt"
     return payload
+
 
 def require_role(allowed_roles: List[str]):
     """Rolni qat'iy tekshirish dependency'si (RBAC)."""
@@ -96,6 +152,7 @@ def require_role(allowed_roles: List[str]):
         return current_user
     return role_checker
 
+
 async def get_optional_user(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None, alias="X-API-Key")
@@ -105,5 +162,3 @@ async def get_optional_user(
         return await get_current_user(authorization=authorization, x_api_key=x_api_key)
     except HTTPException:
         return None
-
-

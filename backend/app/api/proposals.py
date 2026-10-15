@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional, Dict, Any, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from datetime import datetime
 
@@ -11,13 +11,13 @@ from app.core.deps import get_current_user
 router = APIRouter(prefix="/proposals", tags=["Takliflar va Pedagogik Muloqot"])
 
 class ProposalCreateRequest(BaseModel):
-    receiver_id: str
+    receiver_id: str = Field(..., min_length=1, max_length=64)
     receiver_role: Optional[str] = "teacher"  # teacher | student | all
     direction: Optional[str] = None  # teacher_to_teacher, student_to_teacher, student_to_student, teacher_to_student
-    proposal_type: str = "general"  # methodology, assignment, scaffolding, peer_learning, general
-    title: str
-    proposal_text: str
-    basis: Optional[str] = ""
+    proposal_type: str = Field("general", pattern="^(methodology|assignment|scaffolding|peer_learning|general)$")
+    title: str = Field(..., min_length=3, max_length=200)
+    proposal_text: str = Field(..., min_length=5, max_length=5000)
+    basis: Optional[str] = Field("", max_length=2000)
 
 class ProposalActionRequest(BaseModel):
     teacher_comment: Optional[str] = None
@@ -299,10 +299,10 @@ def create_proposal(
         receiver_name = rec_obj.full_name
         receiver_role = rec_obj.role
 
-    # Yo'nalishni aniqlash
-    direction = req.direction
-    if not direction:
-        direction = f"{sender_role}_to_{receiver_role}"
+    # Yo'nalish serverda aniqlanadi (mijoz soxta yo'nalish yubora olmaydi)
+    direction = f"{sender_role}_to_{receiver_role}"
+    if direction not in DIRECTION_LABELS:
+        direction = req.direction if req.direction in DIRECTION_LABELS else f"{sender_role}_to_{receiver_role}"
 
     # student_id va teacher_id ni moslash (mavjud jadval bilan to'liq mos bo'lishi uchun)
     st_id = sender_id if sender_role == "student" else (receiver_id if receiver_role == "student" and receiver_id not in ["all_teachers", "all_students"] else sender_id)
@@ -368,9 +368,9 @@ def _handle_decision(db: Session, prop_id: str, new_status: str, current_user: d
         raise HTTPException(status_code=403, detail="Siz bu taklif bo'yicha qaror qabul qilish huquqiga ega emassiz.")
 
     p.status = new_status
-    p.decided_at = datetime.utcnow()
+    p.decided_at = None if new_status == "pending" else datetime.utcnow()
     if comment is not None:
-        p.teacher_comment = comment
+        p.teacher_comment = comment.strip()[:2000]
 
     db.commit()
     db.refresh(p)
@@ -425,17 +425,8 @@ def reopen_proposal(
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
-    p = db.query(TeacherProposal).filter(TeacherProposal.id == prop_id).first()
-    if not p:
-        raise HTTPException(status_code=404, detail="Taklif topilmadi.")
-    p.status = "pending"
-    p.decided_at = None
-    db.commit()
-    return {
-        "status": "pending",
-        "message": "Taklif qayta ko'rib chiqish uchun ochildi.",
-        "proposal": _format_proposal(p, db)
-    }
+    # Qayta ochish ham qaror qabul qilish huquqini talab qiladi (avval tekshiruvsiz edi)
+    return _handle_decision(db, prop_id, "pending", current_user)
 
 
 @router.delete("/{prop_id}")

@@ -1,0 +1,54 @@
+{
+  "model_name": "Tabaqalashtirilgan adaptiv-metakognitiv model (TAAM)",
+  "problem": [
+    {"title": "Kognitiv passivlik (cognitive offloading)", "text": "Talaba murakkab sintaktik va semantik fikrlash jarayonini to'liq AI vositalariga topshiradi; natijada mustaqil nutqiy kompetensiya shakllanmaydi (Risko & Gilbert, 2016)."},
+    {"title": "Pedagogik mas'uliyatning yo'qolishi", "text": "Avtomatlashtirilgan ta'lim algoritmlari 'qora quti' tarzida ishlaydi: tavsiyalar sababi yashirin, o'qituvchining boshqaruv roli chetlatiladi."},
+    {"title": "Affektiv to'siqlar", "text": "Chet tili tashvishi yuqori talabalar (FLCAS > 65) bir xil standart dastur bilan o'qitilganda og'zaki nutqdan qochadi (Horwitz et al., 1986; Krashen, 1982)."}
+  ],
+  "rules": [
+    {"n": 1, "title": "Mustaqil bosqichda AI yordami o'chiriladi", "basis": "Vygotskiy ZPD va skaffolding; kognitiv yuklama nazariyasi (Sweller)", "mechanism": "Server mashg'ulot holatini foydalanuvchi bo'yicha saqlaydi; 'independent' bosqichda /api/ai/generate, translate, complete, answer 403 AI_LOCKED qaytaradi. Mijoz sarlavha bilan buni chetlab o'ta olmaydi.", "endpoint": "POST /api/lesson/{id}/stage/next → POST /api/ai/*"},
+    {"n": 2, "title": "Tizim o'z qarorini hech qachon yashirmaydi", "basis": "Shaffof (explainable) ta'lim texnologiyalari; metakognitiv xabardorlik", "mechanism": "Har bir o'quv yo'li elementi va izoh 'rationale' maydoniga ega; sabab LLM emas, deterministik shablondan tuziladi: daraja (CEFR) + affektiv holat (FLCAS) + ko'mak darajasi + kasbiy yo'nalish.", "endpoint": "GET /api/student/path"},
+    {"n": 3, "title": "Yakuniy pedagogik qaror har doim o'qituvchida", "basis": "O'qituvchi subyektligi; inson nazoratidagi AI (human-in-the-loop)", "mechanism": "Tizim takliflari teacher_proposals jadvaliga 'pending' holatda tushadi; o'qituvchi tasdiqlaydi/o'zgartiradi/rad etadi. Qaror va izoh bazada saqlanadi.", "endpoint": "POST /api/proposals/{id}/approve | modify | reject"},
+    {"n": 4, "title": "Xulosani tizim emas, talaba chiqaradi", "basis": "Flavell metakognitsiya; Zimmerman o'z-o'zini boshqarib o'rganish sikli; Hattie & Timperley 'self-regulation' darajasi", "mechanism": "5-bosqichda talaba avval 4 mezon bo'yicha o'zini baholaydi; o'z bahosi saqlanmaguncha haqiqiy natija 409 SELF_RATING_REQUIRED bilan yopiq. Tizim xulosa yozmaydi — farq sababini talaba yozadi.", "endpoint": "POST /api/lesson/{id}/self-rating → GET /api/lesson/{id}/actual-rating"}
+  ],
+  "stages": [
+    {"n": 1, "name": "Kirish", "goal": "Dars maqsadi (SWBAT) va yo'nalishi", "ai": "ochiq"},
+    {"n": 2, "name": "Tayyorgarlik (skaffolding)", "goal": "Leksik va tarkibiy ko'mak: terminlar, namuna tuzilma, AI dan reja so'rash", "ai": "ochiq (faqat reja/namuna)"},
+    {"n": 3, "name": "Mustaqil bajarish", "goal": "Talaba o'z aqliy mehnati bilan nutqiy mahsulot yaratadi", "ai": "YOPIQ (403 AI_LOCKED)"},
+    {"n": 4, "name": "Tahlil va sababli izohlar", "goal": "L1 interferensiyasi, leksika, izchillik bo'yicha sababli izohlar; talaba har izohga rozi/norozi", "ai": "ochiq (tahlil, tuzatilgan matn bermaydi)"},
+    {"n": 5, "name": "Metakognitiv refleksiya", "goal": "Avval o'z bahosi, keyin AI bahosi; farq sababi va keyingi maqsadni talaba yozadi", "ai": "ochiq (faqat o'z bahosidan keyin)"}
+  ],
+  "profile_dimensions": [
+    {"key": "cefr", "name": "Til ko'nikmalari (CEFR)", "text": "To'rt ko'nikma alohida o'lchanadi (A1–C2); umumlashtirilmaydi, chunki bo'lajak o'qituvchida o'qish B2, og'zaki nutq A2 bo'lishi odatiy hol."},
+    {"key": "esp", "name": "Kasbiy yo'nalish (ESP)", "text": "Mavzular pedagogik diskurs, dars kuzatuvi, baholash rubrikalari kabi kasbiy kontekstga yo'naltiriladi."},
+    {"key": "affective", "name": "Kognitiv-affektiv profil", "text": "Tashvish (FLCAS), material hajmi sig'imi (kognitiv yuklama), bajarish sur'ati va mustaqillik tayyorgarligi; VARK kabi asossiz 'o'rganish uslublari' testlari ataylab kiritilmagan."}
+  ],
+  "scaffolding_dynamics": "Talaba mustaqil bosqichni ketma-ket 3 mashg'ulotda muvaffaqiyatli topshirsa, ko'mak darajasi bir pog'ona pasaytiriladi: to'liq → qisman → ko'maksiz (avtonom). Har bir o'zgarish o'qituvchi tasdig'i orqali amalga oshadi (3-qoida). Tashvish > 65 bo'lganda og'zaki nutq 1-slotdan suriladi va tinglash bilan boshlanadi.",
+  "comparison": [
+    {"feature": "Mustaqil bosqichda AI qulfi (server tomonida)", "tilora": true, "generic_ai_tutors": false, "note": "Umumiy AI yordamchilar har qanday bosqichda tayyor matn beradi."},
+    {"feature": "Har qarorga ochiq sabab (rationale)", "tilora": true, "generic_ai_tutors": false, "note": "Adaptiv tizimlar odatda tavsiya sababini ko'rsatmaydi."},
+    {"feature": "O'qituvchi tasdig'i bilan adaptatsiya", "tilora": true, "generic_ai_tutors": false, "note": "Ko'p tizimlarda algoritm dasturni avtomatik o'zgartiradi."},
+    {"feature": "Avval o'z bahosi, keyin AI bahosi", "tilora": true, "generic_ai_tutors": false, "note": "Odatda baho darhol ko'rsatiladi."},
+    {"feature": "Ona tili (o'zbek) interferensiyasi banki", "tilora": true, "generic_ai_tutors": false, "note": "Umumiy grammatika tekshiruvchilar L1-ga xos sababni ko'rsatmaydi."},
+    {"feature": "CEFR bo'yicha 4 ko'nikma alohida diagnostika", "tilora": true, "generic_ai_tutors": true, "note": "Cambridge Write & Improve, British Council testlari ham CEFR ga tayanadi."},
+    {"feature": "FLCAS tashvish profili bo'yicha yo'l tuzish", "tilora": true, "generic_ai_tutors": false, "note": ""}
+  ],
+  "references": [
+    "Vygotsky, L. S. (1978). Mind in Society: The Development of Higher Psychological Processes. Harvard University Press.",
+    "Bruner, J. S. (1978). The role of dialogue in language acquisition. In A. Sinclair et al. (Eds.), The Child's Conception of Language. Springer.",
+    "Flavell, J. H. (1979). Metacognition and cognitive monitoring. American Psychologist, 34(10), 906–911.",
+    "Zimmerman, B. J. (2002). Becoming a self-regulated learner: An overview. Theory into Practice, 41(2), 64–70.",
+    "Hattie, J., & Timperley, H. (2007). The power of feedback. Review of Educational Research, 77(1), 81–112.",
+    "Horwitz, E. K., Horwitz, M. B., & Cope, J. (1986). Foreign language classroom anxiety. The Modern Language Journal, 70(2), 125–132.",
+    "Krashen, S. D. (1982). Principles and Practice in Second Language Acquisition. Pergamon.",
+    "Sweller, J. (1988). Cognitive load during problem solving. Cognitive Science, 12(2), 257–285.",
+    "Council of Europe (2020). Common European Framework of Reference for Languages: Companion Volume. Strasbourg.",
+    "Black, P., & Wiliam, D. (1998). Assessment and classroom learning. Assessment in Education, 5(1), 7–74.",
+    "Tomlinson, C. A. (2001). How to Differentiate Instruction in Mixed-Ability Classrooms. ASCD.",
+    "Selinker, L. (1972). Interlanguage. IRAL, 10(3), 209–231.",
+    "Holec, H. (1981). Autonomy and Foreign Language Learning. Pergamon.",
+    "Risko, E. F., & Gilbert, S. J. (2016). Cognitive offloading. Trends in Cognitive Sciences, 20(9), 676–688.",
+    "Bespalko, V. P. (1989). Slagaemye pedagogicheskoy tekhnologii. Pedagogika.",
+    "O'zbekiston Respublikasi Qonuni O'RQ-547 (2019). Shaxsga doir ma'lumotlar to'g'risida."
+  ]
+}

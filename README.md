@@ -102,8 +102,9 @@ flowchart TD
    uvicorn app.main:app --port 8010 --reload
    ```
 5. Brauzerda oching:
-   - Platforma interfeysi: `http://127.0.0.1:8010` (yoki `frontend/index.html`)
-   - Interaktiv Swagger hujjatlari: `http://127.0.0.1:8010/docs`
+   - Platforma interfeysi: `http://127.0.0.1:8010`
+   - Interaktiv Swagger hujjatlari: `http://127.0.0.1:8010/docs` (faqat `DOCS_ENABLED=true` bo'lsa)
+   - Avval `.env.example` ni `.env` ga nusxalab, `AI_API_KEY` ni to'ldiring (kalitsiz AI funksiyalari lokal algoritm bilan ishlaydi)
 
 ---
 
@@ -130,9 +131,27 @@ OK
 
 ---
 
+## 🔐 4.1. Xavfsizlik sozlamalari (v2.1)
+
+* **Maxfiy kalitlar faqat `.env` da** (git'ga qo'shilmaydi). Namuna: `.env.example`. `SECRET_KEY` bo'sh qoldirilsa avtomatik yaratilib `.secret_key` fayliga saqlanadi.
+* **Parollar:** foydalanuvchiga xos tuzli PBKDF2-SHA256 (600 000 iteratsiya); eski xeshlar kirishda avtomatik yangilanadi. Minimal uzunlik 8, harf + raqam.
+* **Login himoyasi:** IP va login bo'yicha urinishlar chegarasi (429), foydalanuvchi mavjudligini oshkor qilmaydigan xabar.
+* **Sessiya:** JWT 12 soat; rol va obuna har so'rovda bazadan tekshiriladi.
+* **Mashg'ulot holati** foydalanuvchi bo'yicha alohida (avvalgi umumiy `LESSON_CACHE` olib tashlandi); AI qulfi (1-qoida) serverdagi holat bo'yicha hal qilinadi.
+* **AI endpointlari** faqat tizimga kirganlar uchun, foydalanuvchi bo'yicha chegara bilan.
+* **Eksport** (.docx/.xlsx/.csv) faqat tadqiqotchi / o'qituvchi / admin uchun.
+* Path traversal himoyasi, CSP va boshqa xavfsizlik sarlavhalari, so'rov hajmi chegarasi (`MAX_UPLOAD_MB`), nginx `limit_req`.
+* Ishlab chiqarishda: `DOCS_ENABLED=false`, `ALLOWED_ORIGINS=https://domen`, `docker compose` maxfiy qiymatlarsiz ishga tushmaydi.
+
+> ⚠️ Avvalgi versiyada AI kaliti va `tilora.db` git tarixiga tushib qolgan. Provayder kabinetida eski kalitni **bekor qilib**, yangisini `.env` ga yozing; demo hisoblar parolini o'zgartiring.
+
+## 📚 4.2. Ma'lumotnoma (kontent) API
+
+`/api/content/*` — ochiq: `overview`, `glossary` (50 ELT atamasi, qidiruv/toifa), `cefr-levels` (A1–C2, 4 ko'nikma + o'qituvchi treki), `l1-patterns` (44 o'zbek–ingliz interferensiya naqshi), `methodology` (muammo, 4 qoida, 5 bosqich, taqqoslash, adabiyotlar), `faq`, `curriculum`. Saytda: yon menyu → "Platforma haqida, glossariy, CEFR".
+
 ## 👥 5. Demo Hisoblar Ma'lumotlari
 
-Barcha hisoblar uchun parol: **`tilora2026!`**
+Demo hisoblar paroli `SEED_PASSWORD` muhit o'zgaruvchisi bilan belgilanadi (standart: `tilora2026!`, faqat lokal demo uchun; ishlab chiqarishda o'zgartiring).
 
 | Rol | Login | Vazifasi va ko'rinishi |
 |---|---|---|
@@ -149,4 +168,5 @@ Barcha hisoblar uchun parol: **`tilora2026!`**
 * **Backend:** 51 ta RESTful endpoint, FastAPI, SQLAlchemy, Pydantic v2
 * **Frontend:** Fraunces & Public Sans tipografiyasi, Tailwind semantikasi, adaptiv SPA
 * **Ma'lumotlar modeli:** 25 ta reliesion jadval, to'liq audit jurnali (`audit_log`)
-* **Kontent banki:** 46 ta diagnostika savoli, 23 ta FLCAS anketa savoli, 72 ta kasbiy mavzu, 15 ta ona tili (L1) naqshi
+* **Kontent banki (standart to'plam):** 24 ta diagnostika savoli (4 ko'nikma × A2–C1), 20 ta FLCAS asosidagi anketa bandi, 12 ta kasbiy mavzu, 44 ta ona tili (L1) naqshi, 50 ta glossariy atamasi, 4 ko'nikma uchun mashg'ulot topshiriqlari, 16 ta ilmiy manba
+* **Testlar:** `cd backend; python -m pytest -q` — 61 ta test (xavfsizlik regressiyasi `tests/test_security.py`)

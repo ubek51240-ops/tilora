@@ -37,6 +37,92 @@
   },
   {
     "id": "diag_03",
+    "skill": "listening",
+    "cefr_level": "A2",
+    "is_audio": true,
+    "audio_url": null,
+    "audio_text": "Good morning, everyone. Please open your books to page twelve and work in pairs. You have five minutes.",
+    "instruction": "Audioni tinglang. O'qituvchi o'quvchilarga qanday ko'rsatma bermoqda?",
+    "question": "Audioni tinglang. O'qituvchi o'quvchilarga qanday ko'rsatma bermoqda?",
+    "options": [
+      "Close the books and listen for twelve minutes.",
+      "Open the books to page 12 and work in pairs for five minutes.",
+      "Work alone on page 5 for twelve minutes.",
+      "Go to room 12 and wait five minutes."
+    ],
+    "correct_index": 1,
+    "rationale": "The instruction names page twelve, pair work and a five-minute limit."
+  },
+  {
+    "id": "diag_04",
+    "skill": "listening",
+    "cefr_level": "B1",
+    "is_audio": true,
+    "audio_url": null,
+    "audio_text": "Although the students enjoyed the game, I noticed that only the stronger learners were actually speaking, so next time I will assign roles before the activity starts.",
+    "instruction": "Audioni tinglang. O'qituvchi keyingi safar nimani o'zgartirmoqchi va nima uchun?",
+    "question": "Audioni tinglang. O'qituvchi keyingi safar nimani o'zgartirmoqchi va nima uchun?",
+    "options": [
+      "Cancel the game because nobody enjoyed it.",
+      "Assign roles in advance so that weaker learners also speak.",
+      "Let only the stronger learners play the game.",
+      "Make the game longer because it was too short."
+    ],
+    "correct_index": 1,
+    "rationale": "The speaker will assign roles beforehand because only stronger learners spoke."
+  },
+  {
+    "id": "diag_05",
+    "skill": "listening",
+    "cefr_level": "B2",
+    "is_audio": true,
+    "audio_url": null,
+    "audio_text": "While summative tests certainly have their place, over-reliance on them tends to narrow the curriculum; formative tools, by contrast, give teachers actionable evidence while learning is still in progress.",
+    "instruction": "Audioni tinglang. Ma'ruzachining asosiy pozitsiyasi qaysi?",
+    "question": "Audioni tinglang. Ma'ruzachining asosiy pozitsiyasi qaysi?",
+    "options": [
+      "Summative tests should be abolished entirely.",
+      "Formative assessment provides usable evidence during learning, unlike excessive summative testing.",
+      "The curriculum should be narrowed to what tests measure.",
+      "Teachers cannot act on any evidence until the course ends."
+    ],
+    "correct_index": 1,
+    "rationale": "The speaker concedes a role for summative tests but argues formative tools give actionable evidence during learning."
+  },
+  {
+    "id": "diag_06",
+    "skill": "listening",
+    "cefr_level": "C1",
+    "is_audio": true,
+    "audio_url": null,
+    "audio_text": "Had the mentor intervened earlier, the trainee might well have avoided the breakdown in classroom management; as it was, the lesson limped on, and the observer's notes were, to put it mildly, unflattering.",
+    "instruction": "Audioni tinglang. Gapda nima nazarda tutilmoqda?",
+    "question": "Audioni tinglang. Gapda nima nazarda tutilmoqda?",
+    "options": [
+      "The mentor intervened early and the lesson went well.",
+      "The mentor did not intervene early, the lesson went badly, and the observation report was negative.",
+      "The observer praised the trainee's classroom management.",
+      "The trainee stopped the lesson immediately."
+    ],
+    "correct_index": 1,
+    "rationale": "Inverted third conditional implies the mentor did not intervene; 'limped on' and 'unflattering' signal a poor lesson and negative notes."
+  },
+  {
+    "id": "diag_07",
+    "skill": "reading",
+    "cefr_level": "A2",
+    "question": "Read the notice: 'Teachers must submit lesson plans by Friday. Late plans will not be accepted.' What must teachers do?",
+    "options": [
+      "Submit lesson plans on Monday.",
+      "Submit lesson plans by Friday.",
+      "Accept late plans from students.",
+      "Write plans after Friday."
+    ],
+    "correct_index": 1,
+    "rationale": "Literal comprehension of a short deadline notice."
+  },
+  {
+    "id": "diag_08",
     "skill": "reading",
     "cefr_level": "B1",
     "question": "Read: 'Differentiated instruction requires teachers to tailor learning pace and content to individual needs rather than adopting a one-size-fits-all paradigm.' What does 'tailor' mean here?",
@@ -50,7 +136,21 @@
     "rationale": "Contextual meaning of pedagogical tailoring."
   },
   {
-    "id": "diag_04",
+    "id": "diag_09",
+    "skill": "reading",
+    "cefr_level": "B1",
+    "question": "Read: 'Scaffolding is temporary. As learners gain competence, support is gradually withdrawn until they can perform the task independently.' Which statement is TRUE?",
+    "options": [
+      "Scaffolding should stay the same for the whole course.",
+      "Support is reduced as learners become more competent.",
+      "Learners never perform tasks independently.",
+      "Scaffolding is only used with advanced learners."
+    ],
+    "correct_index": 1,
+    "rationale": "The passage states support is gradually withdrawn as competence grows."
+  },
+  {
+    "id": "diag_10",
     "skill": "reading",
     "cefr_level": "B2",
     "question": "In academic writing, which sentence best exemplifies objective evaluation of teaching methodologies?",
@@ -64,7 +164,35 @@
     "rationale": "Academic nuance, cautious claims, and empirical hedging."
   },
   {
-    "id": "diag_05",
+    "id": "diag_11",
+    "skill": "reading",
+    "cefr_level": "B2",
+    "question": "Read: 'The washback effect describes how high-stakes testing shapes what teachers teach and how learners study, for better or worse.' Which situation illustrates NEGATIVE washback?",
+    "options": [
+      "Teachers design communicative tasks because the exam includes a speaking section.",
+      "Teachers drill multiple-choice grammar items for months because the exam contains only such items.",
+      "Learners read widely because the exam rewards reading fluency.",
+      "The exam is cancelled and nobody studies."
+    ],
+    "correct_index": 1,
+    "rationale": "Narrowing teaching to exam-only item types is the classic negative washback example."
+  },
+  {
+    "id": "diag_12",
+    "skill": "reading",
+    "cefr_level": "C1",
+    "question": "Read: 'Notwithstanding its intuitive appeal, the learning-styles hypothesis has repeatedly failed to withstand empirical scrutiny; matching instruction to purported styles yields no measurable advantage.' What is the author's stance?",
+    "options": [
+      "Learning styles are intuitively appealing and therefore valid.",
+      "Despite seeming plausible, learning-styles-based teaching is not supported by evidence.",
+      "Instruction should always be matched to learning styles.",
+      "Empirical scrutiny has confirmed the hypothesis."
+    ],
+    "correct_index": 1,
+    "rationale": "'Notwithstanding' concedes appeal; 'failed to withstand empirical scrutiny' rejects the hypothesis."
+  },
+  {
+    "id": "diag_13",
     "skill": "writing",
     "cefr_level": "A2",
     "question": "Which sentence correctly uses past tense for a lesson observation report?",
@@ -78,7 +206,21 @@
     "rationale": "Irregular past simple 'began' in pedagogical context."
   },
   {
-    "id": "diag_06",
+    "id": "diag_14",
+    "skill": "writing",
+    "cefr_level": "A2",
+    "question": "Choose the sentence WITHOUT a mother-tongue (L1) interference error:",
+    "options": [
+      "The teacher explained me the rule.",
+      "We discussed about the topic.",
+      "I am agree with my colleague.",
+      "The teacher explained the rule to us."
+    ],
+    "correct_index": 3,
+    "rationale": "'Explain to', 'discuss + object', 'I agree' — the other three are typical Uzbek-English transfer errors."
+  },
+  {
+    "id": "diag_15",
     "skill": "writing",
     "cefr_level": "B1",
     "question": "Select the sentence with accurate cohesion and transitional phrasing for essay writing:",
@@ -92,7 +234,49 @@
     "rationale": "Formal transition 'Furthermore' linking complementary advantages."
   },
   {
-    "id": "diag_07",
+    "id": "diag_16",
+    "skill": "writing",
+    "cefr_level": "B1",
+    "question": "Which is the best topic sentence for a paragraph about peer feedback?",
+    "options": [
+      "Peer feedback is a thing that some people do.",
+      "Peer feedback benefits learners in three ways: it develops critical reading, lowers anxiety, and builds autonomy.",
+      "I like peer feedback very much and my friend too.",
+      "There are many things about feedback."
+    ],
+    "correct_index": 1,
+    "rationale": "A strong topic sentence states the controlling idea and previews the paragraph's structure."
+  },
+  {
+    "id": "diag_17",
+    "skill": "writing",
+    "cefr_level": "B2",
+    "question": "Which sentence uses hedging appropriately for an academic claim?",
+    "options": [
+      "Task-based learning always produces fluent speakers.",
+      "Task-based learning appears to promote fluency, although its effect on accuracy remains contested.",
+      "Task-based learning is obviously the best method ever.",
+      "Everybody agrees that task-based learning works."
+    ],
+    "correct_index": 1,
+    "rationale": "'Appears to', 'remains contested' are standard hedging devices in academic prose."
+  },
+  {
+    "id": "diag_18",
+    "skill": "writing",
+    "cefr_level": "C1",
+    "question": "Which revision best improves the register of: 'Kids who get loads of homework get stressed and this is bad for learning stuff'?",
+    "options": [
+      "Children who get tons of homework are super stressed, which is bad.",
+      "Excessive homework loads are associated with elevated learner stress, which in turn impedes acquisition.",
+      "Kids with a lot of homework are stressed, and that is not good.",
+      "Homework is bad for kids because of stress."
+    ],
+    "correct_index": 1,
+    "rationale": "Nominalisation, cautious causal language and precise lexis raise the register to academic level."
+  },
+  {
+    "id": "diag_19",
     "skill": "speaking",
     "cefr_level": "A2",
     "question": "In a peer feedback session, which phrase politely introduces a constructive suggestion?",
@@ -106,7 +290,21 @@
     "rationale": "Polite modal hedging ('You might consider...')."
   },
   {
-    "id": "diag_08",
+    "id": "diag_20",
+    "skill": "speaking",
+    "cefr_level": "A2",
+    "question": "Which phrase would a teacher use to check that students understood the instructions (ICQ)?",
+    "options": [
+      "So, are you working alone or in pairs?",
+      "Open your books now!",
+      "I will explain the grammar again.",
+      "The lesson is over, goodbye."
+    ],
+    "correct_index": 0,
+    "rationale": "An instruction-checking question asks learners to confirm a specific detail of the task."
+  },
+  {
+    "id": "diag_21",
     "skill": "speaking",
     "cefr_level": "B1",
     "question": "When presenting a mini-lesson, which opening phrase best frames lesson objectives for learners?",
@@ -118,5 +316,47 @@
     ],
     "correct_index": 1,
     "rationale": "Standard student-centered outcome framing (SWBAT format)."
+  },
+  {
+    "id": "diag_22",
+    "skill": "speaking",
+    "cefr_level": "B1",
+    "question": "A student says: 'Yesterday I go to the library.' Which teacher response is a RECAST (implicit correction)?",
+    "options": [
+      "No, that's wrong. Say it again.",
+      "Oh, you went to the library yesterday? What did you read?",
+      "Past tense! Remember the rule!",
+      "Repeat after me: go, went, gone."
+    ],
+    "correct_index": 1,
+    "rationale": "A recast reformulates the learner's utterance correctly while keeping the conversation going."
+  },
+  {
+    "id": "diag_23",
+    "skill": "speaking",
+    "cefr_level": "B2",
+    "question": "Which utterance best manages a disagreement with a colleague during a methodology meeting?",
+    "options": [
+      "You are completely wrong about group work.",
+      "I see your point about group work; however, in mixed-ability classes I've found that structured roles help, so could we pilot both approaches?",
+      "Group work is bad and that's final.",
+      "Whatever you say, it doesn't matter."
+    ],
+    "correct_index": 1,
+    "rationale": "Acknowledging, hedged disagreement and a proposal reflect B2-level pragmatic competence."
+  },
+  {
+    "id": "diag_24",
+    "skill": "speaking",
+    "cefr_level": "C1",
+    "question": "Which closing remark most effectively summarises a conference presentation on anxiety in language learning?",
+    "options": [
+      "So, that's it, thanks.",
+      "To draw the threads together: anxiety is not merely a by-product of weak proficiency but a mediating variable, and our data suggest that low-stakes rehearsal can attenuate it. I welcome your questions.",
+      "I talked about anxiety and now I'm finished talking.",
+      "Anxiety is bad, so teachers should fix it. Questions?"
+    ],
+    "correct_index": 1,
+    "rationale": "Signposted synthesis, nuanced claim and an invitation for questions mark proficient academic speaking."
   }
 ]

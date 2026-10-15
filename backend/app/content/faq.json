@@ -1,0 +1,67 @@
+[
+  {
+    "audience": "student",
+    "q": "TILORA nima va u oddiy til o'rgatuvchi ilovadan nimasi bilan farq qiladi?",
+    "a": "TILORA — bo'lajak ingliz tili o'qituvchilari uchun adaptiv-metakognitiv o'quv platformasi. Duolingo kabi umumiy ilovalardan farqli o'laroq, u (1) sizning uch o'lchovli profilingiz (CEFR ko'nikmalar, kasbiy yo'nalish, tashvish/mustaqillik darajasi) asosida 16 haftalik shaxsiy yo'l tuzadi, (2) mustaqil bosqichda AI yordamini ataylab o'chiradi va (3) har bir qarorining sababini ochiq ko'rsatadi."
+  },
+  {
+    "audience": "student",
+    "q": "Nega 3-bosqichda sun'iy intellekt yordami yopiq?",
+    "a": "Ko'nikma faqat o'z aqliy mehnatingiz bilan matn yaratganingizda shakllanadi (Vygotskiy, kognitiv yuklama nazariyasi). Agar AI siz uchun yozsa, baholash sizning emas, AI ning kompetensiyasini o'lchaydi. Shuning uchun generatsiya, tarjima, davom ettirish va tayyor javob vositalari serverda bloklanadi (403 AI_LOCKED). Topshiriq sharti, glossariy va oldingi ishlaringiz ochiq qoladi."
+  },
+  {
+    "audience": "student",
+    "q": "Kirish diagnostikasi qanday o'tadi va natijasi nimaga ta'sir qiladi?",
+    "a": "Diagnostika 4 ko'nikma (tinglash, o'qish, yozish, gapirish) bo'yicha CEFR darajangizni va FLCAS asosidagi 20 bandli anketa orqali tashvish, yuklama sig'imi, sur'at va mustaqillik ko'rsatkichlaringizni aniqlaydi. Natija profilingizga yoziladi va 16 haftalik yo'lingizdagi mavzular tartibi hamda ko'mak darajasini belgilaydi. Masalan, tashvish 65 dan yuqori bo'lsa, og'zaki nutq 1-haftadan 2-haftaga suriladi."
+  },
+  {
+    "audience": "student",
+    "q": "Natijalarim ustozimga va boshqalarga ko'rinadimi?",
+    "a": "Profilingiz, yo'lingiz va ishlaringizni faqat siz, guruhingizga biriktirilgan o'qituvchi va administrator ko'ra oladi. Boshqa talabalar sizning ma'lumotlaringizga kira olmaydi (server bu cheklovni har so'rovda tekshiradi). Ilmiy hisobotlarda natijalar faqat anonim ID bilan umumlashtiriladi."
+  },
+  {
+    "audience": "student",
+    "q": "O'z bahosini (self-rating) nega AI bahosidan oldin qo'yishim kerak?",
+    "a": "Bu 4-qoida: metakognitiv refleksiya. Avval o'z ishingizni 4 mezon bo'yicha halol baholaysiz, shundan keyingina AI bahosi ochiladi. Ikki baho orasidagi farqni ko'rib, sababini o'zingiz yozasiz. Tadqiqotlar (Zimmerman, 2002) shuni ko'rsatadiki, aynan shu taqqoslash o'z-o'zini boshqarish ko'nikmasini rivojlantiradi."
+  },
+  {
+    "audience": "student",
+    "q": "Ona tili interferensiyasi (L1) deganda nima nazarda tutiladi?",
+    "a": "O'zbek tili qoidalarining ingliz tiliga xato ko'chishi: 'discuss about' (haqida muhokama qilmoq), 'I am agree' (men roziman), 'explain me' (menga tushuntir), 'informations' (-lar qo'shimchasi). TILORA 44 ta shunday naqshni AI kalitisiz, darhol aniqlaydi va har biriga lingvistik sabab hamda to'g'ri shaklni ko'rsatadi — tayyor tuzatilgan matn bermaydi."
+  },
+  {
+    "audience": "teacher",
+    "q": "Tizim mening ruxsatimsiz talabaning o'quv dasturini o'zgartira oladimi?",
+    "a": "Yo'q. 3-qoida — pedagogik suverenitet. Tizim faqat taklif yuboradi (status: pending): ko'mak darajasini pasaytirish, murakkablikni oshirish, muddatni uzaytirish. Siz tasdiqlaysiz, o'zgartirasiz yoki rad etasiz; tasdiqlanmaguncha yo'lga ta'sir qilmaydi. Har bir qaror bazada izoh bilan saqlanadi."
+  },
+  {
+    "audience": "teacher",
+    "q": "O'z diagnostika savollarim va anketamni yuklasam bo'ladimi?",
+    "a": "Ha. 'Diagnostika & Anketa savollari' bo'limida yozma yoki audio (mp3/wav yoki AI ovoz) savollar qo'shasiz, JSON orqali ommaviy import qilasiz va ularni fanga yoki umumiy to'plamga biriktirasiz. Sizning guruhingizdagi talabalar aynan sizning savollaringizni ko'radi; savol yuklamagan bo'lsangiz, standart 24 ta savol ishlatiladi."
+  },
+  {
+    "audience": "teacher",
+    "q": "AI yaratgan test va slaydlar sifati qanday nazorat qilinadi?",
+    "a": "Material fan sillabusi mavzusi va (ixtiyoriy) yuklangan kitob mazmuni asosida yaratiladi, so'ng profilingizda saqlanadi — siz uni ko'rib, o'chirib yoki boshqa fanga biriktira olasiz. Talabaga test javob kaliti yuborilmaydi; tekshiruv serverda bo'ladi. AI ishlamasa, tizim shablonli zaxira materialdan foydalanadi va buni 'ai_powered: false' bilan ochiq belgilaydi."
+  },
+  {
+    "audience": "teacher",
+    "q": "Tekin va PRO tarif farqi nimada?",
+    "a": "Tekin tarifda o'qituvchi 5 ta AI test va 6 ta taqdimot yarata oladi; dars rejasi va yozma topshiriqlar cheklanmagan. PRO tarif cheksiz generatsiya, eksport va chop etishni ochadi. To'lov arizasi administrator tomonidan tasdiqlanadi; summa serverda belgilanadi."
+  },
+  {
+    "audience": "researcher",
+    "q": "Statistika bo'limidagi raqamlar qayerdan olingan?",
+    "a": "4-bob jadvallari 2024–2026 yillardagi tajriba-sinov ishlarining yakuniy, oldindan hisoblangan natijalari (BuxDU, NDPI, SamDChTI; N=258). Ular platformadagi joriy foydalanuvchilar ma'lumotlaridan real vaqtda qayta hisoblanmaydi — API javobida 'data_source: dissertation_dataset' belgisi bilan ko'rsatiladi. Eksport (.docx/.xlsx/.csv) faqat tadqiqotchi, o'qituvchi va admin uchun ochiq."
+  },
+  {
+    "audience": "all",
+    "q": "Ma'lumotlarim qanday himoyalanadi?",
+    "a": "Parollar foydalanuvchiga xos tuz bilan PBKDF2-SHA256 (600 000 iteratsiya) orqali xeshlanadi; sessiya JWT tokeni 12 soat amal qiladi; login urinishlari cheklangan (brute-force himoyasi); barcha API so'rovlari rol va egalik bo'yicha tekshiriladi; AI so'rovlari foydalanuvchi bo'yicha chegaralanadi. Shaxsga doir ma'lumotlar O'RQ-547 qonuniga muvofiq faqat ta'lim maqsadida ishlatiladi."
+  },
+  {
+    "audience": "all",
+    "q": "Internet sekin yoki yo'q bo'lsa nima bo'ladi?",
+    "a": "'Tejamkor rejim' rasmlarni o'chiradi va trafikni kamaytiradi. OTM ichki tarmog'ida server start.bat orqali bir kompyuterda ishga tushirilib, boshqa qurilmalar Wi-Fi orqali (QR kod bilan) internetsiz ulanishi mumkin. AI xizmati bo'lmasa, tahlil lokal L1 va rubrika algoritmlari bilan davom etadi."
+  }
+]

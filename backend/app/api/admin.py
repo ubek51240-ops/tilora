@@ -8,6 +8,7 @@ from app.models.entities import User, SubscriptionPayment, Institution, Group, T
 from app.core.deps import require_role, get_current_user
 from app.core.security import hash_password
 from app.schemas.all_schemas import CreateTeacherRequest
+from app.api.auth import validate_password_strength, validate_login_identifier
 
 router = APIRouter(prefix="/admin", tags=["Administrator"], dependencies=[Depends(require_role(["admin"]))])
 
@@ -83,6 +84,8 @@ def reject_user_registration(user_id: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Administrator hisobini rad etib bo'lmaydi.")
 
     full_name = user.full_name
     db.delete(user)
@@ -159,8 +162,7 @@ def reset_user_password(
         raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi.")
 
     new_pwd = str(payload.get("password") or "").strip()
-    if len(new_pwd) < 4:
-        raise HTTPException(status_code=400, detail="Parol kamida 4 belgidan iborat bo'lishi kerak.")
+    validate_password_strength(new_pwd)
 
     user.password_hash = hash_password(new_pwd)
     # Tasdiqlanmagan bo'lsa avtomatik tasdiqlash
@@ -168,11 +170,11 @@ def reset_user_password(
     user.is_active = True
     db.commit()
 
+    # Yangi parol javobda qaytarilmaydi (loglar va brauzer tarixida qolmasligi uchun)
     return {
         "status": "success",
         "message": f"{user.full_name} ning paroli muvaffaqiyatli yangilandi.",
-        "user_email": user.email,
-        "new_password": new_pwd
+        "user_email": user.email
     }
 
 
@@ -305,12 +307,10 @@ def create_teacher(payload: CreateTeacherRequest, db: Session = Depends(get_db))
     Super Admin yangi o'qituvchi yaratadi.
     Yangi o'qituvchi avtomatik tasdiqlangan (is_approved=True) va 'pro' tarif bilan faollashadi.
     """
-    email_clean = payload.email.strip().lower()
-    if not email_clean or len(payload.password.strip()) < 6:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Login va parol to'liq bo'lishi hamda parol kamida 6 belgidan iborat bo'lishi kerak."
-        )
+    email_clean = validate_login_identifier(payload.email)
+    validate_password_strength(payload.password.strip())
+    if payload.subscription_tier not in (None, "free", "pro"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Tarif faqat 'free' yoki 'pro' bo'lishi mumkin.")
 
     # Email yoki login band emasligini tekshirish
     existing = db.query(User).filter(User.email == email_clean).first()

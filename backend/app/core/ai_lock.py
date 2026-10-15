@@ -1,36 +1,43 @@
+from typing import Optional
 from fastapi import Request, Depends, status
 from app.core.errors import TiloraException
+from app.core.deps import get_optional_user
+
 
 class AILockGuard:
     """
     1-QOIDA: Mustaqil bajarish bosqichida sun'iy intellekt yordami majburiy ravishda o'chiriladi.
-    Server tomondan tekshiriladi va 403 AI_LOCKED qaytaradi.
+
+    Server tomonda tekshiriladi va 403 AI_LOCKED qaytaradi. Manba ustuvorligi:
+      1. Foydalanuvchining serverdagi mashg'ulot holati (app.api.lesson.get_lesson_state) —
+         mijoz uni sarlavha bilan o'zgartira olmaydi;
+      2. aks holda (holat yo'q) X-Lesson-Stage / X-AI-Locked sarlavhalari (test va demo uchun).
     """
     def __init__(self, tool_name: str):
         self.tool_name = tool_name
         self.blocked_tools = {"generate", "translate", "complete", "answer"}
 
-    async def __call__(self, request: Request):
-        # Agar vosita bloklanadiganlar ro'yxatida bo'lmasa, ruxsat
+    async def __call__(self, request: Request, user: Optional[dict] = Depends(get_optional_user)):
         if self.tool_name not in self.blocked_tools:
             return True
-            
-        # Joriy sessiya / bosqich holatini tekshirish
-        # Foydalanuvchi hozir mustaqil bosqichdami va ai_locked yoqilganmi?
-        state = getattr(request.state, "lesson_state", None)
-        headers = request.headers
-        
-        # Test va jonli so'rovlar uchun header yoki state tekshiruvi
+
         is_independent_stage = False
-        ai_locked = True # Standart holatda mustaqil bosqichda yoqilgan
-        
-        if state:
-            is_independent_stage = (state.get("stage") == "independent")
-            ai_locked = state.get("ai_locked", True)
-        elif headers.get("X-Lesson-Stage") == "independent":
-            is_independent_stage = True
-            ai_locked = (headers.get("X-AI-Locked", "true").lower() == "true")
-            
+        ai_locked = True
+
+        server_state = None
+        if user and user.get("id"):
+            from app.api.lesson import peek_lesson_state
+            server_state = peek_lesson_state(user["id"])
+
+        if server_state is not None:
+            is_independent_stage = (server_state.get("current_stage") == "independent")
+            ai_locked = bool(server_state.get("ai_locked", True))
+        else:
+            headers = request.headers
+            if headers.get("X-Lesson-Stage") == "independent":
+                is_independent_stage = True
+                ai_locked = (headers.get("X-AI-Locked", "true").lower() == "true")
+
         if is_independent_stage and ai_locked:
             raise TiloraException(
                 code="AI_LOCKED",
@@ -41,8 +48,9 @@ class AILockGuard:
                     "reason": "1-qoida: Talaba o'z javobini o'zi yaratmaguncha tayyor javob yoki generatsiya berilmaydi."
                 }
             )
-            
+
         return True
+
 
 def blocked_tool(tool_name: str):
     """FastAPI Depends uchun helper."""

@@ -306,43 +306,54 @@ def get_student_path(
     }
 
 @router.get("/glossary")
-def get_glossary():
+def get_glossary(q: Optional[str] = None):
+    """Shaxsiy lug'at (1-qoida bo'yicha mustaqil bosqichda ham ochiq). Umumiy ELT glossariysidan olinadi."""
+    from app.api.content import _read
+    items = _read("glossary.json")
+    if q:
+        ql = q.lower()
+        items = [i for i in items if ql in i.get("term", "").lower() or ql in i.get("uz", "").lower()]
     return {
         "terms": [
-            {"term": "Criteria", "definition": "Standart baholash mezonlari (ko'plikda, birlik: criterion)"},
-            {"term": "Formative Assessment", "definition": "Shakllantiruvchi, o'quv jarayonida yo'naltiruvchi baholash"},
-            {"term": "Scaffolding", "definition": "O'rganish jarayonidagi vaqtinchalik pedagogik ko'mak"},
-            {"term": "Rapport", "definition": "O'qituvchi va o'quvchi o'rtasidagi ijobiy, ishonchli aloqa"}
-        ]
+            {"term": i["term"], "uz": i.get("uz", ""), "definition": i.get("definition_uz", ""), "definition_en": i.get("definition_en", ""), "category": i.get("category", "")}
+            for i in items
+        ],
+        "total": len(items)
     }
 
 @router.get("/previous-works")
 def get_previous_works(
     student_id: Optional[str] = None,
+    db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
+    """Talabaning haqiqiy avvalgi ishlari (material_attempts jadvalidan), oxirgi 20 tasi."""
+    target_id = current_user["id"]
     if student_id and student_id != current_user["id"]:
         if current_user.get("role") not in ["teacher", "admin"]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Xavfsizlik qoidasi: Boshqa talabaning avvalgi ishlarini ko'rish taqiqlanadi!"
             )
-    return {
-        "works": [
-            {
-                "week": "1-2",
-                "topic": "Pedagogik tanishuv va kirish dialogi",
-                "score": 85,
-                "date": "2026-09-08"
-            },
-            {
-                "week": "3-4",
-                "topic": "Darsdagi vaziyatli topshiriqlar bayoni",
-                "score": 78,
-                "date": "2026-09-18"
-            }
-        ]
-    }
+        target_id = student_id
+
+    attempts = db.query(MaterialAttempt).filter(
+        MaterialAttempt.student_id == target_id, MaterialAttempt.status == "completed"
+    ).order_by(MaterialAttempt.created_at.desc()).limit(20).all()
+    mats = {m.id: m for m in db.query(TeacherMaterial).filter(TeacherMaterial.id.in_([a.material_id for a in attempts])).all()} if attempts else {}
+    works = []
+    for a in attempts:
+        m = mats.get(a.material_id)
+        works.append({
+            "id": a.id,
+            "topic": m.topic_title if m else "",
+            "title": m.title if m else "",
+            "material_type": a.material_type,
+            "score": a.score,
+            "passed": a.passed,
+            "date": a.created_at.strftime("%Y-%m-%d") if a.created_at else ""
+        })
+    return {"works": works, "total": len(works)}
 
 # =========================================================================
 # TALABALAR UCHUN FANLAR, MAVZULAR, SLAYDLAR VA TESTLAR ENDPOINTLARI

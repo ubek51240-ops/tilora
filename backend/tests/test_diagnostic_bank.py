@@ -73,14 +73,16 @@ def test_bosh_bank_standart_savollarni_qaytaradi(env):
     res = client.get("/api/teacher/diagnostic/questions", headers=teacher_h)
     assert res.status_code == 200
     assert res.json()["using_defaults"] is True
-    assert res.json()["defaults_count"] == 8
+    n_diag = len(bank.default_diagnostic_questions())
+    n_surv = len(bank.default_survey_questions())
+    assert res.json()["defaults_count"] == n_diag
 
     res = client.get("/api/student/diagnostic/questions", headers=student_h)
     assert res.status_code == 200
-    assert len(res.json()) == 8 and res.json()[0]["id"] == "diag_01"
+    assert len(res.json()) == n_diag and res.json()[0]["id"] == "diag_01"
 
     res = client.get("/api/student/survey/questions")  # mehmon ham ko'ra oladi
-    assert res.status_code == 200 and len(res.json()) == 12
+    assert res.status_code == 200 and len(res.json()) == n_surv
 
 
 def test_talaba_rolida_bankka_kirish_taqiqlanadi(env):
@@ -184,12 +186,13 @@ def test_json_import_standart_nusxa_va_eksport(env):
     assert r.status_code == 200, r.text
     assert r.json()["imported"] == 2 and len(r.json()["skipped"]) == 1
 
-    # Standart to'plamni nusxalash: 8 ta qo'shiladi (jami 10)
+    # Standart to'plamni nusxalash: N ta qo'shiladi (jami N+2)
+    n_def = len(bank.default_diagnostic_questions())
     r = client.post("/api/teacher/diagnostic/questions/load-defaults", headers=teacher_h)
-    assert r.status_code == 200 and r.json()["total"] == 10
+    assert r.status_code == 200 and r.json()["total"] == n_def + 2
     # Standart audio URL (/audio_diag_01.wav) saqlanib qoladi
     exported = client.get("/api/teacher/diagnostic/questions/export", headers=teacher_h).json()
-    assert len(exported) == 10
+    assert len(exported) == n_def + 2
     assert any(e.get("audio_url") == "/audio_diag_01.wav" for e in exported)
     assert "teacher_id" not in exported[0]
 
@@ -206,7 +209,7 @@ def test_json_import_standart_nusxa_va_eksport(env):
     assert r.status_code == 200 and r.json()["imported"] == 1
     r = client.delete("/api/teacher/survey/questions", headers=teacher_h)
     assert r.json()["deleted"] == 1
-    assert len(client.get("/api/student/survey/questions", headers=student_h).json()) == 12
+    assert len(client.get("/api/student/survey/questions", headers=student_h).json()) == len(bank.default_survey_questions())
 
 
 def test_boshqa_oqituvchi_savolini_ozgartira_olmaydi(env):
@@ -332,7 +335,7 @@ def test_import_va_standart_nusxa_fanga_biriktiriladi(env):
     # Umumiy ko'rinish bo'sh, fan ko'rinishida hammasi bor
     assert client.get("/api/teacher/diagnostic/questions", headers=teacher_h).json()["total"] == 0
     assert client.get(f"/api/teacher/diagnostic/questions?subject_id={subj_id}", headers=teacher_h).json()["total"] == 2
-    assert len(client.get(f"/api/student/survey/questions?subject_id={subj_id}", headers=student_h).json()) == 12
+    assert len(client.get(f"/api/student/survey/questions?subject_id={subj_id}", headers=student_h).json()) == len(bank.default_survey_questions())
     # Fan tanlamagan talaba umumiy bank bo'sh bo'lgani uchun standartni ko'radi
     assert client.get("/api/student/diagnostic/questions", headers=student_h).json()[0]["id"] == "diag_01"
 

@@ -1,0 +1,11 @@
+REFERAT
+
+1. Dasturning to'liq nomi: "Tilora" veb-platformasining foydalanuvchi profili va boshqaruv dasturiy ta'minoti.
+
+2. Qo'llanish sohasi va vazifasi: ta'lim sohasidagi "Tilora" (tilora.uz) veb-platformasida foydalanuvchi akkauntlarini boshqarish, shaxsiy ma'lumotlarni xavfsiz qayta ishlash, profil sozlamalari, avtorizatsiya va tizim resurslariga rolga asoslangan kirishni ta'minlash. Imkoniyatlari: ro'yxatdan o'tish, tizimga kirish va chiqish, login va parolni o'zgartirish, obuna (tarif) holatini boshqarish, administrator paneli orqali foydalanuvchilarni tasdiqlash, tarif belgilash va parolni tiklash.
+
+3. Asosiy amallari: kiruvchi ma'lumotlarni validatsiya qilish; parollarni PBKDF2-SHA256 bilan xeshlash; HMAC-SHA256 imzoli JWT tokenlarini yaratish va tekshirish; rollar (student, teacher, researcher, admin) bo'yicha kirishni cheklash; kirish urinishlarini cheklash; audit jurnalini yuritish; profil ma'lumotlarini REST API orqali o'qish va yangilash.
+
+4. Texnik xarakteristikasi: dasturlash tillari - Python 3.11, JavaScript, HTML5, CSS3; freymvorklar - FastAPI, SQLAlchemy 2.0, Pydantic 2, Uvicorn/Gunicorn, Nginx; ma'lumotlar bazasi - PostgreSQL 16 (SQLite lokal rejimda); operatsion muhit - Linux (Ubuntu/Debian, Docker), Windows 10/11; brauzerlar - Chrome, Firefox, Safari, Edge.
+
+5. Dastur hajmi: manba kodi 50 ta fayl, taxminan 26 200 qator, 1,49 MB (server qismi 652 KB, mijoz qismi 836 KB).

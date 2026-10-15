@@ -89,16 +89,29 @@
     </div>`;
   }
 
+  // Qayta ishlash (revise) ko'rsatkichi: score_improvement != null bo'lgan yozuvlar o'rtachasi
+  function revisionStats(timeline) {
+    const vals = (timeline || []).map(t => t.score_improvement).filter(v => v !== null && v !== undefined && !isNaN(Number(v))).map(Number);
+    const revised = (timeline || []).filter(t => Number(t.revision_count || 0) > 0).length;
+    if (!vals.length) return { avg: null, count: 0, revised };
+    return { avg: Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10, count: vals.length, revised };
+  }
+
   function renderKpis(data) {
     const ma = data.metacognitive_accuracy || {};
     const gap = ma.avg_rating_gap;
     const gapColor = (gap === null || gap === undefined) ? "var(--muted)" : (gap <= 0.5 ? "var(--teal)" : (gap <= 1.25 ? "var(--amber)" : "var(--clay)"));
     const trend = (ma.trend === null || ma.trend === undefined) ? "" : (ma.trend < 0 ? `Tendensiya: ${num(ma.trend, 2)} (aniqlik oshmoqda)` : (ma.trend > 0 ? `Tendensiya: +${num(ma.trend, 2)} (farq o'smoqda)` : "Tendensiya: o'zgarishsiz"));
+    const rv = revisionStats(data.timeline);
+    const rvValue = rv.avg === null ? "—" : `${rv.avg > 0 ? "+" : ""}${num(rv.avg, 1)}`;
+    const rvSub = rv.avg === null ? "hali qayta ishlangan mashg'ulot yo'q" : `${rv.count} ta mashg'ulot · ${rv.revised} tasida qoralama qayta topshirilgan`;
+    const rvColor = rv.avg === null ? "var(--muted)" : (rv.avg > 0 ? "var(--teal)" : (rv.avg < 0 ? "var(--clay)" : "var(--ink)"));
     return `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px">
       ${kpiTile("Mashg'ulotlar", num(data.lessons_completed), "yakunlangan va saqlangan", "var(--ink)")}
       ${kpiTile("Muvaffaqiyat seriyasi", num(data.success_streak), "ketma-ket ≥60 ball", (data.success_streak || 0) >= 3 ? "var(--teal)" : "var(--ink)")}
       ${kpiTile("Metakognitiv aniqlik", num(gap, 2), trend || (ma.note || ""), gapColor)}
       ${kpiTile("Yordam so'rovlari", num(data.help_requests_total), "3-bosqichdagi AI'ga urinishlar", (data.help_requests_total || 0) > 0 ? "var(--clay)" : "var(--teal)")}
+      ${kpiTile("Qayta ishlashdan o'sish (o'rtacha)", rvValue, rvSub, rvColor)}
     </div>`;
   }
 
@@ -120,12 +133,21 @@
       const gap = t.rating_gap;
       const gapColor = (gap === null || gap === undefined) ? "var(--muted)" : (gap <= 0.5 ? "var(--teal)" : (gap <= 1.25 ? "var(--amber)" : "var(--clay)"));
       const sc = t.scaffold ? `<span class="chip ${SCAFFOLD_CHIP[t.scaffold] || ""}">${esc(SCAFFOLD_LABELS[t.scaffold] || t.scaffold)}</span>` : "—";
+      const rc = Number(t.revision_count || 0);
+      const imp = (t.score_improvement === null || t.score_improvement === undefined || isNaN(Number(t.score_improvement))) ? null : Number(t.score_improvement);
+      const impColor = imp === null ? "var(--muted)" : (imp > 0 ? "var(--teal)" : (imp < 0 ? "var(--clay)" : "var(--muted)"));
+      const impTxt = imp === null ? "—" : `${imp > 0 ? "+" : (imp < 0 ? "−" : "")}${num(Math.abs(imp))}`;
+      const impTitle = imp === null ? "" : ` title="Birinchi qoralama: ${esc(num(t.first_score))} → yakuniy: ${esc(num(t.score))}"`;
+      const cefr = t.cefr_estimate ? `<span class="chip" style="background:var(--teal-soft);color:var(--teal-deep);border-color:#BCD9D3;font-weight:700;font-size:10.5px" title="Taxminiy lokal CEFR (yakuniy darajani o'qituvchi belgilaydi)">${esc(t.cefr_estimate)}</span>` : `<span style="color:var(--muted)">—</span>`;
       return `<tr>
         <td style="${CELL}">${esc(t.date || "—")}</td>
         <td style="${CELL}">${esc(skillLabel(t.skill))}</td>
         <td style="${CELL};text-align:center;font-weight:700">${esc(t.variant || "—")}</td>
         <td style="${CELL}">${sc}</td>
         <td style="${CELL};text-align:center;font-weight:700;color:${(t.score !== null && t.score !== undefined && t.score >= 60) ? "var(--teal)" : "var(--clay)"}">${num(t.score)}</td>
+        <td style="${CELL};text-align:center">${cefr}</td>
+        <td style="${CELL};text-align:center;font-weight:600;color:${rc > 0 ? "var(--ink)" : "var(--muted)"}" title="Qayta ishlangan qoralamalar soni (birinchi variantdan tashqari)">${rc > 0 ? `♻️ ${rc}` : "0"}</td>
+        <td style="${CELL};text-align:center;font-weight:700;color:${impColor}"${impTitle}>${impTxt}</td>
         <td style="${CELL};text-align:center;color:${gapColor};font-weight:600">${num(gap, 2)}</td>
         <td style="${CELL};text-align:center">${num(t.minutes, 1)}</td>
         <td style="${CELL};white-space:normal;min-width:180px;line-height:1.45">${esc(t.next_goal || "—")}</td>
@@ -133,8 +155,31 @@
     }).join("");
     return `<div class="card" style="margin-bottom:16px">
       <h3>Mashg'ulotlar jadvali</h3>
-      ${tableWrap(["Sana", "Ko'nikma", "Variant", "Ko'mak", "Ball", "Farq (siz−AI)", "Daqiqa", "Keyingi maqsad"], rows, "Hali yakunlangan mashg'ulot yo'q. 5-bosqichda refleksiyani saqlagach, bu yerda paydo bo'ladi.")}
+      ${tableWrap(["Sana", "Ko'nikma", "Variant", "Ko'mak", "Ball", "CEFR", "Qoralamalar", "O'sish", "Farq (siz−AI)", "Daqiqa", "Keyingi maqsad"], rows, "Hali yakunlangan mashg'ulot yo'q. 5-bosqichda refleksiyani saqlagach, bu yerda paydo bo'ladi.")}
+      <div style="font-size:11.5px;color:var(--muted);margin-top:8px">Qoralamalar — 4-bosqichda qayta ishlab, qayta topshirilgan versiyalar soni; O'sish — yakuniy ball − birinchi qoralama bali; CEFR — taxminiy lokal baho.</div>
     </div>`;
+  }
+
+  // /student/dynamics timeline'ida qayta ishlash maydonlari yo'q — /lesson/history (LessonRecord) dan birlashtiriladi
+  function mergeHistoryIntoTimeline(timeline, records) {
+    const tl = Array.isArray(timeline) ? timeline : [];
+    const recs = Array.isArray(records) ? records.slice().reverse() : []; // history desc -> asc
+    if (!recs.length) return tl;
+    const used = new Set();
+    return tl.map(t => {
+      if (t.revision_count !== undefined && t.score_improvement !== undefined) return t; // backend allaqachon bergan
+      let idx = recs.findIndex((r, i) => !used.has(i) && String(r.created_at || "").slice(0, 10) === String(t.date || "") &&
+        (r.skill || null) === (t.skill || null) && String(r.score) === String(t.score));
+      if (idx === -1) idx = recs.findIndex((r, i) => !used.has(i) && String(r.created_at || "").slice(0, 10) === String(t.date || ""));
+      if (idx === -1) return t;
+      used.add(idx);
+      const r = recs[idx];
+      return Object.assign({}, t, {
+        revision_count: r.revision_count || 0, first_score: r.first_score,
+        score_improvement: (r.score_improvement === undefined) ? null : r.score_improvement,
+        cefr_estimate: r.cefr_estimate || null, relevance_score: r.relevance_score
+      });
+    });
   }
 
   function renderBySkill(bySkill) {
@@ -260,12 +305,19 @@
     if (!S.token) { root.innerHTML = loginNotice(); return; }
     root.innerHTML = `<div style="text-align:center;padding:30px;color:var(--muted)">⏳ Dinamika yuklanmoqda...</div>`;
     try {
-      const res = await fetch(`${S.apiBaseUrl}/student/dynamics`, { headers: { "Authorization": `Bearer ${S.token}` } });
+      const headers = { "Authorization": `Bearer ${S.token}` };
+      const [res, histRes] = await Promise.all([
+        fetch(`${S.apiBaseUrl}/student/dynamics`, { headers }),
+        fetch(`${S.apiBaseUrl}/lesson/history`, { headers }).catch(() => null)
+      ]);
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         root.innerHTML = res.status === 401 ? loginNotice() : errorBox(typeof data.detail === "string" ? data.detail : `Dinamikani yuklab bo'lmadi (HTTP ${res.status}).`);
         return;
       }
+      let records = [];
+      if (histRes && histRes.ok) { const h = await histRes.json().catch(() => ({})); records = h.records || []; }
+      data.timeline = mergeHistoryIntoTimeline(data.timeline, records);
       root.innerHTML = renderAll(data);
     } catch (e) {
       root.innerHTML = errorBox("Serverga ulanishda xatolik. Server ishlab turganini tekshiring.");

@@ -29,7 +29,12 @@
     overrideFor: null,          // profil tuzatish formasi ochiq talaba id
     noteFor: null,              // {id, variant} — variant biriktirish izohi formasi
     busy: false,
+    // 5-tab: o'qituvchining SI-kompetensiyasi (2.3; UNESCO AI CFT 2024)
+    comp: { q: null, me: null, result: null, toolResult: null },
   };
+  const COMP_ORDER = ['cognitive', 'didactic', 'ethical', 'reflective'];
+  const LEVEL_COLOR = { beginner: 'var(--clay)', practical: 'var(--amber)', creative: 'var(--teal)' };
+  const LEVEL_BG = { beginner: 'var(--clay-soft, #F6E7E2)', practical: 'var(--amber-soft)', creative: 'var(--teal-soft)' };
 
   // ---------- API ----------
   function apiBase() { return (window.STATE && window.STATE.apiBaseUrl) ? window.STATE.apiBaseUrl : '/api'; }
@@ -58,6 +63,26 @@
       throw err;
     }
     return data;
+  }
+
+  // Fayl eksporti: Authorization sarlavhasi bilan fetch → blob → yuklab olish
+  async function downloadFile(path, filename) {
+    try {
+      const res = await fetch(apiBase() + path, { headers: { 'Authorization': 'Bearer ' + token() } });
+      if (!res.ok) {
+        let data = null; try { data = await res.json(); } catch (e) { data = null; }
+        toast(res.status === 401 ? 'Eksport uchun tizimga kiring' : 'Eksport muvaffaqiyatsiz: ' + detailText(data, res.status), 'error');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {
+      toast('Eksport muvaffaqiyatsiz: ' + e.message, 'error');
+    }
   }
 
   // ---------- Yordamchilar ----------
@@ -172,6 +197,7 @@
 
   window.tpRefresh = async function () {
     TP.students = TP.diff = TP.obs = TP.records = null;
+    TP.comp.q = TP.comp.me = null;
     await loadTab(true);
   };
 
@@ -185,6 +211,7 @@
       ['diff', '🧩 Tabaqalashtirish (A/B/C)'],
       ['obs', '📋 Kuzatuv varaqasi'],
       ['records', '📝 Talaba yozuvlari'],
+      ['comp', '🧠 SI-kompetensiyam'],
     ];
     let html = '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">'
       + '<div><h2 style="font-family:var(--serif);font-size:24px;margin-bottom:4px">🧭 Guruh kuzatuv paneli</h2>'
@@ -243,6 +270,13 @@
         if (!TP.recordsStudentId) { c.innerHTML = '<div class="card" style="text-align:center;color:var(--muted);padding:26px">Talabani tanlang: «Talabalar» yoki «Kuzatuv varaqasi» bo\'limida <b>Yozuvlar</b> tugmasini bosing.</div>'; return; }
         if (!TP.records || TP.records.student.id !== TP.recordsStudentId || force) { c.innerHTML = loadingBox(); TP.records = await req('/teacher/panel/students/' + encodeURIComponent(TP.recordsStudentId) + '/records'); }
         renderRecords();
+      } else if (TP.tab === 'comp') {
+        if (!TP.comp.q || !TP.comp.me || force) {
+          c.innerHTML = loadingBox('Kompetensiya varaqasi yuklanmoqda...');
+          const [q, me] = await Promise.all([req('/teacher/competence/questions'), req('/teacher/competence/me')]);
+          TP.comp.q = q; TP.comp.me = me;
+        }
+        renderCompetence();
       }
     } catch (e) {
       c.innerHTML = errorBox(e.message);
@@ -464,7 +498,10 @@
     let html = '<div class="card" style="padding:16px">'
       + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'
       + '<div style="font-weight:700;font-size:14px">📋 Kuzatuv varaqasi ' + (TP.group ? '— ' + esc(TP.group.name) + ' ' + armChip(TP.group.arm) : '(barcha ko\'rinadigan guruhlar)') + ' <span style="font-size:12px;color:var(--muted);font-weight:400">' + esc(d.total || rows.length) + ' talaba</span></div>'
-      + '<div style="font-size:11.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap"><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--clay);vertical-align:middle"></span> takror L1 xato (≥2)</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--amber);vertical-align:middle"></span> o\'z bahosi farqi &gt; 1.5</span></div></div>';
+      + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">'
+      + '<div style="font-size:11.5px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap"><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--clay);vertical-align:middle"></span> takror L1 xato (≥2)</span><span><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--amber);vertical-align:middle"></span> o\'z bahosi farqi &gt; 1.5</span></div>'
+      + btn('📥 Kuzatuv varaqasini Excel ga yuklash', 'window.tpExportObservation()', ghostStyle())
+      + '</div></div>';
     if (!rows.length) {
       html += '<p style="color:var(--muted);font-size:13px;margin:0">Talabalar topilmadi.</p></div>'; c.innerHTML = html; return;
     }
@@ -508,6 +545,12 @@
       + '</ul></div></div>';
     c.innerHTML = html;
   }
+
+  window.tpExportObservation = function () {
+    const q = TP.groupId ? '?group_id=' + encodeURIComponent(TP.groupId) : '';
+    const name = 'TILORA_kuzatuv_varaqasi' + (TP.group ? '_' + String(TP.group.name || '').replace(/[^\w\-]+/g, '_') : '') + '.xlsx';
+    downloadFile('/teacher/panel/observation/export' + q, name);
+  };
 
   // ---------- 4-TAB: Talaba yozuvlari ----------
   window.tpOpenRecords = async function (sid) {
@@ -625,6 +668,254 @@
         renderRecords();
       }
     } catch (e) {
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  // ---------- 5-TAB: O'qituvchining SI-kompetensiyasi (2.3; UNESCO AI CFT 2024) ----------
+  function levelFor(avg, levels) {
+    if (avg === null || avg === undefined || isNaN(avg)) return null;
+    const ls = levels || (TP.comp.q && TP.comp.q.levels) || [];
+    for (const lv of ls) {
+      if ((lv.min <= avg && avg <= lv.max) || (lv.key === 'creative' && avg >= lv.min)) return lv;
+    }
+    return ls[0] || null;
+  }
+  function levelByName(name) {
+    const ls = (TP.comp.q && TP.comp.q.levels) || [];
+    return ls.find(l => l.name === name) || null;
+  }
+  function levelBadge(lv, small) {
+    if (!lv) return '<span style="color:var(--muted)">—</span>';
+    const key = lv.key || '';
+    return '<span style="display:inline-block;padding:' + (small ? '1px 8px' : '4px 12px') + ';border-radius:9px;font-weight:800;font-size:' + (small ? '11.5px' : '13.5px') + ';color:' + (LEVEL_COLOR[key] || 'var(--ink)') + ';background:' + (LEVEL_BG[key] || 'var(--surface-2)') + ';border:1px solid ' + (LEVEL_COLOR[key] || 'var(--line)') + ';white-space:nowrap">' + esc(lv.name) + '</span>';
+  }
+  function compBar(name, avg, lvName) {
+    const pct = (typeof avg === 'number') ? Math.max(0, Math.min(100, avg / 5 * 100)) : 0;
+    const lv = lvName ? levelByName(lvName) : levelFor(avg);
+    return '<div style="display:grid;grid-template-columns:minmax(110px,1.2fr) minmax(120px,3fr) auto;gap:8px;align-items:center;font-size:12.5px;margin-bottom:7px">'
+      + '<span style="font-weight:600">' + esc(name) + '</span>'
+      + '<span style="display:flex;align-items:center;gap:8px"><span class="track" style="flex:1"><span class="fill" style="display:block;width:' + pct + '%;background:' + (lv ? (LEVEL_COLOR[lv.key] || 'var(--teal)') : 'var(--teal)') + '"></span></span><b style="min-width:42px;text-align:right">' + (typeof avg === 'number' ? esc(avg.toFixed(2)) : '—') + '/5</b></span>'
+      + levelBadge(lv, true) + '</div>';
+  }
+  const INPUT = 'padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px;font-family:inherit;box-sizing:border-box';
+
+  function renderCompetence() {
+    const c = content();
+    const q = TP.comp.q;
+    if (!c || !q) return;
+    const comps = q.components || {};
+    const items = q.items || [];
+    let html = '';
+
+    // (a) Kirish kartasi: sarlavha, asos, 3 daraja jadvali
+    html += '<div class="card" style="padding:16px;margin-bottom:14px">'
+      + '<div style="font-family:var(--serif);font-size:17px;font-weight:700;margin-bottom:6px">🧠 ' + esc(q.title || "O'qituvchining SI-kompetensiyasi") + '</div>'
+      + '<p style="font-size:13px;color:var(--ink-2);line-height:1.6;margin:0 0 10px"><b>Asos:</b> ' + esc(q.basis || '') + '</p>'
+      + '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:560px;font-size:12.5px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+      + '<th style="' + TH + '">Daraja</th><th style="' + TH + ';text-align:center">O\'rtacha (1–5)</th><th style="' + TH + '">Tavsif</th><th style="' + TH + '">Mezon</th></tr></thead><tbody>';
+    (q.levels || []).forEach(lv => {
+      html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + TD + '">' + levelBadge(lv, true) + '</td>'
+        + '<td style="' + TD + ';text-align:center;white-space:nowrap">' + esc(lv.min) + ' – ' + esc(lv.max) + '</td>'
+        + '<td style="' + TD + ';white-space:normal">' + esc(lv.desc) + '</td><td style="' + TD + ';white-space:normal;color:var(--ink-2)">' + esc(lv.criterion) + '</td></tr>';
+    });
+    html += '</tbody></table></div></div>';
+
+    // (b) So'rovnoma: komponentlar bo'yicha guruhlangan, 1–5 radio
+    html += '<div class="card" style="padding:16px;margin-bottom:14px">'
+      + '<div style="font-weight:700;font-size:14px;margin-bottom:4px">📝 O\'z-o\'zini baholash varaqasi</div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 12px">Har bir tasdiqni 1 (mutlaqo mos emas) dan 5 (to\'liq mos) gacha baholang. ' + esc(items.length) + ' ta band, 4 komponent. Natija pre/mid/post sifatida saqlanadi va dinamikangizda ko\'rinadi (Guskey 2-daraja).</p>';
+    COMP_ORDER.forEach(ck => {
+      const cm = comps[ck] || { name: ck };
+      const its = items.filter(it => it.component === ck);
+      html += '<div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;background:var(--surface)">'
+        + '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-bottom:4px">'
+        + '<div style="font-weight:800;font-size:13.5px;color:var(--teal)">' + esc(cm.name) + ' komponent</div>'
+        + '<span class="chip none" style="padding:2px 8px;font-size:11px" title="UNESCO AI CFT 2024 bilan moslik">UNESCO: ' + esc(cm.unesco || '—') + '</span></div>'
+        + '<div style="font-size:12.5px;color:var(--ink-2);line-height:1.5">' + esc(cm.desc || '') + '</div>'
+        + (cm.indicator ? '<div style="font-size:11.5px;color:var(--muted);margin-top:2px"><b>Ko\'rsatkich:</b> ' + esc(cm.indicator) + '</div>' : '')
+        + '<div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">';
+      its.forEach((it, i) => {
+        html += '<div id="tpcRow_' + esc(it.id) + '" style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 10px;border-radius:8px;background:var(--surface-2)">'
+          + '<div style="flex:1;min-width:220px"><div style="font-size:13px;line-height:1.5"><span style="color:var(--muted);font-weight:700;margin-right:4px">' + (i + 1) + '.</span>' + esc(it.prompt_uz) + '</div>'
+          + '<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:2px">' + esc(it.prompt_en || '') + '</div></div>'
+          + '<div style="display:flex;gap:4px;flex-wrap:wrap">';
+        for (let v = 1; v <= 5; v++) {
+          html += '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;padding:4px 8px;border:1px solid var(--line);border-radius:7px;background:var(--surface);font-size:12.5px;font-weight:700">'
+            + '<input type="radio" name="tpc_' + esc(it.id) + '" value="' + v + '" style="margin:0"> ' + v + '</label>';
+        }
+        html += '</div></div>';
+      });
+      html += '</div></div>';
+    });
+    html += '<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:4px">'
+      + '<label style="font-size:11.5px;font-weight:600;display:flex;flex-direction:column;gap:3px">Baholash turi'
+      + '<select id="tpCompType" style="' + INPUT + '"><option value="">Avtomatik (pre → post)</option><option value="pre">pre — tajriba boshida</option><option value="mid">mid — oraliq</option><option value="post">post — tajriba oxirida</option></select></label>'
+      + btn('📤 Natijani hisoblash va saqlash', 'window.tpCompSubmit()', 'padding:9px 14px;font-size:13px')
+      + '</div>'
+      + '<div id="tpCompResult" style="margin-top:12px">' + (TP.comp.result ? compResultHtml(TP.comp.result) : '') + '</div>'
+      + '</div>';
+
+    // (c) Dinamikam
+    html += '<div class="card" style="padding:16px;margin-bottom:14px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">📈 Dinamikam (pre → post)</div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Guskey modelining 2-darajasi — ishtirokchi bilim va ko\'nikmasining o\'zgarishi. Qiymatlar 1–5 shkalada (komponent o\'rtachasi).</p>'
+      + '<div id="tpCompHistory">' + compHistoryHtml(TP.comp.me) + '</div></div>';
+
+    // (d) AI vositasini baholash varaqasi
+    html += '<div class="card" style="padding:16px"><div style="font-weight:700;font-size:14px;margin-bottom:4px">🧪 AI vositasini baholash varaqasi (8 mezon)</div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Yangi vositani darsga kiritishdan oldin 8 savolga «Ha / Yo\'q» deb javob bering. Natija foiz va xulosa shaklida chiqadi (≥75% tavsiya etiladi, 50–74% cheklovlar bilan, &lt;50% tavsiya etilmaydi).</p>'
+      + '<label style="font-size:11.5px;font-weight:600;display:block;margin-bottom:10px">Vosita nomi <span style="color:var(--clay)">*</span><input type="text" id="tpToolName" maxlength="120" placeholder="Masalan: Grammarly, ChatGPT, Write & Improve" style="' + INPUT + ';width:100%;max-width:420px;display:block;margin-top:3px"></label>'
+      + '<div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">';
+    (q.tool_evaluation_checklist || []).forEach((ch, i) => {
+      html += '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;padding:8px 10px;border-radius:8px;background:var(--surface-2)">'
+        + '<div style="flex:1;min-width:220px"><div style="font-size:13px;font-weight:600"><span style="color:var(--muted);margin-right:4px">' + (i + 1) + '.</span>' + esc(ch.q) + '</div><div style="font-size:11.5px;color:var(--muted)">Mezon: ' + esc(ch.criterion) + '</div></div>'
+        + '<div style="display:flex;gap:4px">'
+        + '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid #BCD9D3;border-radius:7px;background:var(--teal-soft);color:var(--teal);font-size:12.5px;font-weight:700"><input type="radio" name="tpTool_' + esc(ch.key) + '" value="1" style="margin:0"> Ha</label>'
+        + '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:12.5px;font-weight:700"><input type="radio" name="tpTool_' + esc(ch.key) + '" value="0" checked style="margin:0"> Yo\'q</label>'
+        + '</div></div>';
+    });
+    html += '</div>'
+      + '<label style="font-size:11.5px;font-weight:600;display:block;margin-bottom:10px">Izoh (ixtiyoriy)<textarea id="tpToolNote" rows="2" maxlength="1000" placeholder="Qaysi dars bosqichida, qaysi guruh uchun sinab ko\'rildi..." style="' + INPUT + ';width:100%;margin-top:3px"></textarea></label>'
+      + btn('✔ Baholash', 'window.tpToolEvaluate()', 'padding:9px 14px;font-size:13px')
+      + '<div id="tpToolResult" style="margin-top:12px">' + (TP.comp.toolResult ? toolResultHtml(TP.comp.toolResult) : '') + '</div>'
+      + '</div>';
+    c.innerHTML = html;
+  }
+
+  function compResultHtml(r) {
+    const comps = r.components || {};
+    const comp = (k) => comps[k] || {};
+    const weakName = r.weakest ? (comp(r.weakest).name || r.weakest) : null;
+    let html = '<div style="padding:14px;border-radius:10px;border:1.5px solid var(--teal);background:var(--surface)">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px">'
+      + '<div style="font-weight:800;font-size:14px">Natija <span class="chip part" style="padding:1px 8px;margin-left:4px">' + esc(r.assessment_type || '') + '</span></div>'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:12.5px;color:var(--muted)">Umumiy: <b style="color:var(--ink);font-size:15px">' + esc(typeof r.overall === 'number' ? r.overall.toFixed(2) : '—') + '</b>/5</span>' + levelBadge(r.overall_level) + '</div></div>';
+    COMP_ORDER.forEach(k => { if (comps[k]) html += compBar(comp(k).name || k, comp(k).avg, comp(k).level); });
+    if (r.overall_level && r.overall_level.criterion) html += '<div style="font-size:12px;color:var(--ink-2);margin-top:6px"><b>Daraja mezoni:</b> ' + esc(r.overall_level.criterion) + '</div>';
+    if (weakName) {
+      html += '<div class="why-box" style="margin:10px 0 0"><b>Eng zaif komponent: ' + esc(weakName) + ' (' + esc(typeof comp(r.weakest).avg === 'number' ? comp(r.weakest).avg.toFixed(2) : '—') + '/5)</b>'
+        + ((r.recommendations || []).length ? '<div style="font-size:12.5px;margin-top:2px"><b style="display:inline;text-transform:none;letter-spacing:0;font-size:12.5px">Tavsiya etilgan rivojlantirish yo\'li:</b><ul style="margin:4px 0 0;padding-left:18px">' + r.recommendations.map(p => '<li>' + esc(p.path) + '</li>').join('') + '</ul></div>' : '')
+        + '</div>';
+    }
+    if (r.message) html += '<div style="font-size:12px;color:var(--muted);margin-top:8px">' + esc(r.message) + '</div>';
+    return html + '</div>';
+  }
+
+  function compHistoryHtml(me) {
+    const hist = (me && me.history) || {};
+    const meta = (me && me.components_meta) || (TP.comp.q && TP.comp.q.components) || {};
+    const levels = (me && me.levels) || (TP.comp.q && TP.comp.q.levels) || [];
+    const types = ['pre', 'mid', 'post'].filter(t => hist[t]);
+    if (!types.length) return '<div style="font-size:12.5px;color:var(--muted);padding:12px;border:1px dashed var(--line);border-radius:8px;text-align:center">Hali o\'z-o\'zini baholash o\'tkazilmagan. Yuqoridagi varaqani to\'ldiring — birinchi natija <b>pre</b> sifatida saqlanadi.</div>';
+    const delta = (a, b) => (typeof a === 'number' && typeof b === 'number') ? b - a : null;
+    const dCell = (d) => d === null ? '<span style="color:var(--muted)">—</span>' : '<b style="color:' + (d > 0 ? '#16A34A' : (d < 0 ? 'var(--clay)' : 'var(--muted)')) + '">' + (d > 0 ? '+' : '') + esc(d.toFixed(2)) + '</b>';
+    const val = (t, k) => (hist[t] && hist[t].components) ? hist[t].components[k] : undefined;
+    let html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:12px">'
+      + types.map(t => '<span style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:3px 9px"><b>' + esc(t) + '</b> · ' + esc(hist[t].date || '') + ' · ' + esc(typeof hist[t].overall === 'number' ? hist[t].overall.toFixed(2) : '—') + '/5 ' + levelBadge(levelByName(hist[t].level) || levelFor(hist[t].overall, levels), true) + '</span>').join('')
+      + '</div>';
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:520px;font-size:12.5px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+      + '<th style="' + TH + '">Komponent</th>' + types.map(t => '<th style="' + TH + ';text-align:center">' + esc(t) + '</th>').join('')
+      + '<th style="' + TH + ';text-align:center">Δ (pre→post)</th><th style="' + TH + '">Daraja</th></tr></thead><tbody>';
+    COMP_ORDER.forEach(k => {
+      const d = delta(val('pre', k), val('post', k));
+      const lvPre = levelFor(val('pre', k), levels), lvPost = levelFor(val('post', k), levels);
+      html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + TD + ';font-weight:600">' + esc((meta[k] || {}).name || k) + '</td>'
+        + types.map(t => '<td style="' + TD + ';text-align:center">' + esc(typeof val(t, k) === 'number' ? val(t, k).toFixed(2) : '—') + '</td>').join('')
+        + '<td style="' + TD + ';text-align:center">' + dCell(d) + '</td>'
+        + '<td style="' + TD + '">' + (lvPre || lvPost ? levelBadge(lvPre, true) + (lvPost ? ' → ' + levelBadge(lvPost, true) : '') : '<span style="color:var(--muted)">—</span>') + '</td></tr>';
+    });
+    const oPre = hist.pre ? hist.pre.overall : undefined, oPost = hist.post ? hist.post.overall : undefined;
+    html += '<tr style="background:var(--surface-2);font-weight:700"><td style="' + TD + '">Umumiy</td>'
+      + types.map(t => '<td style="' + TD + ';text-align:center">' + esc(typeof hist[t].overall === 'number' ? hist[t].overall.toFixed(2) : '—') + '</td>').join('')
+      + '<td style="' + TD + ';text-align:center">' + dCell(typeof me.growth === 'number' ? me.growth : delta(oPre, oPost)) + '</td>'
+      + '<td style="' + TD + '">' + (hist.pre ? levelBadge(levelByName(hist.pre.level) || levelFor(oPre, levels), true) : '') + (hist.post ? ' → ' + levelBadge(levelByName(hist.post.level) || levelFor(oPost, levels), true) : '') + '</td></tr>';
+    html += '</tbody></table></div>';
+    if (typeof me.growth === 'number') {
+      html += '<div style="font-size:12.5px;margin-top:8px;color:var(--ink-2)">O\'sish (post − pre): ' + dCell(me.growth) + ' ball' + (me.growth > 0 ? ' — kompetensiya darajasi oshgan.' : (me.growth < 0 ? ' — pasayish; refleksiv hisobot tavsiya etiladi.' : ' — o\'zgarish yo\'q.')) + '</div>';
+    } else if (!hist.post) {
+      html += '<div style="font-size:12px;color:var(--muted);margin-top:8px">Tajriba oxirida varaqani <b>post</b> turi bilan qayta to\'ldiring — o\'sish avtomatik hisoblanadi.</div>';
+    }
+    return html;
+  }
+
+  function toolResultHtml(t) {
+    const pct = Number(t.score_percent) || 0;
+    const col = pct >= 75 ? 'var(--teal)' : (pct >= 50 ? 'var(--amber)' : 'var(--clay)');
+    const bg = pct >= 75 ? 'var(--teal-soft)' : (pct >= 50 ? 'var(--amber-soft)' : 'var(--clay-soft, #F6E7E2)');
+    let html = '<div style="padding:14px;border-radius:10px;border:1.5px solid ' + col + ';background:' + bg + '">'
+      + '<div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">'
+      + '<div style="font-weight:800;font-size:14px">' + esc(t.tool_name) + '</div>'
+      + '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:22px;font-weight:800;color:' + col + '">' + esc(pct) + '%</span><span style="font-weight:700;color:' + col + '">' + esc(t.verdict) + '</span></div></div>'
+      + '<div style="font-size:12px;color:var(--muted);margin-top:4px">Bajarilgan mezonlar: ' + esc((t.met || []).length) + ' / ' + esc((t.met || []).length + (t.unmet || []).length) + '</div>';
+    if ((t.unmet || []).length) {
+      html += '<div style="font-size:12.5px;margin-top:8px"><b>Bajarilmagan mezonlar:</b><ul style="margin:4px 0 0;padding-left:18px;line-height:1.5">'
+        + t.unmet.map(u => '<li>' + esc(u.q) + ' <span style="color:var(--muted)">— ' + esc(u.criterion) + '</span></li>').join('') + '</ul></div>';
+    } else {
+      html += '<div style="font-size:12.5px;margin-top:8px;color:var(--teal)">Barcha mezonlar bajarilgan.</div>';
+    }
+    if (t.note) html += '<div style="font-size:12px;color:var(--ink-2);margin-top:8px"><b>Izoh:</b> ' + esc(t.note) + '</div>';
+    return html + '</div>';
+  }
+
+  window.tpCompSubmit = async function () {
+    if (TP.busy || !TP.comp.q) return;
+    const items = TP.comp.q.items || [];
+    const answers = [];
+    const missing = [];
+    items.forEach(it => {
+      const sel = document.querySelector('input[name="tpc_' + it.id + '"]:checked');
+      const row = document.getElementById('tpcRow_' + it.id);
+      if (sel) { answers.push({ item_id: it.id, rating: Number(sel.value) }); if (row) row.style.outline = ''; }
+      else { missing.push(it.id); if (row) row.style.outline = '1.5px solid var(--clay)'; }
+    });
+    if (missing.length) {
+      toast(missing.length + ' ta bandga javob berilmadi. Barcha bandlarni baholang.', 'error');
+      const first = document.getElementById('tpcRow_' + missing[0]);
+      if (first && first.scrollIntoView) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    const typeEl = document.getElementById('tpCompType');
+    const body = { answers };
+    if (typeEl && typeEl.value) body.assessment_type = typeEl.value;
+    TP.busy = true;
+    const box = document.getElementById('tpCompResult');
+    if (box) box.innerHTML = loadingBox('Hisoblanmoqda...');
+    try {
+      const res = await req('/teacher/competence/self-assess', { method: 'POST', body });
+      TP.comp.result = res;
+      if (box) box.innerHTML = compResultHtml(res);
+      toast(res.message || 'Natija saqlandi.', 'success');
+      try {
+        TP.comp.me = await req('/teacher/competence/me');
+        const h = document.getElementById('tpCompHistory');
+        if (h) h.innerHTML = compHistoryHtml(TP.comp.me);
+      } catch (e) { /* dinamika yangilanmasa ham natija ko'rsatiladi */ }
+      if (box && box.scrollIntoView) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (e) {
+      if (box) box.innerHTML = errorBox(e.message);
+      toast(e.message, 'error');
+    } finally { TP.busy = false; }
+  };
+
+  window.tpToolEvaluate = async function () {
+    if (TP.busy || !TP.comp.q) return;
+    const name = ((document.getElementById('tpToolName') || {}).value || '').trim();
+    if (name.length < 2) { toast('Vosita nomini kiriting (kamida 2 belgi).', 'error'); const el = document.getElementById('tpToolName'); if (el) el.focus(); return; }
+    const answers = {};
+    (TP.comp.q.tool_evaluation_checklist || []).forEach(ch => {
+      const sel = document.querySelector('input[name="tpTool_' + ch.key + '"]:checked');
+      answers[ch.key] = !!(sel && sel.value === '1');
+    });
+    const note = ((document.getElementById('tpToolNote') || {}).value || '').trim();
+    TP.busy = true;
+    const box = document.getElementById('tpToolResult');
+    if (box) box.innerHTML = loadingBox('Baholanmoqda...');
+    try {
+      const res = await req('/teacher/competence/tool-evaluation', { method: 'POST', body: { tool_name: name, answers, note } });
+      TP.comp.toolResult = res;
+      if (box) box.innerHTML = toolResultHtml(res);
+    } catch (e) {
+      if (box) box.innerHTML = errorBox(e.message);
       toast(e.message, 'error');
     } finally { TP.busy = false; }
   };

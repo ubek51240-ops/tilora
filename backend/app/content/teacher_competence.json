@@ -1,0 +1,50 @@
+{
+  "title": "Bo'lajak o'qituvchining sun'iy intellektga oid kasbiy kompetensiyasi — o'z-o'zini baholash varaqasi",
+  "basis": "Dissertatsiya 2.3-bo'lim (4 tarkibiy qism, 3 daraja) va UNESCO AI Competency Framework for Teachers (2024): 5 o'lchov, 15 kompetensiya, 3 daraja (acquire / deepen / create).",
+  "scale": "likert_5",
+  "components": {
+    "cognitive": {"name": "Kognitiv", "desc": "Texnologiyaning ishlash tamoyili, imkoniyati va cheklovlari haqidagi funksional bilim", "indicator": "Tizim javobining kelib chiqishini izohlay olish", "unesco": "AI foundations and applications; Human-centred mindset"},
+    "didactic": {"name": "Didaktik-texnologik", "desc": "Vositani o'quv maqsadiga bog'lash, mashg'ulotni loyihalash, ko'makni boshqarish", "indicator": "Texnologik vositali dars loyihasini mustaqil tuza olish", "unesco": "AI pedagogy"},
+    "ethical": {"name": "Axloqiy-mas'uliyatli", "desc": "Mualliflik, ma'lumotlar himoyasi, baholash adolatliligi va akademik halollik", "indicator": "Guruh uchun foydalanish qoidalarini ishlab chiqa olish", "unesco": "Ethics of AI"},
+    "reflective": {"name": "Refleksiv", "desc": "O'z tajribasini tahlil qilish, yechim samarasini baholash, undan voz kecha olish", "indicator": "Mashg'ulot natijasi asosida yondashuvni o'zgartira olish", "unesco": "AI for professional learning"}
+  },
+  "levels": [
+    {"key": "beginner", "name": "Boshlang'ich (acquire)", "min": 1.0, "max": 2.99, "desc": "Vositalardan tayyor ko'rinishda foydalanadi, tanlov mezoni shakllanmagan", "criterion": "Vositani nima uchun tanlaganini asoslay olishi"},
+    {"key": "practical", "name": "Amaliy (deepen)", "min": 3.0, "max": 3.99, "desc": "Vositani maqsadga muvofiq tanlaydi, mashg'ulotni loyihalaydi va natijani tahlil qiladi", "criterion": "Mashg'ulot natijasiga qarab yechimni o'zgartira olishi"},
+    {"key": "creative", "name": "Ijodiy (create)", "min": 4.0, "max": 5.0, "desc": "O'z metodik yechimini ishlab chiqadi va hamkasblariga uzatadi", "criterion": "Metodik ishlanmasini asoslab taqdim eta olishi"}
+  ],
+  "items": [
+    {"id": "tc_01", "component": "cognitive", "prompt_uz": "Katta til modellari (masalan, ChatGPT, DeepSeek) matnni qanday hosil qilishini va nega ba'zan asossiz ma'lumot berishini tushuntira olaman.", "prompt_en": "I can explain how large language models generate text and why they sometimes produce unfounded information."},
+    {"id": "tc_02", "component": "cognitive", "prompt_uz": "AI vositasining javobi qaysi ma'lumotga tayanganini va qanday cheklovlari borligini talabaga tushuntira olaman.", "prompt_en": "I can explain to students what an AI tool's answer is based on and what its limitations are."},
+    {"id": "tc_03", "component": "cognitive", "prompt_uz": "Avtomatlashtirilgan baholash (AWE) vositalari grammatika va leksikani qanday aniqlashini va qayerda xato qilishini bilaman.", "prompt_en": "I know how automated writing evaluation tools detect grammar and lexis and where they fail."},
+    {"id": "tc_04", "component": "cognitive", "prompt_uz": "Adaptiv platforma talabaga nega aynan shu topshiriqni taklif qilganini (profil, daraja) o'qiy olaman.", "prompt_en": "I can read why an adaptive platform recommended a particular task (profile, level)."},
+    {"id": "tc_05", "component": "didactic", "prompt_uz": "Dars loyihasida AI vositasini aniq o'quv maqsadiga bog'lab, uni mashg'ulotning muayyan bosqichida qo'llayman.", "prompt_en": "In my lesson plan I link the AI tool to a specific learning objective and use it only at a specific stage."},
+    {"id": "tc_06", "component": "didactic", "prompt_uz": "Mustaqil bajarish bosqichida texnologiyadan foydalanishni cheklab, ko'makni bosqichma-bosqich kamaytirishni rejalashtiraman.", "prompt_en": "I restrict technology use at the independent production stage and plan to reduce support step by step."},
+    {"id": "tc_07", "component": "didactic", "prompt_uz": "Bir mashg'ulotda ikkitadan ortiq yangi vosita qo'llamayman va har biri uchun texnologiyasiz muqobil variant tayyorlayman.", "prompt_en": "I use no more than two new tools per lesson and prepare a non-technology alternative for each."},
+    {"id": "tc_08", "component": "didactic", "prompt_uz": "AI izohini Hattie & Timperley bo'yicha vazifa darajasidan jarayon va o'zini boshqarish darajasiga ko'tarib bera olaman.", "prompt_en": "I can raise AI feedback from task level to process and self-regulation levels (Hattie & Timperley)."},
+    {"id": "tc_09", "component": "ethical", "prompt_uz": "Talabalar uchun AI dan foydalanish va akademik halollik qoidalarini (nima mumkin, nima oshkor qilinadi) yozma shaklda belgilay olaman.", "prompt_en": "I can set written rules for students on AI use and academic integrity (what is allowed, what must be disclosed)."},
+    {"id": "tc_10", "component": "ethical", "prompt_uz": "Talabalar ma'lumotlarini (matnlar, baholar, ovoz yozuvlari) qayerda saqlanishi va kim ko'rishini bilaman hamda minimal hajmda yig'aman.", "prompt_en": "I know where student data (texts, grades, recordings) is stored and who sees it, and I collect the minimum."},
+    {"id": "tc_11", "component": "ethical", "prompt_uz": "AI hosil qilgan materialni talabalarga aniq belgilab (manbasini ko'rsatib) taqdim etaman.", "prompt_en": "I present AI-generated material to students clearly labelled, with its source shown."},
+    {"id": "tc_12", "component": "ethical", "prompt_uz": "Baholashni mahsulotdan jarayonga ko'chirib, texnologiyasiz nazorat shakllarini saqlab qolaman.", "prompt_en": "I shift assessment from product to process and keep technology-free forms of control."},
+    {"id": "tc_13", "component": "reflective", "prompt_uz": "Mashg'ulotdan so'ng AI vositasi qaysi talabalarga foyda bergani va kimga xalaqit berganini tahlil qilaman.", "prompt_en": "After a lesson I analyse which students the AI tool helped and whom it hindered."},
+    {"id": "tc_14", "component": "reflective", "prompt_uz": "Natija kutilganidek bo'lmasa, vositadan voz kechib yoki o'rnini almashtirib yondashuvni o'zgartiraman.", "prompt_en": "If results fall short, I change the approach, dropping or replacing the tool."},
+    {"id": "tc_15", "component": "reflective", "prompt_uz": "O'z texnologik vositali darsimni refleksiv hisobot shaklida yozib, hamkasblar bilan muhokama qilaman.", "prompt_en": "I write a reflective report on my technology-mediated lesson and discuss it with colleagues."},
+    {"id": "tc_16", "component": "reflective", "prompt_uz": "Vositani tanlash sababimni metodik jihatdan asoslab, ishlanmamni hamkasblarga taqdim eta olaman.", "prompt_en": "I can justify my choice of tool methodologically and present my lesson design to colleagues."}
+  ],
+  "pathways": [
+    {"component": "cognitive", "path": "O'quv jarayoni: metodika fanlariga integratsiya va alohida modul; kafedra metodik ishi (ochiq dars, tajriba almashinuvi)"},
+    {"component": "didactic", "path": "Pedagogik amaliyot: texnologik vositali darsni loyihalash va o'tkazish; mikroo'qitish"},
+    {"component": "ethical", "path": "Kafedra metodik ishi: foydalanish va akademik halollik qoidalarini ishlab chiqish"},
+    {"component": "reflective", "path": "Mustaqil rivojlanish: refleksiv hisobot, o'z mashg'ulotini tahlil qilish; uzluksiz malaka oshirish"}
+  ],
+  "tool_evaluation_checklist": [
+    {"key": "didactic_task", "q": "Vosita qaysi o'quv maqsadiga xizmat qiladi?", "criterion": "Maqsad sillabusda qayd etilgan bo'lishi"},
+    {"key": "level", "q": "Vosita talabaning darajasini hisobga oladimi?", "criterion": "Material murakkabligini o'zgartira olishi"},
+    {"key": "feedback_quality", "q": "Xato sababini tushuntiradimi?", "criterion": "Izohda tuzatish yo'li ko'rsatilishi"},
+    {"key": "openness", "q": "Qaror asosini izohlash mumkinmi?", "criterion": "Natijaning kelib chiqishi kuzatilishi"},
+    {"key": "data", "q": "Qanday ma'lumot to'planadi va qayerda saqlanadi?", "criterion": "Maxfiylik siyosati ochiq e'lon qilingan bo'lishi"},
+    {"key": "language", "q": "O'zbek tilidagi so'rovga to'g'ri javob beradimi?", "criterion": "Ona tili xatolarini to'g'ri talqin qilishi"},
+    {"key": "access", "q": "Barcha talabalar foydalana oladimi?", "criterion": "Cheklangan tezlikda ishlashi yoki muqobili bo'lishi"},
+    {"key": "control", "q": "O'qituvchi natijani ko'ra va o'zgartira oladimi?", "criterion": "Kuzatuv paneli mavjud bo'lishi"}
+  ]
+}

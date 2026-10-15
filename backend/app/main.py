@@ -36,6 +36,7 @@ from app.api.proposals import router as proposals_router
 from app.api.api_keys import router as api_keys_router
 from app.api.content import router as content_router
 from app.api.teacher_panel import router as teacher_panel_router
+from app.api.teacher_competence import router as teacher_competence_router
 
 # Ma'lumotlar bazasini yaratish
 Base.metadata.create_all(bind=engine)
@@ -51,7 +52,14 @@ def _ensure_columns():
             ("sender_id", "VARCHAR(36)"),
             ("receiver_id", "VARCHAR(36)"),
             ("created_at", "DATETIME")
-        ]
+        ],
+        "lesson_records": [
+            ("drafts", "JSON"),
+            ("revision_count", "INTEGER"),
+            ("first_score", "SMALLINT"),
+            ("cefr_estimate", "VARCHAR(2)"),
+            ("relevance_score", "SMALLINT"),
+        ],
     }
     with engine.begin() as conn:
         for table, cols in needed.items():
@@ -223,6 +231,7 @@ app.include_router(proposals_router, prefix=settings.API_V1_STR)
 app.include_router(api_keys_router, prefix=settings.API_V1_STR)
 app.include_router(content_router, prefix=settings.API_V1_STR)
 app.include_router(teacher_panel_router, prefix=settings.API_V1_STR)
+app.include_router(teacher_competence_router, prefix=settings.API_V1_STR)
 
 # 2. Frontend statik fayllarni ulash
 base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

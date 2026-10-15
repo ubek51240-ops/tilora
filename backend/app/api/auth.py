@@ -1,4 +1,6 @@
 import re
+import secrets
+from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -461,6 +463,41 @@ def change_credentials(
         "token_type": "bearer",
         "user": _user_public(user, _group_name(db, user))
     }
+
+
+class DeleteMeRequest(BaseModel):
+    password: str
+    confirm: str = Field(..., pattern="^O'CHIRISH$")
+
+
+@router.delete("/me")
+def delete_my_data(payload: DeleteMeRequest, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """
+    Ma'lumotlar himoyasi (3.1-jadval: "to'planadigan ma'lumot zaruriy hajmdan oshmasligi", talaba avtonomiyasi):
+    foydalanuvchi o'z hisobini o'chiradi. Shaxsiy identifikatorlar anonimlashtiriladi (ism, email, telefon, matnlar),
+    ilmiy statistika uchun faqat ID-ga bog'liq raqamli natijalar saqlanadi (O'RQ-547 ga muvofiq).
+    """
+    from app.models.entities import LessonRecord, ApiKey
+    uid = current_user.get("id")
+    user = db.query(User).filter(User.id == uid).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Foydalanuvchi topilmadi.")
+    if user.role == "admin":
+        raise HTTPException(status_code=400, detail="Administrator hisobini bu yo'l bilan o'chirib bo'lmaydi.")
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=400, detail="Parol noto'g'ri.")
+    short = uid[:8]
+    user.email = f"deleted_{short}@anon.tilora"
+    user.full_name = "O'chirilgan foydalanuvchi"
+    user.phone_number = None
+    user.is_active = False
+    user.password_hash = hash_password(secrets.token_urlsafe(24))
+    for r in db.query(LessonRecord).filter(LessonRecord.student_id == uid).all():
+        r.production_text = None; r.drafts = None; r.plan_goal = None; r.plan_strategy = None
+        r.gap_explanation = None; r.next_goal = None; r.comparison_note = None; r.feedback_decisions = None
+    db.query(ApiKey).filter(ApiKey.user_id == uid).delete()
+    db.commit()
+    return {"status": "deleted", "message": "Hisobingiz o'chirildi: shaxsiy ma'lumotlar va matnlar anonimlashtirildi; faqat ID-ga bog'liq raqamli natijalar ilmiy statistika uchun saqlanadi."}
 
 
 @router.post("/logout")

@@ -1266,7 +1266,9 @@
     const liveArea = document.getElementById('researchLiveArea');
     const banner = document.getElementById('researchLiveBanner');
     const badge = document.getElementById('researchSourceBadge');
+    const tcBox = document.getElementById('researchTeacherCompetence');
     if (liveArea) liveArea.style.display = 'none';
+    if (tcBox) tcBox.style.display = 'none';
     if (banner) banner.style.display = researchSource === 'live' ? 'block' : 'none';
     if (badge) badge.textContent = researchSource === 'live' ? "Platformadagi pre/mid/post baholar — real vaqtda hisoblanadi" : "Oldindan hisoblangan yakuniy natijalar (2024–2026)";
     const container = document.getElementById('dissertationTablesArea');
@@ -1300,6 +1302,8 @@
       if (banner) { banner.style.display = 'block'; banner.innerHTML = researchNotice('🔒 ' + msg, 'warn'); }
       if (container) container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted)">Jonli jadvallar uchun ruxsat yo\'q. «📚 Dissertatsiya to\'plami» manbasini tanlang.</div>';
       if (liveArea) liveArea.style.display = 'none';
+      const tcBox = document.getElementById('researchTeacherCompetence');
+      if (tcBox) tcBox.style.display = 'none';
       updateResearchKpis();
       return;
     }
@@ -1311,6 +1315,7 @@
       liveOverview = ov;
       currentResearchData = tables;
       renderLiveBanner(ov, tables);
+      renderTeacherCompetence(ov.teacher_competence);
       updateResearchKpis();
       renderResearchTables();
       if (liveArea) liveArea.style.display = 'block';
@@ -1350,6 +1355,50 @@
       banner.innerHTML = researchNotice('<b>🟡 Ma\'lumotlar hali to\'liq emas</b> — jadvallar hisoblanadi, lekin xulosalar dastlabki.<ul style="margin:6px 0 0;padding-left:18px">' + missing.map(m => '<li>' + esc(m) + '</li>').join('') + '</ul>' + stats, 'warn');
     }
     banner.style.display = 'block';
+  }
+
+  // O'qituvchilar SI-kompetensiyasi dinamikasi (Guskey 2-daraja) — overview.teacher_competence
+  function renderTeacherCompetence(tc) {
+    const box = document.getElementById('researchTeacherCompetence');
+    if (!box) return;
+    tc = tc || {};
+    const comps = tc.components || {};
+    const order = ['cognitive', 'didactic', 'ethical', 'reflective'].filter(k => comps[k]).concat(Object.keys(comps).filter(k => !['cognitive', 'didactic', 'ethical', 'reflective'].includes(k)));
+    const th = 'padding:8px 10px;white-space:nowrap;font-size:12px;text-align:left';
+    const td = 'padding:8px 10px;font-size:13px';
+    const fmt = (v, d) => (v === null || v === undefined || v === '') ? '—' : (typeof v === 'number' ? v.toFixed(d) : String(v));
+    const growthCell = (g) => {
+      if (g === null || g === undefined || g === '—' || g === '') return '<span style="color:var(--muted)">—</span>';
+      const n = Number(String(g).replace('%', '').replace('+', ''));
+      const col = isNaN(n) ? 'var(--ink)' : (n > 0 ? '#16A34A' : (n < 0 ? 'var(--clay)' : 'var(--muted)'));
+      return '<b style="color:' + col + '">' + (!isNaN(n) && n > 0 && !String(g).startsWith('+') ? '+' : '') + esc(g) + (typeof g === 'number' ? '%' : '') + '</b>';
+    };
+    let html = '<div class="card" style="padding:16px">'
+      + '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:6px">'
+      + '<div style="font-weight:700;font-size:14px">👩‍🏫 O\'qituvchilar SI-kompetensiyasi dinamikasi (Guskey 2-daraja)</div>'
+      + '<span class="chip none" style="padding:2px 9px">' + esc(tc.teachers || 0) + ' o\'qituvchi</span></div>'
+      + '<p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Dissertatsiya 2.3 / UNESCO AI CFT 2024: o\'qituvchilarning o\'z-o\'zini baholash varaqasi (4 komponent, 1–5 shkala) bo\'yicha pre → post o\'zgarish, juftlashgan t-mezon.</p>';
+    if (!(tc.teachers > 0)) {
+      html += '<div style="font-size:12.5px;color:var(--muted);padding:12px;border:1px dashed var(--line);border-radius:8px;text-align:center">Hali birorta o\'qituvchi SI-kompetensiya varaqasini to\'ldirmagan. O\'qituvchilar kuzatuv panelidagi «🧠 SI-kompetensiyam» bo\'limida pre/post baholashni o\'tkazgach, dinamika shu yerda ko\'rinadi.</div>';
+    } else {
+      html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;min-width:620px"><thead><tr style="background:var(--surface-2);border-bottom:1.5px solid var(--ink)">'
+        + '<th style="' + th + '">Komponent</th><th style="' + th + ';text-align:center" title="pre va post ikkalasi bor o\'qituvchilar">n (juft)</th><th style="' + th + ';text-align:center">Pre (1–5)</th><th style="' + th + ';text-align:center">Post (1–5)</th><th style="' + th + ';text-align:center">O\'sish</th><th style="' + th + ';text-align:center">t</th><th style="' + th + ';text-align:center">p</th></tr></thead><tbody>';
+      order.forEach(k => {
+        const c = comps[k] || {};
+        const sig = typeof c.p === 'string' && /<\s*0?\.0?5|<\s*0\.01|<\s*0\.001/.test(c.p);
+        html += '<tr style="border-bottom:1px solid var(--line)"><td style="' + td + ';font-weight:600">' + esc(c.name || k) + '</td>'
+          + '<td style="' + td + ';text-align:center">' + esc(c.n_paired == null ? 0 : c.n_paired) + '</td>'
+          + '<td style="' + td + ';text-align:center">' + esc(fmt(c.pre, 2)) + '</td>'
+          + '<td style="' + td + ';text-align:center;font-weight:700">' + esc(fmt(c.post, 2)) + '</td>'
+          + '<td style="' + td + ';text-align:center">' + growthCell(c.growth) + '</td>'
+          + '<td style="' + td + ';text-align:center">' + esc(fmt(c.t, 2)) + '</td>'
+          + '<td style="' + td + ';text-align:center;' + (sig ? 'color:var(--teal);font-weight:700' : '') + '">' + esc(fmt(c.p)) + '</td></tr>';
+      });
+      html += '</tbody></table></div>'
+        + '<div style="font-size:11.5px;color:var(--muted);margin-top:8px">n (juft) — pre va post ikkalasini to\'ldirgan o\'qituvchilar; t va p — juftlashgan t-mezon (n ≥ 2 bo\'lganda). O\'sish — post va pre o\'rtachalari farqi (%).</div>';
+    }
+    box.innerHTML = html + '</div>';
+    box.style.display = 'block';
   }
 
   // KPI kartalari (N, χ² p, Cohen's d, K_s) — ikkala rejimda yuklangan ma'lumotdan

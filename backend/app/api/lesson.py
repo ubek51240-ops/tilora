@@ -74,6 +74,10 @@ _DEFAULT_STATE: Dict[str, Any] = {
     "l1_pattern_ids": [],
     "alternative_text": None,
     "comparison_note": None,
+    "drafts": [],                 # [{n, text, score, rubric, word_count, l1_count, cefr}] — qayta ishlash tarixi
+    "spans": [],
+    "cefr_local": None,
+    "relevance": None,
     "ai_powered": False,
     "ai_evaluation": None,
     "reflection": None,
@@ -177,10 +181,15 @@ def _record_dict(r: LessonRecord, with_text: bool = False) -> Dict[str, Any]:
         "word_count": r.word_count, "score": r.score, "rubric": r.rubric, "self_rating": r.self_rating, "rating_gap": r.rating_gap,
         "feedback_decisions": r.feedback_decisions or [], "l1_pattern_ids": r.l1_pattern_ids or [], "comparison_note": r.comparison_note,
         "ai_powered": r.ai_powered, "gap_explanation": r.gap_explanation, "next_goal": r.next_goal,
+        "revision_count": r.revision_count or 0, "first_score": r.first_score, "cefr_estimate": r.cefr_estimate, "relevance_score": r.relevance_score,
+        "score_improvement": (r.score - r.first_score) if (r.score is not None and r.first_score is not None) else None,
         "teacher_extension": r.teacher_extension, "created_at": r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
     }
     if with_text:
         d["production_text"] = r.production_text
+        d["drafts"] = r.drafts or []
+    else:
+        d["drafts"] = [{k: v for k, v in dd.items() if k != "text"} for dd in (r.drafts or [])]
     return d
 
 
@@ -268,22 +277,73 @@ async def submit_production(lesson_id: str, payload: ProductionSubmit, current_u
     if st.get("independent_entered_at") and not st.get("independent_seconds"):
         st["independent_seconds"] = int(time.time() - st["independent_entered_at"])
 
-    fb = await analyze_production_feedback_async(text, lesson_id)
-    st["actual_rating"] = fb["score_data"]["rubric"]
-    st["score"] = fb["score_data"]["total_score"]
-    st["feedback_items"] = fb["feedback_items"]
-    st["ai_powered"] = fb.get("ai_powered", False)
-    # Takrorlanuvchi L1 xatolarini kuzatish uchun naqsh identifikatorlari
-    from app.services.l1 import analyze_l1_interference
-    st["l1_pattern_ids"] = sorted({i.get("pattern_id") for i in analyze_l1_interference(text) if i.get("pattern_id")})
-
+    st["drafts"] = []
+    result = await _analyze_and_store(st, lesson_id, text, draft_n=1)
     st["current_stage"] = "analysis"
     st["ai_locked"] = False
+    return {"lesson_id": lesson_id, "status": "submitted", "word_count": payload.word_count, "stage": "analysis", **result}
+
+
+async def _analyze_and_store(st: Dict[str, Any], lesson_id: str, text: str, draft_n: int) -> Dict[str, Any]:
+    """Matnni tahlil qilib holatga yozadi; qoralama tarixiga qo'shadi (Write & Improve: har bir versiya saqlanadi)."""
+    fb = await analyze_production_feedback_async(text, lesson_id)
+    sd = fb["score_data"]
+    st["actual_rating"] = sd["rubric"]
+    st["score"] = sd["total_score"]
+    st["feedback_items"] = fb["feedback_items"]
+    st["ai_powered"] = fb.get("ai_powered", False)
+    st["spans"] = fb.get("spans", [])
+    st["cefr_local"] = sd.get("cefr_estimate_local")
+    st["relevance"] = sd.get("relevance")
+    from app.services.l1 import analyze_l1_interference
+    l1 = analyze_l1_interference(text)
+    st["l1_pattern_ids"] = sorted({i.get("pattern_id") for i in l1 if i.get("pattern_id")})
+    st.setdefault("drafts", []).append({
+        "n": draft_n, "text": text, "score": sd["total_score"], "rubric": sd["rubric"], "word_count": len(text.split()),
+        "l1_count": len(l1), "cefr": (sd.get("cefr_estimate_local") or {}).get("level"), "relevance": (sd.get("relevance") or {}).get("score"),
+        "at": time.strftime("%H:%M:%S"),
+    })
+    prev = st["drafts"][-2] if len(st["drafts"]) >= 2 else None
     return {
-        "lesson_id": lesson_id, "status": "submitted", "word_count": payload.word_count, "stage": "analysis",
-        "ai_powered": fb.get("ai_powered", False), "score_data": fb["score_data"], "feedback_items": fb["feedback_items"],
-        "summary": fb.get("summary", ""), "l1_pattern_ids": st["l1_pattern_ids"],
+        "ai_powered": fb.get("ai_powered", False), "score_data": sd, "feedback_items": fb["feedback_items"], "spans": st["spans"],
+        "summary": fb.get("summary", ""), "l1_pattern_ids": st["l1_pattern_ids"], "draft_n": draft_n,
+        "cefr_estimate_local": st["cefr_local"], "relevance": st["relevance"],
+        "delta": {"score": sd["total_score"] - prev["score"], "l1_count": len(l1) - prev["l1_count"], "words": len(text.split()) - prev["word_count"]} if prev else None,
     }
+
+
+class ReviseIn(BaseModel):
+    content_text: str = Field(..., min_length=10, max_length=MAX_PRODUCTION_CHARS)
+
+
+@router.post("/{lesson_id}/revise")
+async def revise_production(lesson_id: str, payload: ReviseIn, current_user: dict = Depends(get_current_user)):
+    """
+    Tahliliy usul (3.2, 4-guruh): talaba izoh asosida matnni QAYTA ISHLAYDI va qayta topshiradi
+    (Criterion "Revise", Write & Improve versiyalar tarixi). Faqat tahlil bosqichida; AI qulfi tegmaydi —
+    talaba o'zi tahrirlaydi. Ko'pi bilan 5 ta qoralama.
+    """
+    st = get_lesson_state(_uid(current_user))
+    if not st.get("drafts"):
+        raise HTTPException(status_code=400, detail="Avval 3-bosqichda birinchi variantni topshiring.")
+    if len(st["drafts"]) >= 5:
+        raise HTTPException(status_code=400, detail="Ko'pi bilan 5 ta qoralama. Endi refleksiyaga o'ting.")
+    text = _check_text(payload.content_text)
+    if text == st["drafts"][-1]["text"]:
+        raise HTTPException(status_code=400, detail="Matn o'zgarmagan. Izohlar asosida kamida bitta tuzatish kiriting.")
+    st["production_text"] = text
+    st["self_rating"] = None
+    st["ai_evaluation"] = None
+    result = await _analyze_and_store(st, lesson_id, text, draft_n=len(st["drafts"]) + 1)
+    return {"lesson_id": lesson_id, "status": "revised", "stage": "analysis", **result,
+            "drafts": [{k: v for k, v in d.items() if k != "text"} for d in st["drafts"]]}
+
+
+@router.get("/{lesson_id}/drafts")
+def get_drafts(lesson_id: str, current_user: dict = Depends(get_current_user)):
+    """Qoralama versiyalari tarixi (matn bilan) — yonma-yon solishtirish uchun."""
+    st = get_lesson_state(_uid(current_user))
+    return {"lesson_id": lesson_id, "drafts": st.get("drafts", []), "count": len(st.get("drafts", []))}
 
 
 @router.get("/{lesson_id}/feedback")
@@ -457,6 +517,11 @@ def submit_reflection(lesson_id: str, payload: ReflectionSubmit, db: Session = D
         rating_gap=_rating_gap(st.get("self_rating") or {}, st.get("actual_rating") or {}),
         feedback_decisions=decisions, l1_pattern_ids=st.get("l1_pattern_ids") or [], comparison_note=st.get("comparison_note"),
         ai_powered=bool(st.get("ai_powered")), gap_explanation=gap, next_goal=goal,
+        drafts=[{k: (v[:20000] if k == "text" else v) for k, v in d.items()} for d in (st.get("drafts") or [])],
+        revision_count=max(0, len(st.get("drafts") or []) - 1),
+        first_score=(st.get("drafts") or [{}])[0].get("score") if st.get("drafts") else st.get("score"),
+        cefr_estimate=(st.get("cefr_local") or {}).get("level"),
+        relevance_score=(st.get("relevance") or {}).get("score"),
     )
     db.add(rec)
     db.commit()

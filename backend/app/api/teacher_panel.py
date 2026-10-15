@@ -214,6 +214,29 @@ def extend_feedback(record_id: str, payload: ExtendIn, db: Session = Depends(get
     return {"status": "success", "record": _record_dict(r)}
 
 
+@router.get("/observation/export")
+def observation_export(group_id: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
+    """Kuzatuv varaqasini Excel (.xlsx) ga eksport qilish (dissertatsiya ilovasi uchun)."""
+    import io
+    import openpyxl
+    from fastapi.responses import StreamingResponse
+    data = observation_sheet(group_id, db, current_user)
+    wb = openpyxl.Workbook(); ws = wb.active; ws.title = "Kuzatuv varaqasi"
+    ws.append(["Talaba", "Mashg'ulotlar", "Birinchi ball", "Oxirgi ball", "O'rtacha", "Dinamika", "Mustaqil bosqich (daq)", "O'rtacha so'z",
+               "Yordam so'rovlari", "O'z-o'zini tekshirish", "O'z bahosi farqi", "Izohni qabul ulushi", "Takrorlanuvchi L1", "Variantlar", "Oxirgi"])
+    for r in data["rows"]:
+        ws.append([r["full_name"], r["records"], r.get("first_score"), r.get("last_score"), r.get("avg_score"), r.get("trend"),
+                   r.get("avg_independent_minutes"), r.get("avg_words"), r.get("help_requests"), r.get("self_checks"), r.get("avg_rating_gap"),
+                   r.get("feedback_accept_rate"), ", ".join(f"{x['pattern_id']}×{x['count']}" for x in r.get("recurring_l1", [])),
+                   ", ".join(r.get("variants", [])), r.get("last")])
+    ws2 = wb.create_sheet("Izoh"); ws2.append(["Ko'rsatkich", "Ma'nosi"])
+    for k, v in data["legend"].items():
+        ws2.append([k, v])
+    buf = io.BytesIO(); wb.save(buf); buf.seek(0)
+    return StreamingResponse(buf, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={"Content-Disposition": "attachment; filename=TILORA_kuzatuv_varaqasi.xlsx"})
+
+
 @router.get("/observation")
 def observation_sheet(group_id: Optional[str] = None, db: Session = Depends(get_db), current_user: dict = Depends(get_current_user)):
     """Kuzatuv varaqasi (4.1): har talaba bo'yicha jarayon ko'rsatkichlari — sur'at, yordam so'rovlari, o'z-o'zini tekshirish,

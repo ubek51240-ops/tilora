@@ -86,7 +86,7 @@ def _env_bool(name: str, default: bool) -> bool:
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "TILORA Adaptiv Ta'lim Platformasi"
-    VERSION: str = "2.2.0"
+    VERSION: str = "2.3.0"
     API_V1_STR: str = "/api"
     SECRET_KEY: str = _resolve_secret_key()
     ALGORITHM: str = "HS256"

@@ -164,6 +164,20 @@ Dissertatsiya 3.3-bo'limidagi besh funksional modul va 4.1–4.2 tajriba-sinov t
 
 Metakognitiv anketa (MSLQ/MAI asosida 12 band: rejalashtirish, monitoring, baholash, o'zini boshqarish) kirish diagnostikasiga qo'shildi; natijalar `assessments` jadvaliga `pre`/`post` sifatida yoziladi. Statistika `app/services/statistics.py` da tashqi kutubxonasiz.
 
+## 🔁 4.4. O'xshash platformalardan olingan yechimlar (v2.3)
+
+Write & Improve (Cambridge), ETS Criterion, Duolingo, ELSA, Moodle va UNESCO AI CFT (2024) tahlili asosida:
+
+| Yechim | Manba g'oya | TILORA da |
+|---|---|---|
+| Qayta ishlash tsikli (5 tagacha qoralama, versiyalar tarixi, o'sish deltasi, yonma-yon solishtirish) | Criterion "Revise", Write & Improve versiyalar | `POST /lesson/{id}/revise`, `GET /lesson/{id}/drafts`; yozuvda `drafts`, `revision_count`, `first_score` |
+| Xato joylarini matnda belgilash (so'z/gap darajasi) | Write & Improve, Criterion trait highlight | `spans` (L1 naqshlari offsetlari) → `<mark>` |
+| Lokal CEFR bahosi (sabab bilan) va topshiriqqa moslik | Write & Improve CEFR level, prompt relevance | `services/cefr_estimate.py` (deterministik, shaffof) |
+| O'qituvchi SI-kompetensiyasi o'z-o'zini baholash (4 komponent × 4 band, 3 daraja), rivojlantirish yo'llari, pre/post dinamika; AI vositasini baholash varaqasi (8 mezon) | UNESCO AI CFT 2024 + dissertatsiya 2.3 / 3.1 | `/teacher/competence/*`; tadqiqot overview `teacher_competence` (Guskey 2-daraja) |
+| Kuzatuv varaqasi Excel eksporti | Moodle hisobotlari | `GET /teacher/panel/observation/export` |
+| Inklyuzivlik: shrift kattaligi va yuqori kontrast rejimi | WCAG | top-bar tugmalari |
+| Ma'lumotlarni o'chirish huquqi (anonimlashtirish) | GDPR/O'RQ-547 | `DELETE /auth/me` |
+
 ## 👥 5. Demo Hisoblar Ma'lumotlari
 
 Demo hisoblar paroli `SEED_PASSWORD` muhit o'zgaruvchisi bilan belgilanadi (standart: `tilora2026!`, faqat lokal demo uchun; ishlab chiqarishda o'zgartiring).

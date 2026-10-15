@@ -103,8 +103,10 @@ def get_live_overview(db: Session = Depends(get_db)):
     arms = {"experimental": 0, "control": 0, "none": 0}
     for g in groups:
         arms[g.experiment_arm if g.experiment_arm in arms else "none"] += 1
+    from app.api.teacher_competence import teacher_competence_summary
     return {
         "completeness": t["completeness"],
+        "teacher_competence": teacher_competence_summary(db),
         "groups_by_arm": arms,
         "institutions": [{"id": i.id, "name": i.name, "short_name": i.short_name} for i in db.query(Institution).all()],
         "assessments_total": db.query(Assessment).count(),

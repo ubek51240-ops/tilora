@@ -108,6 +108,28 @@
           <td style="padding:8px;border-bottom:1px solid var(--line-2);color:var(--muted);font-size:12px">${esc(c.note)}</td>
         </tr>`).join("")}</tbody></table></div>`);
 
+      // Benchmark: o'xshash platformalar (methodology.benchmarks)
+      const bm = m.benchmarks || [];
+      const safeUrl = (u) => (/^https?:\/\//i.test(String(u || "")) ? String(u) : "");
+      const bth = "text-align:left;padding:8px;border-bottom:1px solid var(--line);white-space:nowrap";
+      const btd = "padding:8px;border-bottom:1px solid var(--line-2);vertical-align:top;line-height:1.5";
+      setHtml("aboutBenchmarks", bm.length ? `<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;min-width:760px">
+        <thead><tr style="color:var(--muted);font-size:11.5px;text-transform:uppercase">
+          <th style="${bth}">Platforma</th>
+          <th style="${bth}">Kuchli tomoni</th>
+          <th style="${bth}">TILORA ga qabul qilingan</th>
+          <th style="${bth}">TILORA ning farqi</th></tr></thead>
+        <tbody>${bm.map(b => {
+          const u = safeUrl(b.url);
+          const name = u ? `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);font-weight:700;text-decoration:none">${esc(b.platform)} ↗</a>` : `<b>${esc(b.platform)}</b>`;
+          return `<tr>
+          <td style="${btd};min-width:150px">${name}${u ? `<div style="font-size:10.5px;color:var(--muted);word-break:break-all">${esc(u.replace(/^https?:\/\//i, ""))}</div>` : ""}</td>
+          <td style="${btd};color:var(--ink-2)">${esc(b.strength)}</td>
+          <td style="${btd}"><span style="color:var(--teal)">✔</span> ${esc(b.tilora_adopted)}</td>
+          <td style="${btd};color:var(--ink-2)"><span style="color:var(--clay)">◆</span> ${esc(b.tilora_difference)}</td>
+        </tr>`; }).join("")}</tbody></table></div>`
+        : `<div style="color:var(--muted);font-size:12.5px">Benchmark ro'yxati mavjud emas.</div>`);
+
       setHtml("aboutReferences", `<ol style="padding-left:20px;font-size:12.5px;line-height:1.7;color:var(--ink-2)">${(m.references || []).map(r => `<li>${esc(r)}</li>`).join("")}</ol>`);
     } catch (e) {
       setHtml("aboutRules", `<div style="color:var(--muted)">Metodika yuklanmadi (${esc(e.message)}).</div>`);

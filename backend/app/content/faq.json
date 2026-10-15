@@ -61,6 +61,11 @@
   },
   {
     "audience": "student",
+    "q": "Matnni izohlardan keyin qayta ishlab, qayta topshirsam bo'ladimi?",
+    "a": "Ha. 4-bosqichda 'Qayta ishlash' orqali matningizni o'zingiz tahrirlab qayta topshirasiz (5 tagacha qoralama). Har bir versiya saqlanadi: ball, L1 xatolar soni, so'z soni, taxminiy CEFR va topshiriqqa moslik — o'sish farqi ko'rsatiladi. Bu tahliliy usul (dissertatsiya 3.2): texnologiya izoh beradi, matnni tuzatish va asoslash esa sizning ishingiz. Xato joylari matnda belgilanadi (Write & Improve kabi), lekin tayyor tuzatilgan matn berilmaydi."
+  },
+  {
+    "audience": "student",
     "q": "'Mening dinamikam' bo'limida nimalarni ko'raman?",
     "a": "Har bir yakunlangan mashg'ulot yozuvi: ball, variant, ko'mak darajasi, o'z bahoyingiz bilan tizim bahosi farqi (metakognitiv aniqlik), mustaqil bosqichda sarflangan vaqt, keyingi maqsadingiz; ko'nikma bo'yicha o'sish, ko'mak yo'li, pre/post diagnostika natijalari va profil tarixi. Bu refleksiya modulining 'dinamika ko'rsatkichlari' qismi."
   },

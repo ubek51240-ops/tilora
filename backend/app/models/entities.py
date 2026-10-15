@@ -466,6 +466,12 @@ class LessonRecord(Base):
     # Refleksiya
     gap_explanation = Column(Text, nullable=True)
     next_goal = Column(Text, nullable=True)
+    # Qayta ishlash (tahliliy usul): barcha qoralama versiyalar (Write & Improve / Criterion uslubi)
+    drafts = Column(JSON, nullable=True)              # [{n, text, score, rubric, word_count, l1_count, cefr}]
+    revision_count = Column(Integer, default=0)
+    first_score = Column(SmallInteger, nullable=True)
+    cefr_estimate = Column(String(2), nullable=True)  # lokal CEFR bahosi (A2/B1/B2/C1)
+    relevance_score = Column(SmallInteger, nullable=True)  # topshiriqqa moslik (0–100)
     teacher_extension = Column(Text, nullable=True)   # o'qituvchi izohni jarayon/o'zini boshqarish darajasiga ko'taradi
     teacher_id = Column(String(36), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, index=True)

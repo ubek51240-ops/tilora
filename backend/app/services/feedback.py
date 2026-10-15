@@ -84,6 +84,8 @@ def analyze_production_heuristics(text: str) -> Dict[str, Any]:
             "badge": badge,
             "title": item.get("issue_short", "L1 interferensiyasi aniqlandi"),
             "matched_text": matched,
+            "span": item.get("span"),
+            "pattern_id": item.get("pattern_id"),
             "reason": item.get("issue_reason", "Ona tili sintaktik ta'siri."),
             "suggestion": item.get("suggestion", "")
         })
@@ -195,11 +197,20 @@ def analyze_production_heuristics(text: str) -> Dict[str, Any]:
     # Total scoreni yangilash
     rub = score_data["rubric"]
     score_data["total_score"] = int(((rub["content"] + rub["grammar"] + rub["lexis"] + rub["coherence"]) / 20) * 100)
-    
+
+    # Lokal CEFR bahosi va topshiriqqa moslik (Write & Improve uslubidagi summativ ko'rsatkichlar, shaffof sabab bilan)
+    from app.services.cefr_estimate import estimate_cefr, relevance_score
+    cefr = estimate_cefr(clean_text, l1_error_count=len(l1_findings), quality=quality)
+    relevance = relevance_score(clean_text, ASSESSMENT_TOPIC_KEYWORDS)
+    score_data["cefr_estimate_local"] = cefr
+    score_data["relevance"] = relevance
+    score_data["l1_error_count"] = len(l1_findings)
+
     return {
         "score_data": score_data,
         "feedback_items": feedback_items,
-        "text_quality": quality
+        "text_quality": quality,
+        "spans": [{"id": f"fb_l1_{i}", "span": it.get("span"), "title": it.get("issue_short")} for i, it in enumerate(l1_findings, 1) if it.get("span")],
     }
 
 async def analyze_production_feedback_async(text: str, lesson_id: str = "5") -> Dict[str, Any]:
@@ -258,17 +269,22 @@ async def analyze_production_feedback_async(text: str, lesson_id: str = "5") -> 
                 "total_score": tot,
                 "word_count": len(re.findall(r"\b\w+\b", text)),
                 "rubric": rub,
-                "text_quality": quality
+                "text_quality": quality,
+                "cefr_estimate_local": heuristics["score_data"].get("cefr_estimate_local"),
+                "relevance": heuristics["score_data"].get("relevance"),
+                "l1_error_count": heuristics["score_data"].get("l1_error_count", 0),
             },
             "feedback_items": ai_items,
+            "spans": heuristics.get("spans", []),
             "summary": ai_result.get("summary", "DeepSeek AI matnni to'liq o'qib tahlil qildi.")
         }
-        
+
     # Agar AI bo'sh bo'lsa (masalan API balans 0 yoki oflayn), to'liq o'qilgan dinamik tahlil qaytariladi
     return {
         "ai_powered": False,
         "score_data": heuristics["score_data"],
         "feedback_items": heuristics["feedback_items"],
+        "spans": heuristics.get("spans", []),
         "summary": "Matn barcha mezonlar (L1 interferensiyasi, so'z boyligi, takrorlar va izchillik) bo'yicha to'liq o'qib chiqildi."
     }
 

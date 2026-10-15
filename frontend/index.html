@@ -177,7 +177,10 @@
           <span>📶</span> <span id="wifiShareText" data-i18n="wifi_btn">Wi-Fi</span>
         </button>
         <button id="btnToggleTheme" class="btn-primary" style="padding:6px 12px;background:none;color:var(--ink);border:1px solid var(--line);font-size:15px" title="Mavzuni almashtirish">◑</button>
-        
+        <!-- Inklyuzivlik: shrift o'lchami va yuqori kontrast -->
+        <button id="btnFontSize" class="btn-primary a11y-btn" onclick="window.cycleFontSize && window.cycleFontSize()" style="padding:6px 10px;background:none;color:var(--ink);border:1px solid var(--line);font-size:13px;font-weight:700" title="Shrift o'lchami: oddiy → katta → juda katta" aria-label="Shrift o'lchamini o'zgartirish">A+</button>
+        <button id="btnContrast" class="btn-primary a11y-btn" onclick="window.toggleHighContrast && window.toggleHighContrast()" style="padding:6px 10px;background:none;color:var(--ink);border:1px solid var(--line);font-size:12.5px" title="Yuqori kontrast rejimi" aria-pressed="false">◐ Kontrast</button>
+
         <!-- Foydalanuvchi Profili va Kirish / Chiqish -->
         <div id="userProfileArea" style="display:flex;align-items:center;gap:8px;margin-left:4px">
           <div id="userProfileBadge" style="display:none;align-items:center;gap:8px;background:var(--surface-2);padding:4px 10px;border-radius:20px;border:1px solid var(--line);cursor:pointer" title="Foydalanuvchi profili" onclick="showScreen('s_profile')">
@@ -660,12 +663,51 @@
           <p data-i18n="lesson_stage4_desc" style="font-size:13px;color:var(--muted)">Tizim tayyor tuzatish bermaydi, faqat xato sababini ko'rsatadi. Har bir izohga munosabatingizni bildiring.</p>
         </div>
 
+        <!-- Tahlil xulosasi: taxminiy CEFR, topshiriqqa moslik, ball, L1, qoralama raqami (Write & Improve uslubida) -->
+        <div id="analysisSummaryStrip" style="display:none;margin-bottom:14px"></div>
+
+        <!-- So'z/gap darajasida belgilangan matn (tuzatilgan matn BERILMAYDI — faqat joy belgilanadi) -->
+        <div id="textHighlightCard" class="card" style="display:none;margin-bottom:16px;padding:16px 18px">
+          <h3 style="margin-bottom:8px">📝 Matningiz (xato joylari belgilangan)</h3>
+          <p style="font-size:12.5px;color:var(--muted);margin:0 0 10px">Belgilangan joyni bossangiz, tegishli izohga o'tasiz. Tizim tuzatilgan variantni bermaydi — tahrir qarori sizda.</p>
+          <div id="textHighlightBox" class="text-highlight-box" aria-live="polite"></div>
+          <div id="textHighlightEmpty" style="display:none;font-size:12.5px;color:var(--teal);margin-top:6px">✓ L1 interferensiyasiga oid belgilanadigan joy topilmadi.</div>
+        </div>
+
         <div id="feedbackItemsList"></div>
 
         <div class="why-box" data-i18n="lesson_stage4_why" data-i18n-html="true" style="margin-top:20px">
           <b>Tizim izoh berish qoidasi</b><br>
-          Izohlar Hattie & Timperley modeli bo'yicha berildi. Ona tili interferensiyasi (o'zbek tilidagi sintaksisning ingliz tiliga xato ko'chirilishi) 
+          Izohlar Hattie & Timperley modeli bo'yicha berildi. Ona tili interferensiyasi (o'zbek tilidagi sintaksisning ingliz tiliga xato ko'chirilishi)
           alohida belgilandi. Yakuniy tuzatish qarori talabada qoladi.
+        </div>
+
+        <!-- Qayta ishlash (Criterion "Revise" / Write & Improve versiyalar tarixi) -->
+        <div class="card" id="reviseCard" style="display:none;margin-top:20px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+            <div>
+              <h3 style="margin-bottom:4px">♻️ Qayta ishlash: izohlar asosida matnni o'zingiz tahrirlang</h3>
+              <p style="margin:0;font-size:12.5px;color:var(--muted)">Tizim tayyor tuzatilgan matn bermaydi. Belgilangan joylar va izohlardan kelib chiqib kamida bitta tuzatish kiriting va qayta topshiring — har bir versiya saqlanadi (ko'pi bilan 5 ta qoralama).</p>
+            </div>
+            <span class="chip" id="reviseDraftChip" style="background:var(--teal-soft);color:var(--teal);border-color:#BCD9D3;font-weight:700">Qoralama 1</span>
+          </div>
+          <label for="reviseText" style="font-size:12px;font-weight:600;color:var(--ink-2);display:block;margin-bottom:4px">Joriy qoralama matni (tahrirlang):</label>
+          <textarea id="reviseText" class="task-editor" maxlength="20000" style="min-height:170px" oninput="window.updateReviseCounter && window.updateReviseCounter()" placeholder="Oxirgi qoralama matni shu yerda. Izohlar asosida tahrirlang..."></textarea>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:10px">
+            <span id="reviseCounter" style="font-size:12.5px;color:var(--muted);font-family:var(--mono)">0 so'z · 0 belgi</span>
+            <span id="reviseChanged" style="font-size:12px;color:var(--muted)"></span>
+            <button class="btn-primary" id="btnRevise" style="margin-left:auto;background:var(--teal)" onclick="submitRevision()">♻️ Qayta ishlab, qayta topshirish</button>
+          </div>
+          <div id="reviseMsg" style="display:none;margin-top:10px;padding:9px 12px;border-radius:6px;font-size:12.5px;line-height:1.5"></div>
+
+          <div id="draftHistoryBox" style="display:none;margin-top:18px;border-top:1px dashed var(--line);padding-top:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:8px">
+              <h4 style="margin:0;font-size:13px;letter-spacing:.8px;text-transform:uppercase;color:var(--ink-2)">🗂️ Versiyalar tarixi</h4>
+              <div id="draftSparkline" title="Qoralamalar ballari (0–100)" style="display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)"></div>
+            </div>
+            <div id="draftHistoryTable"></div>
+            <div id="draftCompareBox" style="display:none;margin-top:14px"></div>
+          </div>
         </div>
 
         <!-- DeepSeek AI Chuqur Tahlil Paneli -->
@@ -1519,6 +1561,8 @@
 
       <!-- Jonli rejim: to'liqlik banneri (research/live/overview) -->
       <div id="researchLiveBanner" style="display:none;margin-bottom:14px"></div>
+      <!-- Jonli rejim: o'qituvchilar SI-kompetensiyasi dinamikasi (overview.teacher_competence, Guskey 2-daraja) -->
+      <div id="researchTeacherCompetence" style="display:none;margin-bottom:14px"></div>
 
       <!-- KPI Kartalari (4 ta asosiy statistik mezon) -->
       <div class="grid-4" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:10px">
@@ -1635,6 +1679,7 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecModel')">Model va qoidalar</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecStages')">5 bosqich</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCompare')">O'xshash tizimlar bilan taqqoslash</button>
+        <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecBenchmark')">Platformalar benchmarki</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecGlossary')">Glossariy</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecCefr')">CEFR darajalari</button>
         <button class="btn-preset gen-preset" onclick="window.scrollAboutTo('aboutSecL1')">L1 interferensiyasi</button>
@@ -1671,6 +1716,11 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
       <!-- 3. Taqqoslash -->
       <h3 id="aboutSecCompare" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">3. O'xshash tizimlar bilan taqqoslash</h3>
       <div class="card" id="aboutComparison" style="margin-bottom:22px"></div>
+
+      <!-- 3a. Benchmark: o'xshash platformalar -->
+      <h3 id="aboutSecBenchmark" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">O'xshash platformalar bilan taqqoslash (benchmark)</h3>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:10px">Har bir platformaning kuchli tomoni, TILORA ga qabul qilingan yechim va TILORA ning farqli jihati (dissertatsiya 1.3 / 3.3).</p>
+      <div class="card" id="aboutBenchmarks" style="margin-bottom:22px">Yuklanmoqda...</div>
 
       <!-- 4. Glossariy -->
       <h3 id="aboutSecGlossary" style="font-family:var(--serif);font-size:19px;margin-bottom:8px">4. ELT metodikasi glossariysi</h3>
@@ -2534,6 +2584,31 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
         <button type="submit" id="btnSaveAccountSettings" class="btn-primary" style="flex:2;height:40px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer">💾 O'zgarishlarni saqlash</button>
       </div>
     </form>
+
+    <!-- Ma'lumotlar himoyasi: hisobni o'chirish (anonimlashtirish) — O'RQ-547 -->
+    <details id="deleteAccountDetails" class="danger-details" style="margin-top:16px;border:1px solid #E4C6BC;border-radius:10px;background:var(--clay-soft)">
+      <summary style="cursor:pointer;padding:10px 14px;font-size:13px;font-weight:700;color:var(--clay);list-style:none;display:flex;align-items:center;gap:8px">
+        <span>🗑️</span> <span>Hisobimni va shaxsiy ma'lumotlarimni o'chirish</span>
+      </summary>
+      <div style="padding:4px 14px 14px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:12.5px;line-height:1.55;color:var(--ink-2)">
+          <b>Nima bo'ladi?</b> Ismingiz, loginingiz (email), telefon raqamingiz va barcha yozma matnlaringiz (qoralamalar, rejalar, refleksiyalar, izoh qarorlari)
+          <b>anonimlashtiriladi</b> va hisob o'chiriladi — qayta kirib bo'lmaydi. Ilmiy tadqiqot statistikasi uchun faqat shaxsga bog'lanmagan,
+          ID-ga bog'liq <b>raqamli natijalar</b> (ball, vaqt, xatolar soni) saqlanib qoladi. Bu O'zbekiston Respublikasining
+          "Shaxsga doir ma'lumotlar to'g'risida"gi Qonuni (O'RQ-547) va tadqiqot etikasi talablariga muvofiq amalga oshiriladi.
+        </div>
+        <div>
+          <label for="deleteAccountPassword" style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--ink-2)">Joriy parolingiz:</label>
+          <input type="password" id="deleteAccountPassword" autocomplete="current-password" placeholder="Tasdiqlash uchun parol" style="width:100%;height:38px;padding:0 12px;border:1px solid #E4C6BC;border-radius:8px;background:var(--card);box-sizing:border-box;font-size:13px;color:var(--ink)">
+        </div>
+        <div>
+          <label for="deleteAccountConfirm" style="display:block;font-size:12px;font-weight:600;margin-bottom:4px;color:var(--ink-2)">Tasdiqlash uchun <b style="font-family:var(--mono);color:var(--clay)">O'CHIRISH</b> so'zini yozing:</label>
+          <input type="text" id="deleteAccountConfirm" autocomplete="off" placeholder="O'CHIRISH" style="width:100%;height:38px;padding:0 12px;border:1px solid #E4C6BC;border-radius:8px;background:var(--card);box-sizing:border-box;font-size:13px;color:var(--ink);font-family:var(--mono)">
+        </div>
+        <div id="deleteAccountMsg" style="display:none;padding:9px 12px;border-radius:6px;font-size:12.5px;line-height:1.4"></div>
+        <button type="button" id="btnDeleteAccount" class="btn-primary" onclick="window.submitDeleteAccount && window.submitDeleteAccount()" style="height:40px;background:var(--clay);color:#fff;border:none;border-radius:8px;font-weight:700">🗑️ Hisobni butunlay o'chirish</button>
+      </div>
+    </details>
   </div>
 </div>
 

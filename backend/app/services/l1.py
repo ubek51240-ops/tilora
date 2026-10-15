@@ -32,6 +32,8 @@ def analyze_l1_interference(text: str) -> List[Dict[str, Any]]:
                     "suggestion": item.get("suggestion", ""),
                     "l1_interference": True,
                     "matched_text": match.group(0),
+                    "span": [match.start(), match.end()],  # matnda belgilash uchun (so'z/gap darajasidagi izoh)
+                    "example_right": item.get("example_right", ""),
                     "feedback_level": "task" # Hattie-Timperley task darajasi
                 })
         except Exception:

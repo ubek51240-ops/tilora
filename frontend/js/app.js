@@ -308,7 +308,11 @@ function showScreen(screenId) {
 
   // URL hashni yangilash (sahifa yangilanganda holat saqlanishi uchun)
   if (window.location.hash.slice(1) !== screenId) {
-    history.replaceState(null, "", `#${screenId}`);
+    // Sahifa hali yuklanayotganda hash o'rnatilsa, brauzer #screenId bo'limiga avtomatik skroll qiladi
+    // (sahifa boshi yuqori panel ostida qolib ketadi). Shuning uchun hash faqat yuklanish tugagach yoziladi.
+    const setHash = () => history.replaceState(null, "", `#${screenId}`);
+    if (document.readyState === "complete") setHash();
+    else window.addEventListener("load", () => setTimeout(setHash, 0), { once: true });
   }
 }
 

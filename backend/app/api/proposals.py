@@ -11,13 +11,44 @@ from app.core.deps import get_current_user
 router = APIRouter(prefix="/proposals", tags=["Takliflar va Pedagogik Muloqot"])
 
 class ProposalCreateRequest(BaseModel):
-    receiver_id: str = Field(..., min_length=1, max_length=64)
+    # Cheklovlar handler ichida tekshiriladi — foydalanuvchi 422 "[object Object]" emas,
+    # tushunarli o'zbekcha xabar olishi uchun (pydantic xatosi detail=ro'yxat qaytaradi).
+    receiver_id: Optional[str] = ""
     receiver_role: Optional[str] = "teacher"  # teacher | student | all
     direction: Optional[str] = None  # teacher_to_teacher, student_to_teacher, student_to_student, teacher_to_student
-    proposal_type: str = Field("general", pattern="^(methodology|assignment|scaffolding|peer_learning|general)$")
-    title: str = Field(..., min_length=3, max_length=200)
-    proposal_text: str = Field(..., min_length=5, max_length=5000)
-    basis: Optional[str] = Field("", max_length=2000)
+    proposal_type: Optional[str] = "general"
+    title: Optional[str] = ""
+    proposal_text: Optional[str] = ""
+    basis: Optional[str] = ""
+
+
+PROPOSAL_USER_TYPES = ("methodology", "assignment", "scaffolding", "peer_learning", "general")
+TITLE_MIN, TITLE_MAX = 3, 200
+TEXT_MIN, TEXT_MAX = 5, 5000
+BASIS_MAX = 2000
+
+
+def _validate_proposal_request(req: "ProposalCreateRequest") -> None:
+    """Taklif maydonlarini tekshiradi; xato bo'lsa 400 va o'zbekcha tushunarli xabar."""
+    receiver_id = (req.receiver_id or "").strip()
+    title = (req.title or "").strip()
+    text = (req.proposal_text or "").strip()
+    basis = (req.basis or "").strip()
+    if not receiver_id or len(receiver_id) > 64:
+        raise HTTPException(status_code=400, detail="Qabul qiluvchi tanlanmagan. Iltimos, o'qituvchi yoki talabani tanlang.")
+    if len(title) < TITLE_MIN:
+        raise HTTPException(status_code=400, detail=f"Taklif mavzusi kamida {TITLE_MIN} ta belgidan iborat bo'lishi kerak.")
+    if len(title) > TITLE_MAX:
+        raise HTTPException(status_code=400, detail=f"Taklif mavzusi juda uzun (maksimum {TITLE_MAX} belgi).")
+    if len(text) < TEXT_MIN:
+        raise HTTPException(status_code=400, detail=f"Taklif matni kamida {TEXT_MIN} ta belgidan iborat bo'lishi kerak.")
+    if len(text) > TEXT_MAX:
+        raise HTTPException(status_code=400, detail=f"Taklif matni juda uzun (maksimum {TEXT_MAX} belgi).")
+    if len(basis) > BASIS_MAX:
+        raise HTTPException(status_code=400, detail=f"Taklif asosi juda uzun (maksimum {BASIS_MAX} belgi).")
+    req.receiver_id, req.title, req.proposal_text, req.basis = receiver_id, title, text, basis
+    if req.proposal_type not in PROPOSAL_USER_TYPES:
+        req.proposal_type = "general"
 
 class ProposalActionRequest(BaseModel):
     teacher_comment: Optional[str] = None
@@ -277,6 +308,7 @@ def create_proposal(
     O'qituvchi yoki talaba tomonidan boshqa o'qituvchiga yoki talabaga taklif yuborish.
     O'qituvchilar o'zaro, talabalar o'qituvchilarga, talabalar o'zaro, o'qituvchilar talabalarga.
     """
+    _validate_proposal_request(req)
     sender_id = current_user.get("id") or current_user.get("sub")
     sender_obj = db.query(User).filter(User.id == sender_id).first()
     sender_name = sender_obj.full_name if sender_obj else current_user.get("full_name", "Foydalanuvchi")

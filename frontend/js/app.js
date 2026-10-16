@@ -20,6 +20,46 @@ const STATE = {
 window.STATE = STATE;
 
 // ================================================================
+// API XATO MATNI: FastAPI `detail` satr, ro'yxat (422 validatsiya) yoki obyekt bo'lishi mumkin.
+// Hammasini odam o'qiydigan matnga aylantiramiz — "[object Object]" chiqmasligi uchun.
+// ================================================================
+const FIELD_LABELS_UZ = {
+  title: "Mavzu", proposal_text: "Taklif matni", basis: "Taklif asosi", receiver_id: "Qabul qiluvchi",
+  email: "Email", password: "Parol", full_name: "Ism-familiya", content_text: "Matn", text: "Matn",
+  subject_id: "Fan", topic_id: "Mavzu", material_type: "Material turi", amount: "Summa"
+};
+function apiErrorText(data, fallback) {
+  const d = data && data.detail !== undefined ? data.detail : data;
+  if (typeof d === "string" && d.trim()) return d;
+  if (Array.isArray(d)) {
+    const parts = d.map(item => {
+      if (typeof item === "string") return item;
+      if (!item || typeof item !== "object") return "";
+      const loc = Array.isArray(item.loc) ? item.loc.filter(x => x !== "body" && x !== "query" && x !== "path") : [];
+      const field = loc.length ? String(loc[loc.length - 1]) : "";
+      const label = FIELD_LABELS_UZ[field] || field;
+      let msg = item.msg || item.message || "";
+      // Pydantic xabarlarini o'zbekchalashtirish
+      const mn = /at least (\d+) character/i.exec(msg);
+      const mx = /at most (\d+) character/i.exec(msg);
+      if (mn) msg = `kamida ${mn[1]} ta belgi bo'lishi kerak`;
+      else if (mx) msg = `ko'pi bilan ${mx[1]} ta belgi bo'lishi mumkin`;
+      else if (/field required|missing/i.test(msg)) msg = "to'ldirilishi shart";
+      else if (/string_pattern_mismatch|does not match/i.test(msg)) msg = "noto'g'ri qiymat";
+      return label ? `${label}: ${msg}` : msg;
+    }).filter(Boolean);
+    if (parts.length) return parts.join("; ");
+  }
+  if (d && typeof d === "object") {
+    const m = d.message || d.msg || d.error || d.reason || (d.details && (d.details.reason || d.details.message));
+    if (typeof m === "string" && m) return m;
+    try { const s = JSON.stringify(d); if (s && s !== "{}" && s !== "null") return s; } catch (_) {}
+  }
+  return fallback || "Noma'lum xatolik";
+}
+window.apiErrorText = apiErrorText;
+
+// ================================================================
 // SESSIYA NAZORATI: token muddati tugasa (401), foydalanuvchini "kirgan" holatda
 // qoldirmaymiz — xotira tozalanadi va qayta kirish oynasi ochiladi.
 // ================================================================
@@ -1856,7 +1896,7 @@ function prefetchAiEvaluation() {
   })
     .then(async r => {
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.detail || "AI baholay olmadi");
+      if (!r.ok) throw new Error(apiErrorText(d, "AI baholay olmadi"));
       STATE.aiEvaluation = d;
       return d;
     })
@@ -2392,7 +2432,7 @@ window.submitNewProposal = async function(e) {
     });
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || "Taklifni yuborib bo'lmadi");
+    if (!res.ok) throw new Error(apiErrorText(data, "Taklifni yuborib bo'lmadi"));
 
     showToast("✅ Taklifingiz muvaffaqiyatli yuborildi!", "success");
     window.closeProposalModal();
@@ -2489,7 +2529,7 @@ window.decideProposal = async function(propId, action, comment) {
     }
 
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || "Qaror saqlanmadi");
+    if (!res.ok) throw new Error(apiErrorText(data, "Qaror saqlanmadi"));
     showToast(`✅ ${data.message || "Qaror saqlandi"}`, "success");
     window.loadTeacherProposals();
   } catch (err) {
@@ -2505,7 +2545,7 @@ window.deleteProposal = async function(propId) {
       headers: { "Authorization": `Bearer ${STATE.token}` }
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.detail || "Taklifni o'chirib bo'lmadi");
+    if (!res.ok) throw new Error(apiErrorText(data, "Taklifni o'chirib bo'lmadi"));
     showToast("🗑️ Taklif muvaffaqiyatli o'chirildi.", "info");
     window.loadTeacherProposals();
   } catch (err) {
@@ -2894,9 +2934,9 @@ async function handleLoginSubmit() {
 
     if (!res.ok) {
       if (res.status === 403) {
-        throw new Error(data.detail || "Sizning hisobingiz hali Super Administrator tomonidan tasdiqlanmagan. Iltimos, admin tasdiqlashini kuting.");
+        throw new Error(apiErrorText(data, "Sizning hisobingiz hali Super Administrator tomonidan tasdiqlanmagan. Iltimos, admin tasdiqlashini kuting."));
       }
-      throw new Error(data.detail || "Login yoki parol noto'g'ri");
+      throw new Error(apiErrorText(data, "Login yoki parol noto'g'ri"));
     }
 
     // Muvaffaqiyatli kirish
@@ -3096,7 +3136,7 @@ async function submitSubscribePayment() {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "To'lov arizasini yuborishda xatolik");
+      throw new Error(apiErrorText(data, "To'lov arizasini yuborishda xatolik"));
     }
 
     closeSubscribeModal();
@@ -3297,7 +3337,7 @@ async function submitAccountSettings() {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "Ma'lumotlarni yangilashda xatolik yuz berdi.");
+      throw new Error(apiErrorText(data, "Ma'lumotlarni yangilashda xatolik yuz berdi."));
     }
 
     STATE.token = data.access_token;
@@ -4684,7 +4724,7 @@ async function submitDiagnosticForm() {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "Diagnostika natijalarini yuborishda xatolik yuz berdi");
+      throw new Error(apiErrorText(data, "Diagnostika natijalarini yuborishda xatolik yuz berdi"));
     }
 
     // Natijalarni modalda ko'rsatish
@@ -5202,7 +5242,7 @@ window.handleNewSubjectDocxUpload = async function(e) {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Faylni tahlil qilishda xatolik yuz berdi");
+      throw new Error(apiErrorText(err, "Faylni tahlil qilishda xatolik yuz berdi"));
     }
 
     const data = await res.json();
@@ -5296,7 +5336,7 @@ window.submitNewSubject = async function(e) {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || "Fanni saqlab bo'lmadi");
+      throw new Error(apiErrorText(err, "Fanni saqlab bo'lmadi"));
     }
 
     showToast(`✅ '${name}' fani profilingizga muvaffaqiyatli saqlandi!`, "success");
@@ -5478,7 +5518,7 @@ window.submitUploadMaterial = async function() {
       method: "POST", headers: { "Authorization": `Bearer ${STATE.token}` }, body: fd
     });
     const d = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(d.detail || "Faylni yuklab bo'lmadi");
+    if (!res.ok) throw new Error(apiErrorText(d, "Faylni yuklab bo'lmadi"));
 
     showToast(`✅ ${d.message}`, "success");
     if (result) {
@@ -5568,7 +5608,7 @@ window.handleSyllabusFileUpload = async function(e) {
 
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || "Faylni tahlil qilishda xatolik");
+      throw new Error(apiErrorText(err, "Faylni tahlil qilishda xatolik"));
     }
 
     const data = await res.json();
@@ -5660,7 +5700,7 @@ window.submitUploadSyllabus = async function() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Fayl orqali sillabusni saqlab bo'lmadi.");
+        throw new Error(apiErrorText(err, "Fayl orqali sillabusni saqlab bo'lmadi."));
       }
 
       const data = await res.json();
@@ -5921,7 +5961,7 @@ window.submitGenerateMaterial = async function() {
 
     if (!res.ok) {
       const err = await res.json();
-      throw new Error(err.detail || "Generatsiya qilishda xatolik yuz berdi");
+      throw new Error(apiErrorText(err, "Generatsiya qilishda xatolik yuz berdi"));
     }
 
     const respData = await res.json();
@@ -6132,7 +6172,7 @@ window.submitAssignMaterial = async function(materialId) {
       body: JSON.stringify({ subject_ids: ids })
     });
     const d = await res.json();
-    if (!res.ok) throw new Error(d.detail || "Biriktirib bo'lmadi");
+    if (!res.ok) throw new Error(apiErrorText(d, "Biriktirib bo'lmadi"));
     showToast(`✅ ${d.message}`, "success");
     document.getElementById("teacherResultsModal").style.display = "none";
     window.loadTeacherMaterials();
@@ -6153,7 +6193,7 @@ window.openMaterialResults = async function(materialId) {
   try {
     const res = await fetch(`${STATE.apiBaseUrl}/teacher/materials/${materialId}/results`, { headers: { "Authorization": `Bearer ${STATE.token}` } });
     const d = await res.json();
-    if (!res.ok) throw new Error(d.detail || "Natijalarni olib bo'lmadi");
+    if (!res.ok) throw new Error(apiErrorText(d, "Natijalarni olib bo'lmadi"));
     const m = d.material, sm = d.summary;
     const isWriting = m.material_type === "writing", isTest = m.material_type === "test";
     document.getElementById("trTitle").textContent = `📊 ${m.title}`;
@@ -6201,7 +6241,7 @@ window.openAttemptDetail = async function(materialId, attemptId) {
   try {
     const res = await fetch(`${STATE.apiBaseUrl}/teacher/materials/${materialId}/results/${attemptId}`, { headers: { "Authorization": `Bearer ${STATE.token}` } });
     const d = await res.json();
-    if (!res.ok) throw new Error(d.detail || "Urinish topilmadi");
+    if (!res.ok) throw new Error(apiErrorText(d, "Urinish topilmadi"));
     if (d.material_type === "writing") {
       const r = d.result || {};
       box.innerHTML = `
@@ -6902,7 +6942,7 @@ window.adminResetUserPassword = async function(userId, userName, userEmail) {
       body: JSON.stringify({ password: newPass.trim() })
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Parol yangilashda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Parol yangilashda xatolik"));
     showToast(`✓ ${userName}: Parol yangilandi`, "success");
     window.loadAdminDashboard();
   } catch (err) {
@@ -6922,7 +6962,7 @@ window.approveUser = async function(userId, userName) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Tasdiqlashda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Tasdiqlashda xatolik"));
 
     showToast(`✓ ${userName || 'Foydalanuvchi'} tasdiqlandi! Endi tizimga kira oladi.`, "success");
     window.loadAdminDashboard();
@@ -6945,7 +6985,7 @@ window.rejectUser = async function(userId, userName) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Rad etishda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Rad etishda xatolik"));
 
     showToast("Arizachi rad etildi va o'chirildi.", "info");
     window.loadAdminDashboard();
@@ -6966,7 +7006,7 @@ window.approvePayment = async function(paymentId, userName) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "To'lovni tasdiqlashda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "To'lovni tasdiqlashda xatolik"));
 
     showToast(`👑 ${userName || 'Foydalanuvchi'} uchun to'lov tasdiqlandi va PRO tarif faollashtirildi!`, "success");
     window.loadAdminDashboard();
@@ -6989,7 +7029,7 @@ window.rejectPayment = async function(paymentId) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Rad etishda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Rad etishda xatolik"));
 
     showToast("To'lov arizasi rad etildi.", "info");
     window.loadAdminDashboard();
@@ -7011,7 +7051,7 @@ window.toggleUserTier = async function(userId, targetTier) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Tarifni o'zgartirishda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Tarifni o'zgartirishda xatolik"));
 
     showToast(`Tarif ${targetTier.toUpperCase()} ga o'zgartirildi!`, "success");
     window.loadAdminDashboard();
@@ -7143,7 +7183,7 @@ window.handleCreateTeacherSubmit = async function() {
 
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.detail || "O'qituvchi yaratishda xatolik yuz berdi");
+      throw new Error(apiErrorText(data, "O'qituvchi yaratishda xatolik yuz berdi"));
     }
 
     if (msgBox) {
@@ -7202,7 +7242,7 @@ window.deleteTeacher = async function(teacherId, teacherName) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "O'chirishda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "O'chirishda xatolik"));
 
     showToast(`O'qituvchi hisobi o'chirildi.`, "info");
     window.loadAdminDashboard();
@@ -7914,7 +7954,7 @@ window.submitStudentTestAnswers = async function(e) {
     });
 
     const data = await res.json();
-    if (!res.ok) throw new Error(data.detail || "Testni baholashda xatolik");
+    if (!res.ok) throw new Error(apiErrorText(data, "Testni baholashda xatolik"));
 
     // Natijani ko'rsatish
     window.renderStudentTestResult(data);
@@ -8195,7 +8235,7 @@ window.submitStudentWriting = async function() {
       method: "POST", headers, body: JSON.stringify({ text, self_rating: Object.keys(selfRating).length ? selfRating : null })
     });
     const d = await res.json();
-    if (!res.ok) throw new Error(d.detail || (lang === "ru" ? "Ошибка при оценивании" : (lang === "en" ? "Evaluation error" : "Baholashda xatolik")));
+    if (!res.ok) throw new Error(apiErrorText(d, (lang === "ru" ? "Ошибка при оценивании" : (lang === "en" ? "Evaluation error" : "Baholashda xatolik"))));
     const box = document.getElementById("swResult");
     box.style.display = "block";
     const savedMsg = d.saved
@@ -9770,7 +9810,7 @@ window.addEventListener("keydown", function(e) {
         }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "API kalitlarni yuklab bo'lmadi");
+      if (!res.ok) throw new Error(apiErrorText(data, "API kalitlarni yuklab bo'lmadi"));
 
       const keys = data.keys || [];
       const totalCount = keys.length;
@@ -9983,7 +10023,7 @@ window.addEventListener("keydown", function(e) {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Kalit yaratishda xatolik yuz berdi");
+      if (!res.ok) throw new Error(apiErrorText(data, "Kalit yaratishda xatolik yuz berdi"));
 
       // Yaratilgan kalitni ko'rsatish
       RAW_API_KEY_TEMP = data.key.api_key;
@@ -10051,7 +10091,7 @@ window.addEventListener("keydown", function(e) {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xatolik yuz berdi");
+      if (!res.ok) throw new Error(apiErrorText(data, "Xatolik yuz berdi"));
 
       showToast("Kalit bekor qilindi.", "success");
       window.loadApiKeys();
@@ -10068,7 +10108,7 @@ window.addEventListener("keydown", function(e) {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xatolik yuz berdi");
+      if (!res.ok) throw new Error(apiErrorText(data, "Xatolik yuz berdi"));
 
       showToast("Kalit qayta faollashtirildi!", "success");
       window.loadApiKeys();
@@ -10089,7 +10129,7 @@ window.addEventListener("keydown", function(e) {
         headers: { "Authorization": `Bearer ${token}` }
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Xatolik yuz berdi");
+      if (!res.ok) throw new Error(apiErrorText(data, "Xatolik yuz berdi"));
 
       showToast("API Kalit butunlay o'chirildi.", "success");
       window.loadApiKeys();

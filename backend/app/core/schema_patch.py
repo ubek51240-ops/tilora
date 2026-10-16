@@ -10,6 +10,7 @@ _NEEDED = {
     "groups": [("assessment_window", "VARCHAR(10)")],
     "users": [("last_login_at", "DATETIME")],
     "lesson_records": [("teacher_rubric", "JSON")],
+    "subscription_payments": [("user_note", "TEXT")],
 }
 
 _done = False

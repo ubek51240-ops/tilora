@@ -211,6 +211,7 @@ def get_subscription_payments(
             "payment_method": p.payment_method,
             "transaction_id": p.transaction_id,
             "status": p.status,
+            "user_note": getattr(p, "user_note", None),
             "admin_note": p.admin_note,
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "",
             "approved_at": p.approved_at.strftime("%Y-%m-%d %H:%M") if p.approved_at else "",
@@ -259,14 +260,21 @@ def reject_subscription_payment(
 ):
     """
     Super Admin soxta yoki yetib kelmagan to'lovni rad etadi.
+    Rad etish sababi (admin_note, kamida 3 belgi) MAJBURIY — foydalanuvchiga ko'rsatiladi.
     """
     payment = db.query(SubscriptionPayment).filter(SubscriptionPayment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="To'lov arizasi topilmadi.")
+    note = str((payload or {}).get("admin_note") or "").strip()
+    if len(note) < 3:
+        raise HTTPException(status_code=400, detail="Rad etish sababini izohda yozing (kamida 3 belgi): foydalanuvchi shuni ko'radi.")
+    if len(note) > 500:
+        raise HTTPException(status_code=400, detail="Izoh 500 belgidan oshmasligi kerak.")
+    if payment.status != "pending":
+        raise HTTPException(status_code=400, detail="Faqat ko'rib chiqilayotgan (pending) ariza rad etiladi.")
 
     payment.status = "rejected"
-    if payload and "admin_note" in payload:
-        payment.admin_note = payload["admin_note"]
+    payment.admin_note = note
 
     user = db.query(User).filter(User.id == payment.user_id).first()
     if user and user.subscription_tier != "pro":

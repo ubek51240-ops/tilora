@@ -2603,7 +2603,7 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
 
       <!-- To'lov cheki (skrinshot / PDF) — subscription_receipt.js -->
       <div>
-        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">🧾 To'lov cheki (skrinshot yoki PDF):</label>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">🧾 To'lov cheki (skrinshot yoki PDF) <span style="color:var(--clay)">* majburiy</span></label>
         <label id="subReceiptDrop" for="subReceiptFile" style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1.5px dashed var(--amber);border-radius:8px;background:var(--amber-soft);cursor:pointer;font-size:12.5px;color:var(--ink-2)">
           <span style="font-size:22px">📎</span>
           <span id="subReceiptLabel" style="flex:1;line-height:1.5">Click / Payme / bank ilovasidagi chek skrinshotini tanlang<br><span style="font-size:11px;color:var(--muted)">JPG, PNG, WEBP yoki PDF · 5 MB gacha</span></span>
@@ -2613,8 +2613,14 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
         <input type="file" id="subReceiptFile" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none" onchange="window.onSubscribeReceiptChosen(this)">
       </div>
 
+      <div>
+        <label style="display:block;font-size:12.5px;font-weight:600;margin-bottom:4px">✍️ Izoh <span style="color:var(--clay)">* majburiy</span></label>
+        <textarea id="subUserNote" rows="3" maxlength="500" placeholder="To'lov haqida yozing: qachon va qaysi kartadan o'tkazdingiz, summa, ism-sharif (kamida 5 belgi)" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-sizing:border-box;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <div id="subUserNoteCount" style="font-size:11px;color:var(--muted);text-align:right">0 / 500</div>
+      </div>
+
       <div style="font-size:12px;color:var(--muted);background:rgba(0,0,0,0.02);padding:10px;border-radius:6px;border-left:3px solid var(--amber)">
-        ℹ️ To'lovni amalga oshirgach chekni biriktirib <b>«To'lov qildim, PRO arizasini yuborish»</b> tugmasini bosing. Chek faqat Super Administratorga ko'rinadi; u to'lovni tasdiqlagach profilingiz avtomatik PRO holatiga o'tadi. Chekni keyinroq ham quyidagi arizalar ro'yxatidan yuklash mumkin.
+        ℹ️ To'lovni amalga oshirgach <b>chek</b> va <b>izoh</b>ni to'ldirib <b>«To'lov qildim, PRO arizasini yuborish»</b> tugmasini bosing — ikkalasi ham majburiy. Chek faqat Super Administratorga ko'rinadi; u to'lovni tasdiqlagach profilingiz avtomatik PRO holatiga o'tadi. Rad etilsa, sababi quyidagi arizalar ro'yxatida admin izohi sifatida ko'rinadi.
       </div>
 
       <!-- Mening to'lov arizalarim (holat, chek) — subscription_receipt.js to'ldiradi -->
@@ -3507,7 +3513,7 @@ talaba@example.uz,pre,meta_planning,2.4,5,2025-09-10</code></pre>
 <script src="js/diag_manage.js?v=1.2"></script>
 <script src="js/dissertation_features.js?v=1.2"></script>
 <script src="js/about.js?v=1.0"></script>
-<script src="js/subscription_receipt.js?v=1.0"></script>
+<script src="js/subscription_receipt.js?v=1.1"></script>
 <script src="js/dynamics.js?v=1.1"></script>
 <script src="js/i18n_ext.js?v=1.0"></script>
 <script src="js/student_ext.js?v=1.0"></script>

@@ -270,6 +270,7 @@ class SubscriptionPayment(Base):
     payment_method = Column(String(50), default="click")  # click, payme, card
     transaction_id = Column(String(100), nullable=True)
     receipt_image = Column(String(255), nullable=True)
+    user_note = Column(Text, nullable=True)  # foydalanuvchi izohi (to'lov haqida) — ariza yuborishda majburiy
     status = Column(String(30), default="pending")  # pending, approved, rejected
     created_at = Column(DateTime, default=datetime.utcnow)
     approved_at = Column(DateTime, nullable=True)

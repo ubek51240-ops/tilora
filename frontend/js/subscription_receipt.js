@@ -34,6 +34,7 @@
     const err = validFile(f);
     if (err) { toast(err, "error"); window.clearSubscribeReceipt(); return; }
     chosenFile = f;
+    markInvalid($("subReceiptDrop"), false);
     const label = $("subReceiptLabel"), prev = $("subReceiptPreview"), clr = $("subReceiptClear"), drop = $("subReceiptDrop");
     if (label) label.innerHTML = `<b>${esc(f.name)}</b><br><span style="font-size:11px;color:var(--muted)">${esc((f.size / 1024).toFixed(0))} KB · ariza bilan birga yuboriladi</span>`;
     if (drop) drop.style.borderStyle = "solid";
@@ -65,48 +66,44 @@
     return data;
   }
 
-  // ---------------- Ariza yuborish: ariza + chek ----------------
+  // ---------------- Ariza yuborish: chek + izoh MAJBURIY (bitta multipart so'rov) ----------------
+  const NOTE_MIN = 5, NOTE_MAX = 500;
+  function markInvalid(el, bad) { if (el) el.style.borderColor = bad ? "var(--clay)" : (el.id === "subReceiptDrop" ? "var(--amber)" : "var(--line)"); }
+  function bindNoteCounter() {
+    const ta = $("subUserNote"), cnt = $("subUserNoteCount");
+    if (!ta || ta._bound) return;
+    ta._bound = true;
+    ta.addEventListener("input", () => { if (cnt) cnt.textContent = `${ta.value.length} / ${NOTE_MAX}`; markInvalid(ta, false); });
+  }
   async function submitWithReceipt() {
     if (!window.STATE || !STATE.currentUser || !token()) { toast("Iltimos, avval profilga kiring!", "error"); return; }
     const methodEl = document.querySelector('input[name="payMethod"]:checked');
     const payMethod = methodEl ? methodEl.value : "click";
-    const txInput = $("subTxId");
+    const txInput = $("subTxId"), noteEl = $("subUserNote");
     const txId = txInput ? txInput.value.trim() : "";
+    const note = noteEl ? noteEl.value.trim() : "";
     const btn = $("btnSubmitPaymentReq");
     const setBtn = (t, dis) => { if (btn) { btn.disabled = dis; btn.textContent = t; } };
-    if (!chosenFile && !txId) {
-      const ok = window.confirm ? true : true; // brauzer dialoglarini ishlatmaymiz — faqat ogohlantiramiz
-      toast("Chek yoki tranzaksiya raqami kiritilmadi. Admin to'lovni tasdiqlashi uchun chekni yuklash tavsiya etiladi.", "info");
-      void ok;
-    }
-    setBtn("Ariza yuborilmoqda...", true);
+
+    // Mijoz tomonidagi tekshiruv (server ham xuddi shuni majburiy qiladi)
+    if (!chosenFile) { markInvalid($("subReceiptDrop"), true); toast("To'lov cheki majburiy: skrinshot yoki PDF faylni biriktiring.", "error"); return; }
+    if (note.length < NOTE_MIN) { markInvalid(noteEl, true); if (noteEl) noteEl.focus(); toast(`Izoh majburiy: kamida ${NOTE_MIN} ta belgi yozing.`, "error"); return; }
+
+    setBtn("Ariza va chek yuborilmoqda...", true);
     try {
-      const res = await fetch(`${api()}/auth/subscribe`, {
-        method: "POST", headers: { "Content-Type": "application/json", ...auth() },
-        body: JSON.stringify({ plan: "pro", amount: 10.0, payment_method: payMethod, transaction_id: txId })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "To'lov arizasini yuborishda xatolik");
-      let receiptMsg = "";
-      if (chosenFile && data.payment_id) {
-        setBtn("Chek yuklanmoqda...", true);
-        try {
-          await uploadReceipt(data.payment_id, chosenFile);
-          receiptMsg = " Chek yuklandi.";
-        } catch (e) {
-          toast(`Ariza qabul qilindi, lekin chek yuklanmadi: ${e.message}. Chekni "Mening arizalarim" bo'limidan qayta yuklang.`, "error");
-        }
-      }
+      const fd = new FormData();
+      fd.append("plan", "pro"); fd.append("payment_method", payMethod);
+      fd.append("transaction_id", txId); fd.append("user_note", note);
+      fd.append("file", chosenFile, chosenFile.name);
+      const res = await fetch(`${api()}/auth/subscribe`, { method: "POST", headers: auth(), body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : "To'lov arizasini yuborishda xatolik");
       if (txInput) txInput.value = "";
+      if (noteEl) { noteEl.value = ""; const c = $("subUserNoteCount"); if (c) c.textContent = `0 / ${NOTE_MAX}`; }
       window.clearSubscribeReceipt();
-      toast(`👑 To'lov arizangiz qabul qilindi!${receiptMsg} Super Admin tasdiqlashi bilan hisobingiz PRO ga o'tadi.`, "success");
+      toast("👑 To'lov arizangiz va chek qabul qilindi! Super Admin tasdiqlashi bilan hisobingiz PRO ga o'tadi.", "success");
       await renderHistory();
-      if (!chosenFile && !receiptMsg) {
-        // Chek yuklanmagan bo'lsa modal ochiq qoladi — ro'yxatdan yuklash mumkin
-        const hist = $("subPaymentsHistory"); if (hist) hist.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      } else if (window.closeSubscribeModal) {
-        window.closeSubscribeModal();
-      }
+      if (window.closeSubscribeModal) window.closeSubscribeModal();
     } catch (err) {
       toast(err.message || "To'lov arizasini yuborishda xatolik", "error");
     } finally {
@@ -135,9 +132,9 @@
             ${p.has_receipt ? `<span style="color:var(--teal);font-size:11px">🧾 chek yuklangan</span>` : `<span style="color:var(--clay);font-size:11px">chek yo'q</span>`}
             <span style="flex:1"></span>
             ${p.has_receipt ? `<button type="button" class="btn-preset gen-preset" onclick="window.viewPaymentReceipt(${window.jsArg ? jsArg(p.id) : `'${p.id}'`})">Ko'rish</button>` : ""}
-            ${canUpload ? `<label class="btn-preset gen-preset" style="cursor:pointer;margin:0">${p.has_receipt ? "Almashtirish" : "📎 Chek yuklash"}<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none" onchange="window.uploadReceiptFor(${window.jsArg ? jsArg(p.id) : `'${p.id}'`}, this)"></label>` : ""}
-            ${canUpload && p.has_receipt ? `<button type="button" class="btn-preset gen-preset" style="color:var(--clay)" onclick="window.deletePaymentReceipt(${window.jsArg ? jsArg(p.id) : `'${p.id}'`})">O'chirish</button>` : ""}
-            ${p.admin_note ? `<div style="flex-basis:100%;color:var(--muted)">Admin izohi: ${esc(p.admin_note)}</div>` : ""}
+            ${canUpload ? `<label class="btn-preset gen-preset" style="cursor:pointer;margin:0">Chekni almashtirish<input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" style="display:none" onchange="window.uploadReceiptFor(${window.jsArg ? jsArg(p.id) : `'${p.id}'`}, this)"></label>` : ""}
+            ${p.user_note ? `<div style="flex-basis:100%;color:var(--ink-2)"><b>Sizning izohingiz:</b> ${esc(p.user_note)}</div>` : ""}
+            ${p.admin_note ? `<div style="flex-basis:100%;padding:6px 8px;border-radius:6px;${p.status === "rejected" ? "background:#FDE8E4;color:var(--clay)" : "background:var(--surface-2);color:var(--ink-2)"}"><b>${p.status === "rejected" ? "Rad etish sababi (admin izohi)" : "Admin izohi"}:</b> ${esc(p.admin_note)}</div>` : ""}
           </div>`;
         }).join("")}</div>`;
     } catch (e) {
@@ -155,14 +152,52 @@
     } catch (e) { toast(e.message, "error"); }
     input.value = "";
   };
-  window.deletePaymentReceipt = async function (paymentId) {
-    try {
-      const res = await fetch(`${api()}/auth/subscribe/${encodeURIComponent(paymentId)}/receipt`, { method: "DELETE", headers: auth() });
-      const d = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(d.detail || "O'chirishda xatolik");
-      toast("Chek o'chirildi.", "info");
-      await renderHistory();
-    } catch (e) { toast(e.message, "error"); }
+
+  // ---------------- Admin: rad etish — sabab (izoh) majburiy ----------------
+  function ensureRejectModal() {
+    let m = $("rejectPaymentModal");
+    if (m) return m;
+    m = document.createElement("div");
+    m.id = "rejectPaymentModal";
+    m.style.cssText = "display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.65);z-index:9999999;align-items:center;justify-content:center;padding:16px;box-sizing:border-box";
+    m.innerHTML = `<div style="background:var(--card);border-radius:14px;padding:20px;max-width:460px;width:100%;border:1px solid var(--line);display:flex;flex-direction:column;gap:10px">
+        <b style="font-size:16px">✕ To'lov arizasini rad etish</b>
+        <div id="rejectPaymentWho" style="font-size:12.5px;color:var(--muted)"></div>
+        <label style="font-size:12.5px;font-weight:600">Rad etish sababi (foydalanuvchi ko'radi) <span style="color:var(--clay)">* majburiy</span></label>
+        <textarea id="rejectPaymentNote" rows="4" maxlength="500" placeholder="Masalan: Chekdagi summa 10 $ ga to'g'ri kelmaydi / chek o'qilmayapti, aniqroq skrinshot yuboring" style="width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);box-sizing:border-box;font-size:13px;font-family:inherit;resize:vertical"></textarea>
+        <div id="rejectPaymentErr" style="font-size:12px;color:var(--clay);display:none"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" class="btn-preset gen-preset" onclick="window.closeRejectPayment()">Bekor qilish</button>
+          <button type="button" id="rejectPaymentSubmit" class="btn-primary" style="background:var(--clay);color:#fff;border:none;font-size:13px;padding:7px 16px;font-weight:700">✕ Rad etish</button>
+        </div></div>`;
+    m.addEventListener("click", (e) => { if (e.target === m) window.closeRejectPayment(); });
+    document.body.appendChild(m);
+    return m;
+  }
+  window.closeRejectPayment = function () { const m = $("rejectPaymentModal"); if (m) m.style.display = "none"; };
+  window.rejectPayment = function (paymentId, userName) {
+    const m = ensureRejectModal();
+    const ta = $("rejectPaymentNote"), err = $("rejectPaymentErr"), btn = $("rejectPaymentSubmit");
+    ta.value = ""; err.style.display = "none";
+    $("rejectPaymentWho").textContent = userName ? `Foydalanuvchi: ${userName}` : "";
+    m.style.display = "flex";
+    setTimeout(() => ta.focus(), 50);
+    btn.onclick = async () => {
+      const note = ta.value.trim();
+      if (note.length < 3) { err.textContent = "Rad etish sababini yozing (kamida 3 belgi)."; err.style.display = "block"; ta.style.borderColor = "var(--clay)"; return; }
+      btn.disabled = true;
+      try {
+        const res = await fetch(`${api()}/admin/payments/${encodeURIComponent(paymentId)}/reject`, {
+          method: "POST", headers: { "Content-Type": "application/json", ...auth() }, body: JSON.stringify({ admin_note: note })
+        });
+        const d = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(typeof d.detail === "string" ? d.detail : "Rad etishda xatolik");
+        window.closeRejectPayment();
+        toast("To'lov arizasi rad etildi, sabab foydalanuvchiga ko'rinadi.", "info");
+        if (window.loadAdminDashboard) window.loadAdminDashboard();
+      } catch (e) { err.textContent = e.message; err.style.display = "block"; }
+      finally { btn.disabled = false; }
+    };
   };
 
   // ---------------- Chekni ko'rish (egasi yoki admin) ----------------
@@ -245,13 +280,14 @@
             ${p.has_receipt
               ? `<span style="color:var(--teal);font-weight:600">🧾 Chek yuklangan</span>`
               : `<span style="color:var(--clay)">🧾 Chek yuklanmagan</span> <span style="color:var(--muted)">— tranzaksiya raqami bo'yicha tekshiring</span>`}
-            ${p.admin_note ? `<div style="color:var(--muted)">Izoh: ${esc(p.admin_note)}</div>` : ""}
+            ${p.user_note ? `<div style="margin-top:4px;padding:6px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2)"><b>Foydalanuvchi izohi:</b> ${esc(p.user_note)}</div>` : ""}
+            ${p.admin_note ? `<div style="margin-top:4px;color:${p.status === "rejected" ? "var(--clay)" : "var(--muted)"}"><b>Admin izohi${p.status === "rejected" ? " (rad etish sababi)" : ""}:</b> ${esc(p.admin_note)}</div>` : ""}
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           ${p.has_receipt ? `<button class="btn-primary" style="background:var(--surface-2);color:var(--teal);border:1px solid var(--teal);font-size:12.5px;padding:6px 14px" onclick="window.viewPaymentReceipt(${J(p.id)}, ${J(name)})">🧾 Chekni ko'rish</button>` : ""}
           ${isPending ? `
-            <button class="btn-primary" style="background:none;color:var(--clay);border:1px solid var(--clay);font-size:12.5px;padding:6px 14px" onclick="window.rejectPayment(${J(p.id)})">✕ Rad etish</button>
+            <button class="btn-primary" style="background:none;color:var(--clay);border:1px solid var(--clay);font-size:12.5px;padding:6px 14px" onclick="window.rejectPayment(${J(p.id)}, ${J(name)})">✕ Rad etish (izoh bilan)</button>
             <button class="btn-primary" style="background:var(--amber);color:#fff;border:none;font-size:12.5px;padding:6px 16px;font-weight:700" onclick="window.approvePayment(${J(p.id)}, ${J(name)})">👑 Tasdiqlash (PRO ga o'tkazish)</button>` : ""}
         </div>
       </div>`;
@@ -261,6 +297,7 @@
   // ---------------- app.js funksiyalarini almashtirish (initAuth DOMContentLoaded da ishlaydi) ----------------
   function install() {
     window.submitSubscribePayment = submitWithReceipt;
+    bindNoteCounter();
     window.renderAdminPayments = renderAdminPaymentsWithReceipt;
     const origOpen = window.openSubscribeModal;
     window.openSubscribeModal = function () {

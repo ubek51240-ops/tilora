@@ -4,7 +4,7 @@ import secrets
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.config import settings
@@ -322,16 +322,63 @@ def register(payload: RegisterRequest, request: Request, db: Session = Depends(g
     }
 
 
+USER_NOTE_MIN, USER_NOTE_MAX = 5, 500
+
+
+def _validate_receipt_bytes(content: bytes):
+    """Chek baytlarini tekshiradi (bo'sh emas, hajm, haqiqiy format) -> (kengaytma, media type)."""
+    limit_mb = min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB)
+    if not content:
+        raise HTTPException(status_code=400, detail="Yuklangan fayl bo'sh.")
+    if len(content) > limit_mb * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"Chek fayli {limit_mb} MB dan oshmasligi kerak.")
+    sniffed = _sniff_receipt(content)
+    if not sniffed:
+        raise HTTPException(status_code=400, detail="Fayl formati qo'llab-quvvatlanmaydi. Chekni JPG, PNG, WEBP yoki PDF ko'rinishida yuklang.")
+    return sniffed
+
+
+def _store_receipt(payment: SubscriptionPayment, content: bytes, ext: str) -> None:
+    """Chekni shaxsiy papkaga yozadi (eski chek bo'lsa o'chiradi) va yo'lini arizaga biriktiradi."""
+    os.makedirs(RECEIPTS_DIR, exist_ok=True)
+    old = _receipt_path(payment)
+    if old:
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    fname = f"{payment.id}{ext}"
+    with open(os.path.join(RECEIPTS_DIR, fname), "wb") as f:
+        f.write(content)
+    payment.receipt_image = f"receipts/{fname}"
+
+
 @router.post("/subscribe")
-def create_subscription_request(
-    payload: SubscribeRequest,
+async def create_subscription_request(
+    plan: str = Form("pro"),
+    payment_method: str = Form("click"),
+    transaction_id: Optional[str] = Form(None),
+    user_note: str = Form(""),
+    file: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db),
     current_user: dict = Depends(get_current_user)
 ):
     """
     Foydalanuvchi PRO obuna uchun to'lov arizasi topshiradi (Click, Payme, Karta).
-    Admin tasdiqlagach PRO tarif faollashadi.
+    multipart/form-data: chek fayli (JPG/PNG/WEBP/PDF, 5 MB gacha) VA izoh (kamida 5 belgi) MAJBURIY —
+    ular bo'lmasa ariza yaratilmaydi. Admin tasdiqlagach PRO tarif faollashadi.
     """
+    note = (user_note or "").strip()
+    if len(note) < USER_NOTE_MIN:
+        raise HTTPException(status_code=400, detail=f"Izoh majburiy: to'lov haqida kamida {USER_NOTE_MIN} ta belgi yozing (qachon, qaysi kartadan, qaysi summa).")
+    if len(note) > USER_NOTE_MAX:
+        raise HTTPException(status_code=400, detail=f"Izoh {USER_NOTE_MAX} belgidan oshmasligi kerak.")
+    if file is None or not (file.filename or "").strip():
+        raise HTTPException(status_code=400, detail="To'lov cheki majburiy: skrinshot yoki PDF faylni biriktiring.")
+    max_bytes = min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB) * 1024 * 1024
+    content = await file.read(max_bytes + 1)
+    receipt_ext, _receipt_media = _validate_receipt_bytes(content)  # ariza yaratilishidan OLDIN tekshiriladi
+
     user_id = current_user.get("id")
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -344,14 +391,14 @@ def create_subscription_request(
     if pending_count >= 3:
         raise HTTPException(status_code=400, detail="Sizda allaqachon ko'rib chiqilayotgan to'lov arizalari bor. Admin tasdig'ini kuting.")
 
-    plan = (payload.plan or "pro")[:50]
+    plan = (plan or "pro")[:50]
     if plan not in ("pro", "pro_monthly", "pro_annual"):
         plan = "pro_monthly"
-    payment_method = (payload.payment_method or "click")[:50]
+    payment_method = (payment_method or "click")[:50]
     if payment_method not in ("click", "payme", "card", "uzum"):
         payment_method = "click"
     amount = 10.0 if plan != "pro_annual" else 100.0  # USD; summa serverda belgilanadi, mijoz o'zgartira olmaydi
-    tx_raw = (payload.transaction_id or "").strip()[:100]
+    tx_raw = (transaction_id or "").strip()[:100]
     tx_id = tx_raw or f"TX-{_utcnow().strftime('%Y%m%d%H%M%S')}"
 
     payment = SubscriptionPayment(
@@ -363,20 +410,24 @@ def create_subscription_request(
         amount=amount,
         payment_method=payment_method,
         transaction_id=tx_id,
+        user_note=note,
         status="pending"
     )
     db.add(payment)
+    db.flush()  # id olish uchun
+    _store_receipt(payment, content, receipt_ext)
     user.subscription_status = "pending"
     db.commit()
     db.refresh(payment)
 
     return {
         "status": "pending",
-        "message": "To'lov arizangiz qabul qilindi! Super Administrator to'lovni tekshirib tasdiqlagach, PRO profilingiz avtomatik ishga tushadi.",
+        "message": "To'lov arizangiz va chek qabul qilindi! Super Administrator to'lovni tekshirib tasdiqlagach, PRO profilingiz avtomatik ishga tushadi.",
         "payment_id": payment.id,
         "amount": amount,
         "plan": plan,
-        "receipt_upload_url": f"{settings.API_V1_STR}/auth/subscribe/{payment.id}/receipt",
+        "has_receipt": True,
+        "receipt_url": f"{settings.API_V1_STR}/auth/subscribe/{payment.id}/receipt",
     }
 
 
@@ -405,26 +456,8 @@ async def upload_subscription_receipt(
         raise HTTPException(status_code=400, detail="Chek faqat ko'rib chiqilayotgan (pending) arizaga yuklanadi. Yangi ariza yuboring.")
     max_bytes = min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB) * 1024 * 1024
     content = await file.read(max_bytes + 1)
-    if not content:
-        raise HTTPException(status_code=400, detail="Yuklangan fayl bo'sh.")
-    if len(content) > max_bytes:
-        raise HTTPException(status_code=413, detail=f"Chek fayli {min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB)} MB dan oshmasligi kerak.")
-    sniffed = _sniff_receipt(content)
-    if not sniffed:
-        raise HTTPException(status_code=400, detail="Fayl formati qo'llab-quvvatlanmaydi. Chekni JPG, PNG, WEBP yoki PDF ko'rinishida yuklang.")
-    ext, media = sniffed
-
-    os.makedirs(RECEIPTS_DIR, exist_ok=True)
-    old = _receipt_path(payment)
-    if old:
-        try:
-            os.remove(old)
-        except OSError:
-            pass
-    fname = f"{payment.id}{ext}"
-    with open(os.path.join(RECEIPTS_DIR, fname), "wb") as f:
-        f.write(content)
-    payment.receipt_image = f"receipts/{fname}"
+    ext, media = _validate_receipt_bytes(content)
+    _store_receipt(payment, content, ext)
     db.commit()
     return {
         "status": "uploaded",
@@ -451,27 +484,6 @@ def get_subscription_receipt(
     return FileResponse(path, media_type=_RECEIPT_MEDIA.get(ext, "application/octet-stream"),
                         headers={"Content-Disposition": f'inline; filename="chek_{payment.id[:8]}{ext}"',
                                  "Cache-Control": "private, no-store"})
-
-
-@router.delete("/subscribe/{payment_id}/receipt")
-def delete_subscription_receipt(
-    payment_id: str,
-    db: Session = Depends(get_db),
-    current_user: dict = Depends(get_current_user)
-):
-    """Egasi 'pending' arizadagi chekni o'chirib, boshqasini yuklashi mumkin."""
-    payment = _owned_payment(payment_id, db, current_user)
-    if payment.status != "pending":
-        raise HTTPException(status_code=400, detail="Ko'rib chiqilgan arizaning chekini o'chirish mumkin emas.")
-    path = _receipt_path(payment)
-    if path:
-        try:
-            os.remove(path)
-        except OSError:
-            pass
-    payment.receipt_image = None
-    db.commit()
-    return {"status": "deleted", "payment_id": payment.id}
 
 
 @router.get("/subscription-status")
@@ -504,6 +516,7 @@ def get_subscription_status(
                 "payment_method": p.payment_method,
                 "transaction_id": p.transaction_id,
                 "status": p.status,
+                "user_note": getattr(p, "user_note", None),
                 "admin_note": p.admin_note,
                 "created_at": p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "",
                 "has_receipt": bool(_receipt_path(p)),

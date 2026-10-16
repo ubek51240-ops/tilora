@@ -8,7 +8,8 @@ from app.models.entities import User, SubscriptionPayment, Institution, Group, T
 from app.core.deps import require_role, get_current_user
 from app.core.security import hash_password
 from app.schemas.all_schemas import CreateTeacherRequest
-from app.api.auth import validate_password_strength, validate_login_identifier
+from app.api.auth import validate_password_strength, validate_login_identifier, _receipt_path
+from app.config import settings
 
 router = APIRouter(prefix="/admin", tags=["Administrator"], dependencies=[Depends(require_role(["admin"]))])
 from app.api.experiment_ext import retention_router  # noqa: E402
@@ -210,8 +211,12 @@ def get_subscription_payments(
             "payment_method": p.payment_method,
             "transaction_id": p.transaction_id,
             "status": p.status,
+            "admin_note": p.admin_note,
             "created_at": p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "",
-            "approved_at": p.approved_at.strftime("%Y-%m-%d %H:%M") if p.approved_at else ""
+            "approved_at": p.approved_at.strftime("%Y-%m-%d %H:%M") if p.approved_at else "",
+            # Chek (foydalanuvchi yuklagan skrinshot/PDF) — admin /auth/subscribe/{id}/receipt orqali ko'radi
+            "has_receipt": bool(_receipt_path(p)),
+            "receipt_url": f"{settings.API_V1_STR}/auth/subscribe/{p.id}/receipt" if _receipt_path(p) else None,
         })
     return {"payments": result, "total": len(result)}
 

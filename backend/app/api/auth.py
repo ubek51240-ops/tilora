@@ -1,9 +1,11 @@
+import os
 import re
 import secrets
 from pydantic import BaseModel, Field
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
@@ -14,6 +16,39 @@ from app.core.deps import get_current_user
 from app.core.ratelimit import SlidingWindowLimiter, client_ip
 
 router = APIRouter(prefix="/auth", tags=["Autentifikatsiya"])
+
+# To'lov cheklari — ommaviy /uploads papkasidan TASHQARIDA saqlanadi (shaxsiy to'lov ma'lumoti),
+# faqat egasi yoki admin autentifikatsiyali endpoint orqali ko'radi.
+_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+RECEIPTS_DIR = os.path.join(_ROOT_DIR, "private_uploads", "receipts")
+RECEIPT_MAX_MB = 5
+# Fayl turi mijoz kengaytmasiga emas, haqiqiy baytlarga (magic bytes) qarab aniqlanadi
+_RECEIPT_TYPES = (
+    (b"\xff\xd8\xff", ".jpg", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", ".png", "image/png"),
+    (b"%PDF", ".pdf", "application/pdf"),
+)
+_RECEIPT_MEDIA = {".jpg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".pdf": "application/pdf"}
+
+
+def _sniff_receipt(content: bytes):
+    """-> (kengaytma, media type) yoki None."""
+    for magic, ext, media in _RECEIPT_TYPES:
+        if content.startswith(magic):
+            return ext, media
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return ".webp", "image/webp"
+    return None
+
+
+def _receipt_path(payment: SubscriptionPayment) -> Optional[str]:
+    rel = getattr(payment, "receipt_image", None)
+    if not rel:
+        return None
+    path = os.path.realpath(os.path.join(os.path.dirname(RECEIPTS_DIR), rel))
+    if not path.startswith(os.path.realpath(RECEIPTS_DIR) + os.sep):
+        return None
+    return path if os.path.isfile(path) else None
 
 # Brute-force himoyasi: IP va login bo'yicha alohida hisoblanadi
 _login_ip_limiter = SlidingWindowLimiter(settings.LOGIN_MAX_ATTEMPTS * 3, settings.LOGIN_WINDOW_SECONDS)
@@ -340,8 +375,103 @@ def create_subscription_request(
         "message": "To'lov arizangiz qabul qilindi! Super Administrator to'lovni tekshirib tasdiqlagach, PRO profilingiz avtomatik ishga tushadi.",
         "payment_id": payment.id,
         "amount": amount,
-        "plan": plan
+        "plan": plan,
+        "receipt_upload_url": f"{settings.API_V1_STR}/auth/subscribe/{payment.id}/receipt",
     }
+
+
+def _owned_payment(payment_id: str, db: Session, current_user: dict, allow_admin: bool = False) -> SubscriptionPayment:
+    payment = db.query(SubscriptionPayment).filter(SubscriptionPayment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="To'lov arizasi topilmadi.")
+    if payment.user_id != current_user.get("id") and not (allow_admin and current_user.get("role") == "admin"):
+        raise HTTPException(status_code=403, detail="Bu to'lov arizasi sizga tegishli emas.")
+    return payment
+
+
+@router.post("/subscribe/{payment_id}/receipt")
+async def upload_subscription_receipt(
+    payment_id: str,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    PRO to'lovidan keyin chek (skrinshot yoki PDF) yuklash. Faqat ariza egasi, faqat 'pending' holatda.
+    Ruxsat: JPG, PNG, WEBP, PDF; 5 MB gacha. Fayl ommaviy papkada saqlanmaydi — admin va egasi ko'radi.
+    """
+    payment = _owned_payment(payment_id, db, current_user)
+    if payment.status != "pending":
+        raise HTTPException(status_code=400, detail="Chek faqat ko'rib chiqilayotgan (pending) arizaga yuklanadi. Yangi ariza yuboring.")
+    max_bytes = min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB) * 1024 * 1024
+    content = await file.read(max_bytes + 1)
+    if not content:
+        raise HTTPException(status_code=400, detail="Yuklangan fayl bo'sh.")
+    if len(content) > max_bytes:
+        raise HTTPException(status_code=413, detail=f"Chek fayli {min(RECEIPT_MAX_MB, settings.MAX_UPLOAD_MB)} MB dan oshmasligi kerak.")
+    sniffed = _sniff_receipt(content)
+    if not sniffed:
+        raise HTTPException(status_code=400, detail="Fayl formati qo'llab-quvvatlanmaydi. Chekni JPG, PNG, WEBP yoki PDF ko'rinishida yuklang.")
+    ext, media = sniffed
+
+    os.makedirs(RECEIPTS_DIR, exist_ok=True)
+    old = _receipt_path(payment)
+    if old:
+        try:
+            os.remove(old)
+        except OSError:
+            pass
+    fname = f"{payment.id}{ext}"
+    with open(os.path.join(RECEIPTS_DIR, fname), "wb") as f:
+        f.write(content)
+    payment.receipt_image = f"receipts/{fname}"
+    db.commit()
+    return {
+        "status": "uploaded",
+        "payment_id": payment.id,
+        "file_type": media,
+        "size_bytes": len(content),
+        "receipt_url": f"{settings.API_V1_STR}/auth/subscribe/{payment.id}/receipt",
+        "message": "Chek yuklandi. Super Administrator chekni ko'rib to'lovni tasdiqlaydi.",
+    }
+
+
+@router.get("/subscribe/{payment_id}/receipt")
+def get_subscription_receipt(
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Yuklangan chek fayli (egasi yoki admin uchun). Brauzerda ko'rish uchun inline qaytariladi."""
+    payment = _owned_payment(payment_id, db, current_user, allow_admin=True)
+    path = _receipt_path(payment)
+    if not path:
+        raise HTTPException(status_code=404, detail="Bu ariza uchun chek yuklanmagan.")
+    ext = os.path.splitext(path)[1].lower()
+    return FileResponse(path, media_type=_RECEIPT_MEDIA.get(ext, "application/octet-stream"),
+                        headers={"Content-Disposition": f'inline; filename="chek_{payment.id[:8]}{ext}"',
+                                 "Cache-Control": "private, no-store"})
+
+
+@router.delete("/subscribe/{payment_id}/receipt")
+def delete_subscription_receipt(
+    payment_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Egasi 'pending' arizadagi chekni o'chirib, boshqasini yuklashi mumkin."""
+    payment = _owned_payment(payment_id, db, current_user)
+    if payment.status != "pending":
+        raise HTTPException(status_code=400, detail="Ko'rib chiqilgan arizaning chekini o'chirish mumkin emas.")
+    path = _receipt_path(payment)
+    if path:
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+    payment.receipt_image = None
+    db.commit()
+    return {"status": "deleted", "payment_id": payment.id}
 
 
 @router.get("/subscription-status")
@@ -372,8 +502,12 @@ def get_subscription_status(
                 "plan": p.plan,
                 "amount": p.amount,
                 "payment_method": p.payment_method,
+                "transaction_id": p.transaction_id,
                 "status": p.status,
-                "created_at": p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else ""
+                "admin_note": p.admin_note,
+                "created_at": p.created_at.strftime("%Y-%m-%d %H:%M") if p.created_at else "",
+                "has_receipt": bool(_receipt_path(p)),
+                "receipt_url": f"{settings.API_V1_STR}/auth/subscribe/{p.id}/receipt" if _receipt_path(p) else None,
             }
             for p in recent_payments
         ]

@@ -1,0 +1,188 @@
+{
+  "title": "Parallel korpus: morfologik va semantik teglash sxemasi",
+  "scope": "Tarjima va teng matnlar parallel korpusida o'zaro faol birikuvchi (kollokatsion) so'zlar tadqiqi (o'zbek va ingliz tillari misolida) — PhD dissertatsiyasi 2–3-boblari uchun teglash standarti.",
+  "standards_note": "Morfologiya — Universal Dependencies (UD v2) UPOS + morfologik belgilar (o'zbek uchun UD Uzbek qo'llanmasi: UzUDT, UZ-UT, TueCL treebanklari), ingliz uchun qo'shimcha Penn Treebank (PTB) teglari. Semantika — Lancaster UCREL USAS 21 ta diskursiv maydon. Kollokatsiya — BBI (Benson, Benson & Ilson) struktur tiplari, Mel'čuk leksik funksiyalari, Hausmann 'tayanch–kollokator', Cowie/Howarth frazeologik kontinuum. Statistika — MI, t-score, log-likelihood, logDice (Sketch Engine standarti). Tarjima — Vinay & Darbelnet protseduralari, Baker (1992) ekvivalentlik.",
+
+  "upos": [
+    {"tag": "NOUN", "uz": "Ot (turdosh)", "en": "Noun", "example_en": "corpus, translation", "example_uz": "korpus, tarjima"},
+    {"tag": "PROPN", "uz": "Atoqli ot", "en": "Proper noun", "example_en": "Uzbekistan, Navoiy", "example_uz": "O'zbekiston, Navoiy"},
+    {"tag": "VERB", "uz": "Fe'l (mustaqil)", "en": "Verb", "example_en": "analyse, translate", "example_uz": "tahlil qil-, tarjima qil-"},
+    {"tag": "AUX", "uz": "Ko'makchi fe'l / bog'lama", "en": "Auxiliary", "example_en": "is, have, will, can", "example_uz": "edi, ekan, emas, bo'l-"},
+    {"tag": "ADJ", "uz": "Sifat", "en": "Adjective", "example_en": "lexical, free", "example_uz": "leksik, erkin"},
+    {"tag": "ADV", "uz": "Ravish", "en": "Adverb", "example_en": "frequently, deeply", "example_uz": "tez-tez, chuqur"},
+    {"tag": "PRON", "uz": "Olmosh", "en": "Pronoun", "example_en": "it, they, which", "example_uz": "u, ular, qaysi"},
+    {"tag": "DET", "uz": "Aniqlovchi (artikl, ko'rsatish)", "en": "Determiner", "example_en": "the, a, this", "example_uz": "bu, shu, har, barcha"},
+    {"tag": "NUM", "uz": "Son", "en": "Numeral", "example_en": "two, 2023", "example_uz": "ikki, 2023"},
+    {"tag": "ADP", "uz": "Ko'makchi / predlog", "en": "Adposition", "example_en": "in, of, with", "example_uz": "haqida, uchun, bilan"},
+    {"tag": "CCONJ", "uz": "Teng bog'lovchi", "en": "Coordinating conjunction", "example_en": "and, but, or", "example_uz": "va, lekin, yoki"},
+    {"tag": "SCONJ", "uz": "Ergashtiruvchi bog'lovchi", "en": "Subordinating conjunction", "example_en": "that, because, if", "example_uz": "chunki, agar, -ki"},
+    {"tag": "PART", "uz": "Yuklama", "en": "Particle", "example_en": "to, not, 's", "example_uz": "-mi, -chi, -gina, faqat"},
+    {"tag": "INTJ", "uz": "Undov", "en": "Interjection", "example_en": "oh, well", "example_uz": "eh, voy"},
+    {"tag": "SYM", "uz": "Belgi", "en": "Symbol", "example_en": "%, $", "example_uz": "%, №"},
+    {"tag": "PUNCT", "uz": "Tinish belgisi", "en": "Punctuation", "example_en": ". , ;", "example_uz": ". , ;"},
+    {"tag": "X", "uz": "Boshqa / aniqlanmagan", "en": "Other", "example_en": "etc.", "example_uz": "va h.k."}
+  ],
+
+  "ptb_tags": [
+    {"tag": "NN", "uz": "Ot, birlik"}, {"tag": "NNS", "uz": "Ot, ko'plik"}, {"tag": "NNP", "uz": "Atoqli ot, birlik"}, {"tag": "NNPS", "uz": "Atoqli ot, ko'plik"},
+    {"tag": "VB", "uz": "Fe'l, asos shakl"}, {"tag": "VBZ", "uz": "Fe'l, 3-shaxs birlik hozirgi"}, {"tag": "VBP", "uz": "Fe'l, hozirgi (3-shaxs birlik emas)"},
+    {"tag": "VBD", "uz": "Fe'l, o'tgan zamon"}, {"tag": "VBG", "uz": "Gerundiy / hozirgi sifatdosh"}, {"tag": "VBN", "uz": "O'tgan zamon sifatdoshi"},
+    {"tag": "JJ", "uz": "Sifat"}, {"tag": "JJR", "uz": "Sifat, qiyosiy"}, {"tag": "JJS", "uz": "Sifat, orttirma"},
+    {"tag": "RB", "uz": "Ravish"}, {"tag": "RBR", "uz": "Ravish, qiyosiy"}, {"tag": "RBS", "uz": "Ravish, orttirma"},
+    {"tag": "DT", "uz": "Aniqlovchi"}, {"tag": "IN", "uz": "Predlog / ergashtiruvchi bog'lovchi"}, {"tag": "CC", "uz": "Teng bog'lovchi"},
+    {"tag": "PRP", "uz": "Kishilik olmoshi"}, {"tag": "PRP$", "uz": "Egalik olmoshi"}, {"tag": "MD", "uz": "Modal fe'l"}, {"tag": "TO", "uz": "to"},
+    {"tag": "CD", "uz": "Son"}, {"tag": "WDT", "uz": "Nisbiy aniqlovchi (which)"}, {"tag": "WP", "uz": "So'roq olmoshi (who)"}, {"tag": "WRB", "uz": "So'roq ravishi (how, when)"},
+    {"tag": "EX", "uz": "Ekzistensial there"}, {"tag": "UH", "uz": "Undov"}, {"tag": "POS", "uz": "Egalik 's"}, {"tag": "FW", "uz": "Chet so'z"}
+  ],
+
+  "ud_features_uz": [
+    {"feat": "Case", "values": ["Nom", "Gen", "Acc", "Dat", "Loc", "Abl"], "uz": "Kelishik: bosh (-), qaratqich (-ning), tushum (-ni), jo'nalish (-ga/-ka/-qa), o'rin-payt (-da), chiqish (-dan)"},
+    {"feat": "Number", "values": ["Sing", "Plur"], "uz": "Son: ko'plik -lar (birlik belgilanmaydi, UD Uzbek qoidasi)"},
+    {"feat": "Person[psor]", "values": ["1", "2", "3"], "uz": "Egalik shaxsi: -im/-m, -ing/-ng, -i/-si"},
+    {"feat": "Number[psor]", "values": ["Sing", "Plur"], "uz": "Egalik soni: -imiz/-miz, -ingiz/-ngiz, -lari"},
+    {"feat": "Person", "values": ["1", "2", "3"], "uz": "Fe'l shaxs-son: -man/-m, -san/-ng, -(di), -miz/-k, -siz/-ngiz, -lar"},
+    {"feat": "Tense", "values": ["Past", "Pres", "Fut"], "uz": "Zamon: -di (aniq o'tgan), -gan (uzoq o'tgan), -yap/-moqda (hozirgi), -a/-y (hozirgi-kelasi), -ar/-r (kelasi gumon)"},
+    {"feat": "Aspect", "values": ["Perf", "Prog", "Hab"], "uz": "Tur: -gan tugallangan, -yap/-moqda davomli, -ar odatiy"},
+    {"feat": "Mood", "values": ["Ind", "Imp", "Cnd", "Opt", "Prp"], "uz": "Mayl: aniqlik, buyruq (-ing/-sin), shart (-sa), istak (-ay/-aylik), maqsad (-moqchi, UD Uzbekga xos)"},
+    {"feat": "VerbForm", "values": ["Fin", "Part", "Conv", "Vnoun"], "uz": "Fe'l shakli: tuslangan; sifatdosh (-gan, -(a)digan, -(a)r, -(u)vchi); ravishdosh (-ib, -gach, -guncha); harakat nomi (-moq, -ish, -(u)v)"},
+    {"feat": "Evident", "values": ["Fh"], "uz": "Evidensiallik: -ibdi (eshitilganlik / birinchi qo'l)"},
+    {"feat": "Voice", "values": ["Act", "Pass", "Rcp", "Cau", "Rfl"], "uz": "Nisbat: -il/-in (majhul/o'zlik), -ish (birgalik), -tir/-dir/-t (orttirma)"},
+    {"feat": "Polarity", "values": ["Neg"], "uz": "Inkor: -ma"},
+    {"feat": "Degree", "values": ["Cmp"], "uz": "Daraja: -roq"},
+    {"feat": "PronType", "values": ["Prs", "Dem", "Int", "Ind", "Neg", "Tot", "Rcp"], "uz": "Olmosh turi"},
+    {"feat": "NumType", "values": ["Card", "Ord", "Dist", "Frac"], "uz": "Son turi: sanoq, tartib (-inchi), taqsim (-ta/-tadan), kasr"}
+  ],
+
+  "ud_features_en": [
+    {"feat": "Number", "values": ["Sing", "Plur"], "uz": "Son (otlar: -s/-es; fe'l 3-shaxs)"},
+    {"feat": "Tense", "values": ["Past", "Pres"], "uz": "Zamon (-ed; -s)"},
+    {"feat": "VerbForm", "values": ["Fin", "Inf", "Ger", "Part"], "uz": "Fe'l shakli (tuslangan, infinitiv, gerundiy -ing, sifatdosh -ed/-en)"},
+    {"feat": "Degree", "values": ["Pos", "Cmp", "Sup"], "uz": "Daraja (-er, -est)"},
+    {"feat": "Person", "values": ["1", "2", "3"], "uz": "Shaxs"},
+    {"feat": "Poss", "values": ["Yes"], "uz": "Egalik (my, 's)"}
+  ],
+
+  "usas_fields": [
+    {"code": "A", "en": "General and abstract terms", "uz": "Umumiy va mavhum tushunchalar", "sub": ["A1.1.1 Umumiy harakat, yaratish", "A2.1 O'zgartirish", "A5.1 Baholash: yaxshi/yomon", "A6.1 Qiyoslash: o'xshash/farqli", "A12 Oson/qiyin"]},
+    {"code": "B", "en": "The body and the individual", "uz": "Tana va shaxs", "sub": ["B1 Anatomiya", "B2 Sog'liq va kasallik", "B3 Davolash", "B4 Shaxsiy gigiyena", "B5 Kiyim"]},
+    {"code": "C", "en": "Arts and crafts", "uz": "San'at va hunarmandchilik", "sub": ["C1 San'at"]},
+    {"code": "E", "en": "Emotional actions, states and processes", "uz": "Hissiy holat va jarayonlar", "sub": ["E2 Yoqtirish", "E3 Xotirjam/zo'ravon/jahldor", "E4 Baxtli/g'amgin", "E5 Qo'rquv/jasorat", "E6 Tashvish/ishonch"]},
+    {"code": "F", "en": "Food and farming", "uz": "Oziq-ovqat va dehqonchilik", "sub": ["F1 Ovqat", "F2 Ichimlik", "F3 Tamaki", "F4 Dehqonchilik"]},
+    {"code": "G", "en": "Government and the public domain", "uz": "Davlat, huquq va jamoat", "sub": ["G1.1 Davlat", "G1.2 Siyosat", "G2.1 Qonun va tartib", "G2.2 Axloq", "G3 Urush va mudofaa"]},
+    {"code": "H", "en": "Architecture, buildings, houses and the home", "uz": "Bino, uy-joy", "sub": ["H1 Arxitektura", "H2 Bino qismlari", "H4 Yashash joyi", "H5 Mebel"]},
+    {"code": "I", "en": "Money and commerce", "uz": "Pul, tijorat va mehnat", "sub": ["I1 Pul", "I2.1 Biznes", "I3.1 Ish va bandlik", "I4 Sanoat"]},
+    {"code": "K", "en": "Entertainment, sports and games", "uz": "Ko'ngilochar, sport va o'yin", "sub": ["K1 Ko'ngilochar", "K2 Musiqa", "K4 Teatr", "K5.1 Sport"]},
+    {"code": "L", "en": "Life and living things", "uz": "Hayot va tirik mavjudotlar", "sub": ["L1 Hayot", "L2 Jonivorlar", "L3 O'simliklar"]},
+    {"code": "M", "en": "Movement, location, travel and transport", "uz": "Harakat, joy, sayohat va transport", "sub": ["M1 Harakatlanish", "M3 Quruqlik transporti", "M6 Joy va yo'nalish", "M7 Joylar"]},
+    {"code": "N", "en": "Numbers and measurement", "uz": "Son, o'lchov va miqdor", "sub": ["N1 Sonlar", "N2 Matematika", "N3 O'lchov", "N5 Miqdor", "N6 Chastota (tez-tezlik)"]},
+    {"code": "O", "en": "Substances, materials, objects and equipment", "uz": "Modda, material, buyum va jihoz", "sub": ["O1 Modda", "O2 Buyum", "O3 Elektr jihozlar", "O4.3 Rang"]},
+    {"code": "P", "en": "Education", "uz": "Ta'lim", "sub": ["P1 Ta'lim umuman"]},
+    {"code": "Q", "en": "Linguistic actions, states and processes; communication", "uz": "Til, nutq va kommunikatsiya", "sub": ["Q1.2 Yozma hujjat va yozuv", "Q2.1 Nutq: kommunikativ", "Q2.2 Nutq aktlari", "Q3 Til, nutq va grammatika", "Q4.1 OAV: kitob"]},
+    {"code": "S", "en": "Social actions, states and processes", "uz": "Ijtimoiy harakat va munosabat", "sub": ["S1.1.1 Ijtimoiy harakat umuman", "S1.2.4 Xushmuomalalik", "S2 Odamlar", "S4 Qarindoshlik", "S5 Guruh va a'zolik", "S7.1 Hokimiyat", "S9 Din"]},
+    {"code": "T", "en": "Time", "uz": "Vaqt", "sub": ["T1.1 Vaqt: umumiy", "T1.3 Davr/muddat", "T2 Boshlanish va tugash", "T3 Eski/yangi, yosh", "T4 Erta/kech"]},
+    {"code": "W", "en": "The world and our environment", "uz": "Olam, tabiat va ob-havo", "sub": ["W1 Olam", "W2 Yorug'lik", "W3 Geografiya", "W4 Ob-havo", "W5 Ekologiya"]},
+    {"code": "X", "en": "Psychological actions, states and processes", "uz": "Psixik (aqliy) harakat va holatlar", "sub": ["X2.1 Fikr, e'tiqod", "X2.2 Bilim", "X2.4 Tekshirish, tahlil", "X3 Sezgi", "X5.1 Diqqat", "X6 Qaror qabul qilish", "X7 Xohish", "X9.1 Qobiliyat"]},
+    {"code": "Y", "en": "Science and technology", "uz": "Fan va texnologiya", "sub": ["Y1 Fan umuman", "Y2 Axborot texnologiyalari"]},
+    {"code": "Z", "en": "Names and grammatical words", "uz": "Nomlar va grammatik so'zlar", "sub": ["Z1 Shaxs nomlari", "Z2 Geografik nomlar", "Z3 Tashkilot nomlari", "Z4 Diskurs markerlari", "Z5 Grammatik so'zlar", "Z6 Inkor", "Z8 Olmoshlar", "Z99 Noma'lum"]}
+  ],
+
+  "bbi_types": [
+    {"code": "L1", "pattern_en": "verb (creation/activation) + noun", "pattern_uz": "ot + yaratish/faollashtirish fe'li", "example_en": "make a decision, conduct research", "example_uz": "qaror qabul qilmoq, tadqiqot olib bormoq"},
+    {"code": "L2", "pattern_en": "verb (eradication/nullification) + noun", "pattern_uz": "ot + yo'q qilish/bekor qilish fe'li", "example_en": "reject an appeal, break a promise", "example_uz": "shikoyatni rad etmoq, va'dani buzmoq"},
+    {"code": "L3", "pattern_en": "adjective + noun", "pattern_uz": "sifat + ot", "example_en": "strong tea, lexical collocation", "example_uz": "achchiq choy, leksik kollokatsiya"},
+    {"code": "L4", "pattern_en": "noun + verb (characteristic action)", "pattern_uz": "ot (ega) + xos fe'l", "example_en": "bees buzz, alarms go off", "example_uz": "ari g'ing'illaydi, qo'ng'iroq chalinadi"},
+    {"code": "L5", "pattern_en": "noun1 of noun2 (unit/collective)", "pattern_uz": "ot + ot (bo'lak, to'da)", "example_en": "a piece of advice, a swarm of bees", "example_uz": "bir bo'lak non, bir to'da ari"},
+    {"code": "L6", "pattern_en": "adverb + adjective", "pattern_uz": "ravish + sifat", "example_en": "deeply absorbed, strictly accurate", "example_uz": "juda aniq, mutlaqo erkin"},
+    {"code": "L7", "pattern_en": "verb + adverb", "pattern_uz": "ravish + fe'l", "example_en": "affect deeply, argue heatedly", "example_uz": "chuqur ta'sir qilmoq, qizg'in bahslashmoq"},
+    {"code": "NN", "pattern_en": "noun + noun (compound, outside BBI core)", "pattern_uz": "ot + ot (izofa / qo'shma)", "example_en": "mother tongue, parallel corpus", "example_uz": "ona tili, parallel korpus"},
+    {"code": "G1", "pattern_en": "noun + preposition", "pattern_uz": "ot + ko'makchi", "example_en": "apathy towards, interest in", "example_uz": "...ga qiziqish, ... haqida fikr"},
+    {"code": "G2", "pattern_en": "noun + to-infinitive", "pattern_uz": "ot + harakat nomi", "example_en": "a pleasure to do it", "example_uz": "qilish zavqi"},
+    {"code": "G3", "pattern_en": "noun + that-clause", "pattern_uz": "ot + -ki ergash gap", "example_en": "an agreement that...", "example_uz": "shunday fikr borki..."},
+    {"code": "G4", "pattern_en": "preposition + noun", "pattern_uz": "ko'makchi + ot / kelishikli ot", "example_en": "by accident, in advance", "example_uz": "tasodifan, oldindan"},
+    {"code": "G5", "pattern_en": "adjective + preposition", "pattern_uz": "sifat + ko'makchi", "example_en": "fond of, angry at", "example_uz": "...dan mamnun, ...ga jahli chiqqan"},
+    {"code": "G6", "pattern_en": "adjective + to-infinitive", "pattern_uz": "sifat + harakat nomi", "example_en": "ready to go", "example_uz": "ketishga tayyor"},
+    {"code": "G7", "pattern_en": "adjective + that-clause", "pattern_uz": "sifat + -ki ergash gap", "example_en": "afraid that...", "example_uz": "qo'rqamanki..."},
+    {"code": "G8", "pattern_en": "verb pattern (19 subtypes: V+O+to, V+prep...)", "pattern_uz": "fe'l boshqaruvi (kelishik/ko'makchi talab qilish)", "example_en": "depend on, explain to", "example_uz": "...ga bog'liq bo'lmoq, ...ga tushuntirmoq"}
+  ],
+
+  "lexical_functions": [
+    {"lf": "Magn", "uz": "Kuchaytiruvchi ('juda', 'kuchli')", "example_en": "heavy rain, deep sleep", "example_uz": "kuchli yomg'ir, qattiq uyqu"},
+    {"lf": "AntiMagn", "uz": "Kuchsizlantiruvchi ('oz', 'yengil')", "example_en": "light rain, slight error", "example_uz": "mayda yomg'ir, kichik xato"},
+    {"lf": "Bon", "uz": "Ijobiy baho", "example_en": "fruitful discussion", "example_uz": "samarali muhokama"},
+    {"lf": "AntiBon", "uz": "Salbiy baho", "example_en": "poor translation", "example_uz": "sifatsiz tarjima"},
+    {"lf": "Oper1", "uz": "Ega bajaruvchi 'yengil' fe'l (qilmoq, etmoq)", "example_en": "make a decision, pay attention", "example_uz": "qaror qabul qilmoq, e'tibor bermoq"},
+    {"lf": "Oper2", "uz": "Obyekt tomondan 'yengil' fe'l", "example_en": "receive support", "example_uz": "yordam olmoq"},
+    {"lf": "Func0", "uz": "Hodisa mavjud/yuz beradi", "example_en": "rain falls, time passes", "example_uz": "yomg'ir yog'adi, vaqt o'tadi"},
+    {"lf": "Real1", "uz": "Maqsadga erishish fe'li", "example_en": "keep a promise, pass an exam", "example_uz": "va'dasida turmoq, imtihondan o'tmoq"},
+    {"lf": "AntiReal1", "uz": "Maqsadga erishmaslik", "example_en": "break a promise, fail an exam", "example_uz": "va'dani buzmoq, imtihondan yiqilmoq"},
+    {"lf": "IncepOper1", "uz": "Boshlash fe'li", "example_en": "take up a position, open a discussion", "example_uz": "muhokamani boshlamoq"},
+    {"lf": "FinOper1", "uz": "Tugatish fe'li", "example_en": "lose patience, close a discussion", "example_uz": "sabri tugamoq"},
+    {"lf": "Caus", "uz": "Sabab bo'lish", "example_en": "cause damage, raise doubts", "example_uz": "zarar yetkazmoq, shubha uyg'otmoq"},
+    {"lf": "S1", "uz": "Bajaruvchi nomi", "example_en": "translator (of translation)", "example_uz": "tarjimon"},
+    {"lf": "Sloc", "uz": "Joy nomi", "example_en": "classroom", "example_uz": "o'quv xonasi"},
+    {"lf": "Mult", "uz": "To'plam nomi", "example_en": "a swarm of bees", "example_uz": "bir to'da ari"},
+    {"lf": "Sing", "uz": "Bir bo'lak nomi", "example_en": "a piece of advice", "example_uz": "bir og'iz maslahat"}
+  ],
+
+  "phraseological_continuum": [
+    {"code": "free", "en": "Free combination", "uz": "Erkin birikma", "criteria": "Komponentlar erkin almashadi, ma'no to'liq kompozitsion (Cowie 1981; Howarth 1998).", "example_en": "read a book", "example_uz": "kitob o'qimoq"},
+    {"code": "restricted", "en": "Restricted collocation", "uz": "Kollokatsiya (cheklangan birikma)", "criteria": "Tayanch so'z (basis) kollokatorni tanlaydi, almashtirish cheklangan, ma'no shaffof (Hausmann 1984).", "example_en": "strong tea (*powerful tea)", "example_uz": "achchiq choy (*kuchli choy)"},
+    {"code": "figurative_idiom", "en": "Figurative idiom", "uz": "Obrazli (metaforik) turg'un birikma", "criteria": "Ko'chma ma'no, lekin to'g'ri ma'no ham saqlanadi.", "example_en": "break the ice", "example_uz": "muzni eritmoq"},
+    {"code": "pure_idiom", "en": "Pure idiom", "uz": "Frazeologik birlik (idioma)", "criteria": "Ma'no kompozitsion emas, komponentlar bo'linmas (Rahmatullayev 1978; Mamatov 1999).", "example_en": "kick the bucket", "example_uz": "og'zi qulog'ida"}
+  ],
+
+  "association_measures": [
+    {"key": "mi", "name": "MI (Mutual Information)", "formula": "log2( O11 · N / (R1 · C1) )", "source": "Church & Hanks (1990)", "uz": "Kam uchraydigan, lekin kuchli bog'langan juftliklarni yuqori baholaydi; MI ≥ 3 odatda kollokatsiya chegarasi (Hunston 2002)."},
+    {"key": "t_score", "name": "t-score", "formula": "(O11 − E11) / √O11", "source": "Church et al. (1991)", "uz": "Yuqori chastotali, ishonchli juftliklarni ajratadi; t ≥ 2 odatda statistik ishonchli."},
+    {"key": "log_likelihood", "name": "Log-likelihood (G²)", "formula": "2 · Σ O_ij · ln(O_ij / E_ij)", "source": "Dunning (1993)", "uz": "Kichik korpuslar uchun barqaror; G² ≥ 3.84 → p < 0.05, ≥ 10.83 → p < 0.001."},
+    {"key": "logdice", "name": "logDice", "formula": "14 + log2( 2 · O11 / (R1 + C1) )", "source": "Rychlý (2008), Sketch Engine", "uz": "Korpus hajmiga bog'liq emas, maksimumi 14; turli korpuslarni qiyoslashga qulay. Lug'atchilikda standart."}
+  ],
+
+  "equivalence_types": [
+    {"code": "full", "uz": "To'liq ekvivalent", "en": "Full equivalence", "criteria": "Tayanch ham, kollokator ham lug'aviy mos, struktur tipi saqlanadi (so'z tartibi tipologik farq hisobga olinadi).", "example": "black tea ↔ qora choy; mother tongue ↔ ona tili"},
+    {"code": "partial", "uz": "Qisman ekvivalent", "en": "Partial equivalence", "criteria": "Tayanch mos, kollokator boshqa leksema bilan beriladi yoki struktur tipi o'zgaradi (fe'l+ot → ot+yengil fe'l).", "example": "strong tea ↔ achchiq choy; give a lecture ↔ ma'ruza o'qimoq"},
+    {"code": "zero", "uz": "Nol ekvivalent (lakuna)", "en": "Zero equivalence / lacuna", "criteria": "Tarjima tilida kollokatsion muqobil yo'q: bir so'z, tavsifiy ifoda yoki madaniy moslashtirish qo'llanadi.", "example": "heavy traffic ↔ tirbandlik; catch a cold ↔ shamollamoq"}
+  ],
+
+  "translation_procedures": [
+    {"code": "calque", "uz": "Kalka / so'zma-so'z", "en": "Calque / literal translation", "source": "Vinay & Darbelnet (1958/1995)"},
+    {"code": "transposition", "uz": "Transpozitsiya (so'z turkumi o'zgarishi)", "en": "Transposition", "source": "Vinay & Darbelnet"},
+    {"code": "modulation", "uz": "Modulyatsiya (nuqtai nazar o'zgarishi)", "en": "Modulation", "source": "Vinay & Darbelnet"},
+    {"code": "equivalence", "uz": "Ekvivalensiya (idiomatik muqobil)", "en": "Equivalence", "source": "Vinay & Darbelnet"},
+    {"code": "adaptation", "uz": "Adaptatsiya (madaniy moslashtirish)", "en": "Adaptation", "source": "Vinay & Darbelnet"},
+    {"code": "paraphrase", "uz": "Tavsifiy tarjima (parafraz)", "en": "Paraphrase", "source": "Baker (1992)"},
+    {"code": "omission", "uz": "Tushirib qoldirish", "en": "Omission", "source": "Baker (1992)"}
+  ],
+
+  "references": [
+    "Benson, M., Benson, E., & Ilson, R. (1986/2009). The BBI Combinatory Dictionary of English (3rd ed.). Amsterdam: John Benjamins.",
+    "Mel'čuk, I. (1998). Collocations and lexical functions. In A. P. Cowie (Ed.), Phraseology: Theory, analysis, and applications (pp. 23–53). Oxford: OUP.",
+    "Hausmann, F. J. (1984). Wortschatzlernen ist Kollokationslernen. Praxis des neusprachlichen Unterrichts, 31, 395–406.",
+    "Cowie, A. P. (1981). The treatment of collocations and idioms in learners' dictionaries. Applied Linguistics, 2(3), 223–235.",
+    "Howarth, P. (1998). Phraseology and second language proficiency. Applied Linguistics, 19(1), 24–44.",
+    "Sinclair, J. (1991). Corpus, Concordance, Collocation. Oxford: OUP.",
+    "Church, K. W., & Hanks, P. (1990). Word association norms, mutual information, and lexicography. Computational Linguistics, 16(1), 22–29.",
+    "Dunning, T. (1993). Accurate methods for the statistics of surprise and coincidence. Computational Linguistics, 19(1), 61–74.",
+    "Rychlý, P. (2008). A lexicographer-friendly association score. RASLAN 2008, 6–9.",
+    "Evert, S. (2008). Corpora and collocations. In A. Lüdeling & M. Kytö (Eds.), Corpus Linguistics: An International Handbook (Vol. 2, pp. 1212–1248). Berlin: de Gruyter.",
+    "Gale, W. A., & Church, K. W. (1993). A program for aligning sentences in bilingual corpora. Computational Linguistics, 19(1), 75–102.",
+    "Rayson, P., Archer, D., Piao, S., & McEnery, T. (2004). The UCREL semantic analysis system. LREC 2004 Workshop on Beyond Named Entity Recognition, 7–12.",
+    "Archer, D., Wilson, A., & Rayson, P. (2002). Introduction to the USAS category system. Lancaster University, UCREL.",
+    "de Marneffe, M.-C., Manning, C. D., Nivre, J., & Zeman, D. (2021). Universal Dependencies. Computational Linguistics, 47(2), 255–308.",
+    "Universal Dependencies. UD for Uzbek: guidelines and treebanks (UZ-UT, UzUDT, TueCL). https://universaldependencies.org/uz/",
+    "Marcus, M. P., Santorini, B., & Marcinkiewicz, M. A. (1993). Building a large annotated corpus of English: The Penn Treebank. Computational Linguistics, 19(2), 313–330.",
+    "Salaev, U. (2024). UzMorphAnalyser: A morphological analysis model for the Uzbek language using inflectional endings. arXiv:2405.14179.",
+    "Sharipov, M., Mattiev, J., Sobirov, J., & Baltayev, R. (2022). Creating a morphological and syntactic tagged corpus for the Uzbek language. arXiv:2210.15234.",
+    "Sharipov, M., Kuriyozov, E., Yuldashev, O., & Sobirov, O. (2023). UzbekTagger: The rule-based POS tagger for Uzbek language. arXiv:2301.12711.",
+    "Baker, M. (1992/2011). In Other Words: A Coursebook on Translation (2nd ed.). London: Routledge.",
+    "Vinay, J.-P., & Darbelnet, J. (1958/1995). Comparative Stylistics of French and English: A Methodology for Translation. Amsterdam: John Benjamins.",
+    "Newmark, P. (1988). A Textbook of Translation. Hemel Hempstead: Prentice Hall.",
+    "Hunston, S. (2002). Corpora in Applied Linguistics. Cambridge: CUP.",
+    "McEnery, T., & Hardie, A. (2012). Corpus Linguistics: Method, Theory and Practice. Cambridge: CUP.",
+    "Rahmatullayev, Sh. (1978). O'zbek tilining izohli frazeologik lug'ati. Toshkent: O'qituvchi.",
+    "Mamatov, A. E. (1999). O'zbek tili frazeologizmlarining shakllanishi masalalari. Toshkent.",
+    "Yo'ldoshev, B. (2007). Frazeologik uslubiyat asoslari. Samarqand: SamDU.",
+    "Ergasheva, G., Xaitqulov, Z., & Kuchimova, N. (2023). Parallel korpusda tarjimani avtomatlashtirish (kollokatsiyalar misolida). O'zbekistonda xorijiy tillar, 5(52).",
+    "Abdurakhmonova, N. (2022). Syntactic models for parsing of Uzbek corpus. Philological Sciences (cyberleninka)."
+  ]
+}

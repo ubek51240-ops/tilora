@@ -197,6 +197,23 @@ Qolgan barcha talablar amalga oshirildi (moslik xaritasi: `GET /api/content/comp
 
 Testlar: 83 ta (`tests/test_v24_full_compliance.py` qo'shildi).
 
+## 🔤 4.6. Parallel korpus: kollokatsiyalarni morfologik va semantik teglash (v2.5)
+
+Tadqiqot vositasi (PhD, filologiya): *«Tarjima va teng matnlar parallel korpusida o'zaro faol birikuvchi (kollokatsion) so'zlar tadqiqi (o'zbek va ingliz tillari misolida)»*. AI kalitisiz, to'liq lokal ishlaydi. "Platforma haqida" sahifasi → "Parallel korpus (kollokatsiya)".
+
+| Qism | Standart / usul | Fayl |
+|---|---|---|
+| Morfologik teglash (UZ) | UD Uzbek UPOS + belgilar (Case, Number, Person[psor], Tense, Mood, VerbForm, Voice, Polarity…), affiks zanjiri `maktab + lar + imiz + dan`, ko'p so'zli fe'llar (`qabul qil-`, `olib bor-`) | `app/services/corpus_tagger.py`, `content/corpus_lexicon_uz.json` |
+| Morfologik teglash (EN) | UD UPOS + PTB (NN/VBD/JJ…), lemma, UD belgilari | `content/corpus_lexicon_en.json` |
+| Semantik teglash | UCREL USAS 21 diskursiv maydon (A…Z) — tayanch so'z bo'yicha | `content/corpus_tagset.json` |
+| Kollokatsiya tasnifi | BBI L1–L7 / G1–G8, Mel'čuk LF (Magn, Oper1, Real1, Func0…), Cowie–Howarth kontinuum, Hausmann tayanch/kollokator | `corpus_tagger.extract_candidates` |
+| Statistik mezonlar | MI (Church & Hanks), t-score, log-likelihood (Dunning), logDice (Rychlý / Sketch Engine) | `corpus_tagger._association` |
+| Tekislash | Qatorma-qator 1:1 yoki Gale–Church (1993) uzunlikka asoslangan DP | `corpus_tagger.align_sentences` |
+| Ekvivalentlik | to'liq / qisman / nol (lakuna) / grammatik; Vinay–Darbelnet protseduralari, Baker (1992) | `content/corpus_collocations.json` (100 juftlik, lingvomadaniy izohlar bilan) |
+| Eksport | CoNLL-U (UD), TSV (kollokatsiyalar, juftliklar), JSON | `POST /api/research/corpus/analyze?fmt=` |
+
+API: `GET /api/research/corpus/tagset`, `GET /api/research/corpus/collocations`, `GET /api/research/corpus/sample`, `POST /api/research/corpus/tag`, `POST /api/research/corpus/analyze`. Testlar: `tests/test_corpus_tagger.py` (10 ta).
+
 ## 👥 5. Demo Hisoblar Ma'lumotlari
 
 Demo hisoblar paroli `SEED_PASSWORD` muhit o'zgaruvchisi bilan belgilanadi (standart: `tilora2026!`, faqat lokal demo uchun; ishlab chiqarishda o'zgartiring).

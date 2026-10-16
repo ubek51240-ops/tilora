@@ -9284,7 +9284,8 @@ window.addEventListener("keydown", function(e) {
       id: "research_overview",
       cat: "research",
       method: "GET",
-      path: "/api/research/overview",
+      // backendda /research/overview yo'q (404) — ochiq endpoint /research/statistics
+      path: "/api/research/statistics",
       title: "DSc 4-bobi matematik-statistik tahlillari",
       desc: "Tajriba va nazorat guruhlari (302 va 304) o'rtasidagi Styuydent t-kriteriyasi, ANOVA dispersiya tahlili va Bespalko K ko'rsatkichi.",
       role: "researcher, teacher, admin, guest, student",
@@ -9302,12 +9303,13 @@ window.addEventListener("keydown", function(e) {
       id: "research_docx",
       cat: "research",
       method: "GET",
-      path: "/api/research/export/docx",
+      // to'g'ri yo'l: /research/export-docx (rol talab qilinadi: researcher/admin/teacher)
+      path: "/api/research/export-docx",
       title: "Dissertatsiya jadvallarini Word (.docx) formatida yuklash",
       desc: "4.2-jadvaldan 4.9-jadvalgacha bo'lgan barcha ilmiy jadvallarni dissertatsiya formatidagi Word hujjati sifatida generatsiya qilib yuklash.",
-      role: "researcher, admin",
+      role: "researcher, teacher, admin",
       principle: null,
-      auth: false,
+      auth: true,
       body: null,
       response: "Binary Stream (application/vnd.openxmlformats-officedocument.wordprocessingml.document)"
     },
@@ -9588,7 +9590,8 @@ window.addEventListener("keydown", function(e) {
       },
       get_profile: { method: "GET", path: "/api/student/profile", auth: true, body: "" },
       get_path: { method: "GET", path: "/api/student/path", auth: true, body: "" },
-      get_research_overview: { method: "GET", path: "/api/research/overview", auth: false, body: "" },
+      // /research/overview backendda yo'q (404) — ochiq statistika endpointi /research/statistics
+      get_research_overview: { method: "GET", path: "/api/research/statistics", auth: false, body: "" },
       get_subjects: { method: "GET", path: "/api/teacher/subjects", auth: true, body: "" },
       get_health: { method: "GET", path: "/health", auth: false, body: "" },
       get_network: { method: "GET", path: "/api/network-info", auth: false, body: "" }

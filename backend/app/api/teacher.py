@@ -16,8 +16,14 @@ from app.schemas.all_schemas import ProposalAction, SubjectBookCreate, SubjectBo
 from app.core.deps import get_current_user, require_role
 from app.services.ai_service import ai_service
 from app.services import materials as matsvc
+from app.services import material_upload as upsvc
+from app.services.diagnostic_bank import UPLOADS_DIR
 from app.services.syllabus_parser import parse_syllabus_document
 from app.config import settings
+import uuid
+
+# O'qituvchi yuklagan tayyor test / slayd fayllari (statik /uploads/materials/ orqali beriladi)
+UPLOAD_MATERIAL_DIR = os.path.join(UPLOADS_DIR, "materials")
 
 router = APIRouter(prefix="/teacher", tags=["O'qituvchi"], dependencies=[Depends(require_role(["teacher", "admin"]))])
 
@@ -951,6 +957,135 @@ async def generate_teacher_material(
         "limit_info": limit_info,
         "assigned_subjects": [subj.name] + [es.name for es in extra_subjects],
         "copies": [c.id for c in copies],
+    }
+
+
+@router.post("/subjects/{subject_id}/upload-material")
+async def upload_material_file(
+    subject_id: str,
+    file: UploadFile = File(...),
+    material_type: str = Form("test"),
+    topic_title: Optional[str] = Form(None),
+    topic_id: Optional[str] = Form(None),
+    title: Optional[str] = Form(None),
+    mode: str = Form("auto"),  # "auto" — fayl tahlil qilinib interaktiv material; "file" — faqat fayl (yuklab olish)
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    O'qituvchi tayyor test (.docx/.pdf/.txt) yoki slayd (.pptx/.pdf/.docx/.txt) faylini fanga yuklaydi.
+    Test: savollar va javob kaliti ajratilib interaktiv test bo'ladi; slayd: slaydlar ro'yxati tuziladi.
+    Asl fayl /uploads/materials/ da saqlanadi — talaba "Mustaqil topshiriqlar"da ko'radi va yuklab oladi.
+    """
+    teacher_id = current_user.get("id")
+    is_admin = current_user.get("role") == "admin"
+    subj = db.query(TeacherSubject).filter(TeacherSubject.id == subject_id).first()
+    if not subj or (not is_admin and subj.teacher_id != teacher_id):
+        raise HTTPException(status_code=404, detail="Tanlangan fan topilmadi yoki sizga tegishli emas.")
+
+    material_type = (material_type or "test").lower()
+    if material_type not in ("test", "presentation"):
+        raise HTTPException(status_code=400, detail="Fayldan faqat 'test' yoki 'presentation' yuklash mumkin.")
+    allowed_ext = upsvc.TEST_EXTENSIONS if material_type == "test" else upsvc.PRESENTATION_EXTENSIONS
+    content = await _read_upload(file, allowed_ext)
+
+    allowed, limit_msg = check_material_limit(db, teacher_id, material_type, current_user)
+    if not allowed:
+        raise HTTPException(status_code=403, detail=limit_msg)
+
+    original_name = os.path.basename(file.filename or "material")[:255]
+    ext = os.path.splitext(original_name.lower())[1]
+    topic_title = (topic_title or "").strip() or "Umumiy dars mavzusi"
+    base_title = (title or "").strip() or os.path.splitext(original_name)[0]
+    file_only = (mode or "auto").lower() == "file"
+    warnings: List[str] = []
+
+    data: Dict[str, Any] = {
+        "topic": topic_title,
+        "subject": subj.name,
+        "source": "upload",
+        "file_name": original_name,
+        "file_only": file_only,
+        "language": "uz",
+    }
+
+    if material_type == "test":
+        questions: List[Dict[str, Any]] = []
+        if not file_only:
+            try:
+                parsed = upsvc.parse_test_questions(upsvc.extract_text(content, original_name))
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Faylni o'qib bo'lmadi: {e}")
+            questions = parsed["questions"]
+            if not questions:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Fayldan test savollari ajratilmadi. Kutilgan ko'rinish: '1. Savol matni?' so'ng 'A) ...', 'B) ...' variantlar; "
+                           "to'g'ri javob '*' bilan (masalan 'B) javob *') yoki 'Javob: B' qatori bilan belgilanadi. "
+                           "Yoki \"Faqat fayl sifatida saqlash\" rejimini tanlang — talaba faylni yuklab oladi.",
+                )
+            if parsed["missing_keys"]:
+                warnings.append(f"{parsed['missing_keys']} ta savolda javob kaliti topilmadi — ular uchun A varianti to'g'ri deb olindi. Faylda 'Javob: B' qatorini qo'shib qayta yuklashingiz mumkin.")
+        title_name = (title or "").strip() or f"{base_title} — Test (fayldan)"
+        data.update({"questions": questions, "questions_count": len(questions), "requested_count": len(questions), "difficulty": "B2"})
+        items = len(questions)
+    else:
+        slides: List[Dict[str, Any]] = []
+        if not file_only:
+            try:
+                slides = upsvc.extract_slides(content, original_name)
+            except Exception as e:
+                warnings.append(f"Slayd matni ajratilmadi ({e}); talaba faylni yuklab oladi.")
+            if not slides:
+                if not warnings:
+                    warnings.append("Fayldan slayd matni ajratilmadi; material faqat fayl sifatida saqlandi (talaba yuklab oladi).")
+                file_only = True
+                data["file_only"] = True
+        title_name = (title or "").strip() or f"{base_title} — Slaydlar (fayldan)"
+        data.update({"slides": slides, "slides_count": len(slides), "requested_count": len(slides), "image_mode": "none"})
+        items = len(slides)
+
+    # Asl faylni saqlash (tahlil muvaffaqiyatli bo'lgandan keyin)
+    os.makedirs(UPLOAD_MATERIAL_DIR, exist_ok=True)
+    stored_name = f"{uuid.uuid4().hex}{ext}"
+    with open(os.path.join(UPLOAD_MATERIAL_DIR, stored_name), "wb") as fh:
+        fh.write(content)
+    data["file_url"] = f"/uploads/materials/{stored_name}"
+    data["title"] = title_name
+    data["warnings"] = warnings
+
+    saved = TeacherMaterial(
+        teacher_id=teacher_id,
+        subject_id=subj.id,
+        topic_id=topic_id or None,
+        topic_title=topic_title,
+        material_type=material_type,
+        title=title_name,
+        content_json=data,
+        content_text=title_name,
+    )
+    db.add(saved)
+    db.commit()
+    db.refresh(saved)
+
+    _, limit_info = check_material_limit(db, teacher_id, material_type, current_user)
+    kind = "test" if material_type == "test" else "slayd"
+    return {
+        "status": "success",
+        "message": f"'{original_name}' fayli yuklandi: {items} ta {'savol' if material_type == 'test' else 'slayd'}{' (faqat fayl)' if file_only else ''}. {kind.capitalize()} '{subj.name}' fanida talabalarga ko'rinadi.",
+        "material_id": saved.id,
+        "material_type": material_type,
+        "title": title_name,
+        "subject_name": subj.name,
+        "topic_title": topic_title,
+        "file_url": data["file_url"],
+        "file_name": original_name,
+        "file_only": file_only,
+        "items_count": items,
+        "warnings": warnings,
+        "data": data,
+        "created_at": saved.created_at.strftime("%Y-%m-%d %H:%M"),
+        "limit_info": limit_info,
     }
 
 

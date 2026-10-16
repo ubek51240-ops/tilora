@@ -5066,6 +5066,9 @@ window.loadTeacherSubjects = async function() {
             <button class="btn-primary" style="padding:7px 13px;font-size:12.5px" onclick="window.prepareGenerateForTopic('${s.id}', '', 'test')">
               ✨ AI Tayyorlash
             </button>
+            <button class="btn-primary" style="padding:7px 13px;font-size:12.5px;background:var(--amber);border-color:var(--amber)" onclick="window.openUploadMaterialModal('${s.id}')" title="Tayyor test yoki slayd faylini yuklash (.docx, .pdf, .pptx, .txt)">
+              ⬆️ Test/Slayd yuklash
+            </button>
             ${s.is_own === false ? "" : `<button class="btn-primary" style="padding:7px 10px;font-size:12px;background:none;color:var(--clay);border:1px solid var(--line)" onclick="window.deleteTeacherSubject('${s.id}')" title="Fanni o'chirish">
               🗑️
             </button>`}
@@ -5333,6 +5336,173 @@ window.closeUploadSyllabusModal = function() {
   const modal = document.getElementById("uploadSyllabusModal");
   if (modal) modal.style.display = "none";
   STATE.parsedSyllabusData = null;
+};
+
+// ==================== TAYYOR TEST / SLAYD FAYLINI YUKLASH (O'QITUVCHI / ADMIN) ====================
+// O'qituvchi o'z faylini (.docx/.pdf/.txt — test; .pptx/.pdf/.docx — slayd) fanga yuklaydi.
+// Backend (POST /teacher/subjects/{id}/upload-material) faylni tahlil qilib interaktiv test/slayd yasaydi,
+// asl fayl /uploads/materials/ da saqlanadi — talaba uni "Mustaqil topshiriqlar"da ishlaydi yoki yuklab oladi.
+window.openUploadMaterialModal = async function(subjectId, materialType) {
+  const modal = document.getElementById("uploadMaterialModal");
+  if (!modal) return;
+  if (!window.canCreateMaterials || !window.canCreateMaterials()) {
+    showToast("Fayl yuklash faqat o'qituvchi yoki admin uchun.", "error");
+    return;
+  }
+  // Fanlar ro'yxati (kerak bo'lsa yuklanadi)
+  if (!(STATE.teacherSubjects || []).length && typeof window.loadTeacherSubjects === "function") {
+    await window.loadTeacherSubjects();
+  }
+  const subjSel = document.getElementById("umSubjectSelect");
+  if (subjSel) {
+    subjSel.innerHTML = `<option value="">-- Fanni tanlang --</option>` +
+      (STATE.teacherSubjects || []).map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.group_name || "")})${s.is_own === false && s.teacher_name ? ` · ${escapeHtml(s.teacher_name)}` : ""}</option>`).join("");
+    subjSel.value = subjectId || "";
+    if (subjectId && subjSel.value !== subjectId) {
+      // Talaba ro'yxatidan kelgan fan (STATE.studentSubjects) bo'lsa, uni ham qo'shamiz
+      const st = (STATE.studentSubjects || []).find(s => String(s.id) === String(subjectId));
+      if (st) {
+        const opt = document.createElement("option");
+        opt.value = st.id; opt.text = `${st.title || st.name} (${st.group_name || ""})`; opt.selected = true;
+        subjSel.appendChild(opt);
+      }
+    }
+  }
+  const radio = document.querySelector(`input[name="umMaterialType"][value="${materialType === "presentation" ? "presentation" : "test"}"]`);
+  if (radio) radio.checked = true;
+  const fileInput = document.getElementById("umFileInput");
+  if (fileInput) fileInput.value = "";
+  const notice = document.getElementById("umFileNotice");
+  if (notice) { notice.textContent = "Fayl hali tanlanmagan"; notice.style.color = "var(--muted)"; }
+  const titleInp = document.getElementById("umTitle");
+  if (titleInp) titleInp.value = "";
+  const fileOnly = document.getElementById("umFileOnly");
+  if (fileOnly) fileOnly.checked = false;
+  const result = document.getElementById("umResult");
+  if (result) { result.style.display = "none"; result.innerHTML = ""; }
+  const btn = document.getElementById("btnUploadMaterial");
+  if (btn) { btn.disabled = false; btn.innerHTML = "⬆️ Yuklash va saqlash"; }
+
+  window.onUploadMaterialTypeChange();
+  await window.onUploadMaterialSubjectChange();
+  modal.style.display = "flex";
+};
+
+window.closeUploadMaterialModal = function() {
+  const modal = document.getElementById("uploadMaterialModal");
+  if (modal) modal.style.display = "none";
+};
+
+// Fan o'zgarganda sillabus mavzularini yuklash
+window.onUploadMaterialSubjectChange = async function() {
+  const subjSel = document.getElementById("umSubjectSelect");
+  const topicSel = document.getElementById("umTopicSelect");
+  if (!subjSel || !topicSel) return;
+  topicSel.innerHTML = `<option value="">Umumiy dars mavzusi</option>`;
+  if (!subjSel.value) return;
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/teacher/subjects/${subjSel.value}/topics`, { headers: { "Authorization": `Bearer ${STATE.token}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    (data.topics || []).forEach(t => {
+      const opt = document.createElement("option");
+      opt.value = t.title; opt.dataset.id = t.id || ""; opt.text = t.title;
+      topicSel.appendChild(opt);
+    });
+  } catch (_) { /* mavzular bo'lmasa umumiy mavzu qoladi */ }
+};
+
+// Test / slayd turi o'zgarganda qabul qilinadigan fayl kengaytmalari va ko'rsatma
+window.onUploadMaterialTypeChange = function() {
+  const t = document.querySelector('input[name="umMaterialType"]:checked');
+  const isTest = !t || t.value === "test";
+  const input = document.getElementById("umFileInput");
+  const label = document.getElementById("umFileLabel");
+  const hint = document.getElementById("umTestHint");
+  if (input) input.accept = isTest ? ".docx,.pdf,.txt" : ".pptx,.pdf,.docx,.txt";
+  if (label) label.textContent = isTest ? "Test faylini tanlang (.docx, .pdf, .txt)" : "Slayd faylini tanlang (.pptx, .pdf, .docx, .txt)";
+  if (hint) hint.style.display = isTest ? "block" : "none";
+};
+
+window.onUploadMaterialFileChange = function(e) {
+  const file = e.target.files ? e.target.files[0] : null;
+  const notice = document.getElementById("umFileNotice");
+  if (!notice) return;
+  if (file) {
+    notice.innerHTML = `✅ <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024).toFixed(0)} KB)`;
+    notice.style.color = "var(--teal)";
+  } else {
+    notice.textContent = "Fayl hali tanlanmagan";
+    notice.style.color = "var(--muted)";
+  }
+};
+
+window.submitUploadMaterial = async function() {
+  const subjSel = document.getElementById("umSubjectSelect");
+  const topicSel = document.getElementById("umTopicSelect");
+  const fileInput = document.getElementById("umFileInput");
+  const t = document.querySelector('input[name="umMaterialType"]:checked');
+  const matType = t ? t.value : "test";
+  const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+  const subjectId = subjSel ? subjSel.value : "";
+  if (!subjectId) return showToast("Avval fanni tanlang.", "error");
+  if (!file) return showToast("Yuklash uchun faylni tanlang.", "error");
+
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("material_type", matType);
+  fd.append("topic_title", topicSel ? topicSel.value : "");
+  const topicOpt = topicSel && topicSel.selectedOptions[0];
+  fd.append("topic_id", topicOpt && topicOpt.dataset.id ? topicOpt.dataset.id : "");
+  fd.append("title", (document.getElementById("umTitle") || {}).value || "");
+  fd.append("mode", (document.getElementById("umFileOnly") || {}).checked ? "file" : "auto");
+
+  const btn = document.getElementById("btnUploadMaterial");
+  const result = document.getElementById("umResult");
+  if (btn) { btn.disabled = true; btn.innerHTML = "⏳ Fayl tahlil qilinmoqda..."; }
+  try {
+    const res = await fetch(`${STATE.apiBaseUrl}/teacher/subjects/${subjectId}/upload-material`, {
+      method: "POST", headers: { "Authorization": `Bearer ${STATE.token}` }, body: fd
+    });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.detail || "Faylni yuklab bo'lmadi");
+
+    showToast(`✅ ${d.message}`, "success");
+    if (result) {
+      const unit = matType === "test" ? "ta savol" : "ta slayd";
+      const warn = (d.warnings || []).map(w => `<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--amber-soft);font-size:12px">⚠️ ${escapeHtml(w)}</div>`).join("");
+      result.style.display = "block";
+      result.innerHTML = `
+        <div style="padding:12px 14px;border:1.5px solid var(--teal);border-radius:10px;background:var(--teal-soft);font-size:13px">
+          <div style="font-weight:700">${matType === "test" ? "📝" : "🖥️"} ${escapeHtml(d.title)}</div>
+          <div style="margin-top:4px;color:var(--ink-2)">${d.items_count} ${unit}${d.file_only ? " · faqat fayl (talaba yuklab oladi)" : " · interaktiv"} · <a href="${escapeHtml(d.file_url)}" target="_blank" style="color:var(--teal)">📎 ${escapeHtml(d.file_name)}</a></div>
+          ${warn}
+          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap">
+            ${d.items_count > 0 ? `<button class="btn-primary" style="padding:6px 12px;font-size:12.5px" onclick="window.closeUploadMaterialModal();window.switchSubjectTab('materials');setTimeout(()=>window.viewSavedMaterial('${d.material_id}'),600)">👁️ Ko'rish</button>` : ""}
+            <button class="btn-primary" style="padding:6px 12px;font-size:12.5px;background:none;color:var(--ink);border:1px solid var(--line)" onclick="document.getElementById('umFileInput').value='';document.getElementById('umFileNotice').textContent='Fayl hali tanlanmagan';document.getElementById('umResult').style.display='none'">➕ Yana fayl yuklash</button>
+          </div>
+        </div>`;
+    }
+    if (typeof window.loadTeacherMaterials === "function") window.loadTeacherMaterials();
+    if (typeof window.loadTeacherSubjects === "function") window.loadTeacherSubjects();
+  } catch (err) {
+    showToast(`❌ ${err.message}`, "error");
+    if (result) {
+      result.style.display = "block";
+      result.innerHTML = `<div style="padding:10px 12px;border-radius:8px;background:rgba(185,28,28,0.08);color:#B91C1C;font-size:12.5px">${escapeHtml(err.message)}</div>`;
+    }
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = "⬆️ Yuklash va saqlash"; }
+  }
+};
+
+// Yuklangan asl faylni ochish / yuklab olish (talaba uchun "ko'rildi" belgisi qo'yiladi)
+window.downloadMaterialFile = function(materialId, url) {
+  if (!url) return;
+  if (STATE.currentUser && STATE.currentUser.role === "student" && typeof window.markStudentMaterialViewed === "function") {
+    window.markStudentMaterialViewed(materialId);
+  }
+  window.open(url, "_blank");
 };
 
 window.fillStandardTopics = function() {
@@ -5824,8 +5994,11 @@ window.loadTeacherMaterials = async function() {
         <div class="card" style="text-align:center;padding:36px 20px">
           <div style="font-size:32px;margin-bottom:8px">📁</div>
           <h4 style="margin:0 0 6px">Hozircha saqlangan materiallar yo'q</h4>
-          <p style="font-size:13px;color:var(--muted);margin:0 0 14px">AI Generator yordamida fanning biror mavzusiga test yoki slayd tayyorlang.</p>
-          <button class="btn-primary" onclick="window.switchSubjectTab('generator')">✨ AI bilan tayyorlash</button>
+          <p style="font-size:13px;color:var(--muted);margin:0 0 14px">AI Generator yordamida fanning biror mavzusiga test yoki slayd tayyorlang yoki tayyor faylingizni yuklang.</p>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+            <button class="btn-primary" onclick="window.switchSubjectTab('generator')">✨ AI bilan tayyorlash</button>
+            <button class="btn-primary" style="background:var(--amber);border-color:var(--amber)" onclick="window.openUploadMaterialModal()">⬆️ Fayldan yuklash</button>
+          </div>
         </div>
       `;
       return;
@@ -5848,6 +6021,7 @@ window.loadTeacherMaterials = async function() {
             </div>
             <h4 style="margin:0 0 4px;font-size:16px;font-family:var(--serif)">${escapeHtml(m.title)}</h4>
             <div style="font-size:13px;color:var(--ink-2)">Mavzu: <b>${escapeHtml(m.topic_title)}</b></div>
+            ${(m.content && m.content.file_url) ? `<div style="font-size:12px;margin-top:4px"><a href="${escapeHtml(m.content.file_url)}" target="_blank" style="color:var(--teal);font-weight:600">📎 ${escapeHtml(m.content.file_name || "Yuklangan fayl")}</a>${m.content.file_only ? ` <span style="color:var(--muted)">(faqat fayl)</span>` : ""}</div>` : ""}
           </div>
 
           <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -5881,6 +6055,16 @@ window.viewSavedMaterial = function(materialId) {
   }
 
   const content = item.content || {};
+
+  // Faqat fayl sifatida yuklangan material (savol/slayd ajratilmagan) — asl faylni ochamiz
+  const emptyUploaded = content.file_url && (
+    (item.material_type === "test" && !(content.questions || []).length) ||
+    (item.material_type === "presentation" && !(content.slides || []).length)
+  );
+  if (emptyUploaded) {
+    window.downloadMaterialFile(item.id, content.file_url);
+    return;
+  }
 
   if (item.material_type === "presentation") {
     const slides = content.slides || [];
@@ -7062,7 +7246,9 @@ window.materialCreatorButtonsHtml = function(subj, mode) {
     `<button type="button" class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--surface);color:var(--teal);border:1px solid var(--teal)" onclick="event.stopPropagation();window.openMaterialCreator('${escapeHtml(subj.id)}','${t.type}')">${t.icon} ${t[lang] || t.uz}</button>`
   ).join("");
   const extra = mode === "card" ? "padding-top:8px;border-top:1px dashed var(--line);" : "";
-  return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;${extra}"><span style="font-size:11.5px;font-weight:700;color:var(--muted)">${head}</span>${btns}</div>`;
+  const upLabel = lang === "ru" ? "Загрузить файл" : (lang === "en" ? "Upload file" : "Fayl yuklash");
+  const upBtn = `<button type="button" class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber)" onclick="event.stopPropagation();window.openUploadMaterialModal('${escapeHtml(subj.id)}','test')" title="Tayyor test yoki slayd faylini yuklash">⬆️ ${upLabel}</button>`;
+  return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;${extra}"><span style="font-size:11.5px;font-weight:700;color:var(--muted)">${head}</span>${btns}${upBtn}</div>`;
 };
 
 // Sarlavhadagi "✨ Material yaratish" tugmasi faqat o'qituvchi/admin uchun ko'rinadi
@@ -7476,6 +7662,12 @@ window.filterStudentMaterialsDisplay = function() {
     const btnStartWriting = lang === "ru" ? "Начать задание" : (lang === "en" ? "Start Writing" : "Yozishni boshlash");
     const btnViewPres = lang === "ru" ? "Смотреть" : (lang === "en" ? "View" : "Ko'rish");
     const btnDownloadPres = lang === "ru" ? "Скачать" : (lang === "en" ? "Download" : "Yuklab olish");
+    // O'qituvchi yuklagan asl fayl (.docx/.pdf/.pptx): talaba yuklab oladi; savol/slayd ajratilmagan bo'lsa faqat fayl
+    const mContent = m.content || m.content_json || {};
+    const fileUrl = mContent.file_url || "";
+    const fileName = mContent.file_name || "";
+    const hasItems = (m.items_count || 0) > 0;
+    const btnFile = lang === "ru" ? "Скачать файл" : (lang === "en" ? "Download file" : "Faylni yuklab olish");
     const btnReadPlan = lang === "ru" ? "Читать план" : (lang === "en" ? "Read Plan" : "Rejani o'qish");
 
     return `
@@ -7502,9 +7694,15 @@ window.filterStudentMaterialsDisplay = function() {
         </div>
 
         <div style="border-top:1px solid var(--line-2);padding-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-          ${isTest ? `
+          ${isTest && hasItems ? `
             <button class="btn-primary" style="flex:1;padding:8px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" onclick="window.startStudentTest('${m.id}')">
               <span>${at && at.status === "completed" ? "🔄" : "▶️"}</span> <span>${at && at.status === "completed" ? btnRetakeTest : btnTakeTest}</span>
+            </button>
+          ` : ''}
+
+          ${fileUrl ? `
+            <button class="btn-primary" style="${(isTest || isPres) && hasItems ? "" : "flex:1;"}padding:8px 12px;font-size:12.5px;background:var(--surface-2);color:var(--ink);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;gap:5px" onclick="window.downloadMaterialFile('${m.id}','${escapeHtml(fileUrl)}')" title="${escapeHtml(fileName)}">
+              <span>📎</span> <span>${btnFile}</span>
             </button>
           ` : ''}
 
@@ -7514,7 +7712,7 @@ window.filterStudentMaterialsDisplay = function() {
             </button>
           ` : ''}
 
-          ${isPres ? `
+          ${isPres && hasItems ? `
             <button class="btn-primary" style="flex:1;padding:8px 12px;font-size:12.5px;display:flex;align-items:center;justify-content:center;gap:5px" onclick="window.viewStudentPresentation('${m.id}')">
               <span>👁️</span> <span>${btnViewPres}</span>
             </button>

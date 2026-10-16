@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File,
 from typing import Optional, Dict, Any, List
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from datetime import datetime
 import os
 import re
@@ -765,36 +766,62 @@ async def extract_book_content(
 # 4. AI BILAN TEST VA PREZENTATSIYA TAYYORLASH VA SAQLASH
 # ============================================================
 
-# Limitlar: Free obunachi uchun
-FREE_LIMIT_TESTS = 5
-FREE_LIMIT_PRESENTATIONS = 6
+# Limitlar: Free obunachi uchun — test va slayd (AI so'rovlari) uchun UMUMIY oylik limit.
+# Har kalendar oy boshida (UTC) hisob qaytadan boshlanadi. PRO — cheksiz.
+FREE_MONTHLY_AI_LIMIT = 3
+FREE_LIMITED_TYPES = ("test", "presentation")
+# Eski nomlar (boshqa modullar/testlar uchun moslik)
+FREE_LIMIT_TESTS = FREE_MONTHLY_AI_LIMIT
+FREE_LIMIT_PRESENTATIONS = FREE_MONTHLY_AI_LIMIT
+
+
+def _month_window(now: Optional[datetime] = None):
+    """Joriy kalendar oy boshi va keyingi oy boshi (UTC)."""
+    now = now or datetime.utcnow()
+    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    nxt = start.replace(year=start.year + 1, month=1) if start.month == 12 else start.replace(month=start.month + 1)
+    return start, nxt
+
+
+def monthly_material_counts(db: Session, teacher_id: str) -> Dict[str, Any]:
+    """O'qituvchining joriy oydagi test/slayd materiallari soni (free limit uchun)."""
+    start, nxt = _month_window()
+    rows = db.query(TeacherMaterial.material_type, func.count(TeacherMaterial.id)).filter(
+        TeacherMaterial.teacher_id == teacher_id,
+        TeacherMaterial.material_type.in_(FREE_LIMITED_TYPES),
+        TeacherMaterial.created_at >= start,
+        TeacherMaterial.created_at < nxt,
+    ).group_by(TeacherMaterial.material_type).all()
+    counts = {t: 0 for t in FREE_LIMITED_TYPES}
+    for mt, n in rows:
+        counts[mt] = int(n or 0)
+    total = sum(counts.values())
+    return {
+        "test": counts["test"],
+        "presentation": counts["presentation"],
+        "ai_total": total,
+        "limit": FREE_MONTHLY_AI_LIMIT,
+        "remaining": max(0, FREE_MONTHLY_AI_LIMIT - total),
+        "period": start.strftime("%Y-%m"),
+        "resets_at": nxt.isoformat() + "Z",
+    }
+
 
 def check_material_limit(db: Session, teacher_id: str, material_type: str, current_user: dict):
-    """Free obunachi uchun test va slayd limitlarini tekshirish."""
+    """Free obunachi uchun oylik umumiy limitni (test + slayd = 3 ta/oy) tekshirish."""
     subscription_tier = current_user.get("subscription_tier", "free")
     if subscription_tier == "pro":
         return True, None  # PRO uchun cheksiz
-    
-    # Free foydalanuvchi uchun limitlar
-    test_count = db.query(TeacherMaterial).filter(
-        TeacherMaterial.teacher_id == teacher_id,
-        TeacherMaterial.material_type == "test"
-    ).count()
-    presentation_count = db.query(TeacherMaterial).filter(
-        TeacherMaterial.teacher_id == teacher_id,
-        TeacherMaterial.material_type == "presentation"
-    ).count()
-    
-    if material_type == "test":
-        if test_count >= FREE_LIMIT_TESTS:
-            return False, f"Tekin tarifda test yaratish limiti tugadi (5/5). PRO tarifga o'tib cheksiz test yarating."
-        return True, f"Qolgan testlar: {FREE_LIMIT_TESTS - test_count}/{FREE_LIMIT_TESTS}"
-    elif material_type == "presentation":
-        if presentation_count >= FREE_LIMIT_PRESENTATIONS:
-            return False, f"Tekin tarifda slayd yaratish limiti tugadi (6/6). PRO tarifga o'tib cheksiz slayd yarating."
-        return True, f"Qolgan slaydlar: {FREE_LIMIT_PRESENTATIONS - presentation_count}/{FREE_LIMIT_PRESENTATIONS}"
-    
-    return True, None
+    if material_type not in FREE_LIMITED_TYPES:
+        return True, None
+
+    m = monthly_material_counts(db, teacher_id)
+    if m["ai_total"] >= FREE_MONTHLY_AI_LIMIT:
+        return False, (
+            f"Tekin tarifda oylik limit tugadi ({FREE_MONTHLY_AI_LIMIT}/{FREE_MONTHLY_AI_LIMIT} — test va slayd birgalikda). "
+            f"Keyingi oy boshida hisob yangilanadi yoki PRO tarifga o'tib cheksiz material yarating."
+        )
+    return True, f"Bu oy qolgan AI materiallar (test + slayd): {m['remaining']}/{FREE_MONTHLY_AI_LIMIT}"
 
 
 @router.post("/generate-material")
@@ -1287,7 +1314,8 @@ def get_teacher_material_stats(
     ).count()
     
     is_pro = subscription_tier == "pro"
-    
+    monthly = monthly_material_counts(db, teacher_id)  # free limit joriy oy bo'yicha hisoblanadi
+
     return {
         "subscription_tier": subscription_tier,
         "is_pro": is_pro,
@@ -1298,16 +1326,19 @@ def get_teacher_material_stats(
             "writing": writing_count,
             "total": test_count + presentation_count + lesson_plan_count + writing_count
         },
+        # Test va slayd uchun limit umumiy (oyiga 3 ta), shuning uchun ikkalasida ham bir xil qiymat
         "limits": {
-            "test": None if is_pro else FREE_LIMIT_TESTS,
-            "presentation": None if is_pro else FREE_LIMIT_PRESENTATIONS,
-            "lesson_plan": None
+            "test": None if is_pro else FREE_MONTHLY_AI_LIMIT,
+            "presentation": None if is_pro else FREE_MONTHLY_AI_LIMIT,
+            "lesson_plan": None,
+            "period": "month"
         },
         "remaining": {
-            "test": None if is_pro else max(0, FREE_LIMIT_TESTS - test_count),
-            "presentation": None if is_pro else max(0, FREE_LIMIT_PRESENTATIONS - presentation_count),
+            "test": None if is_pro else monthly["remaining"],
+            "presentation": None if is_pro else monthly["remaining"],
             "lesson_plan": None
-        }
+        },
+        "monthly": monthly
     }
 
 

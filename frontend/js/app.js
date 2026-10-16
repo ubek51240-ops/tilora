@@ -4899,11 +4899,24 @@ window.loadTeacherMaterialStats = async function() {
       }
     }
 
+    // Free tarif: test + slayd uchun UMUMIY oylik limit (3 ta/oy). PRO: cheksiz, umumiy sonlar ko'rsatiladi.
+    const monthly = data.monthly || {};
+    const monthLimit = monthly.limit || data.limits?.test || 3;
+    const monthUsed = monthly.ai_total || 0;
+    const monthRemaining = (monthly.remaining !== undefined) ? monthly.remaining : Math.max(0, monthLimit - monthUsed);
+    const monthPercent = Math.min(100, Math.round((monthUsed / monthLimit) * 100));
+    const limitsSub = document.getElementById("materialLimitsSub");
+    if (limitsSub) {
+      limitsSub.textContent = isPro
+        ? "PRO tarif: barcha materiallar cheksiz"
+        : `Tekin tarif: oyiga ${monthLimit} ta AI material (test + slayd birgalikda). Bu oy ishlatildi: ${monthUsed}/${monthLimit}`;
+    }
+
     // Testlar
-    const testCount = data.counts?.test || 0;
-    const testLimit = data.limits?.test || 5;
-    const testRemaining = data.remaining?.test || 0;
-    const testPercent = testLimit > 0 ? Math.min(100, Math.round((testCount / testLimit) * 100)) : 0;
+    const testCount = isPro ? (data.counts?.test || 0) : (monthly.test || 0);
+    const testLimit = isPro ? null : monthLimit;
+    const testRemaining = monthRemaining;
+    const testPercent = isPro ? 0 : monthPercent;
 
     const testCountBadge = document.getElementById("testCountBadge");
     const testProgressBar = document.getElementById("testProgressBar");
@@ -4914,7 +4927,7 @@ window.loadTeacherMaterialStats = async function() {
       if (isPro) {
         testCountBadge.style.background = "var(--teal-soft)";
         testCountBadge.style.color = "var(--teal)";
-      } else if (testCount >= testLimit) {
+      } else if (monthUsed >= testLimit) {
         testCountBadge.style.background = "rgba(217,119,87,0.15)";
         testCountBadge.style.color = "var(--clay)";
       }
@@ -4924,20 +4937,20 @@ window.loadTeacherMaterialStats = async function() {
       if (isPro) {
         testLimitText.textContent = "Cheksiz (PRO)";
         testLimitText.style.color = "var(--teal)";
-      } else if (testCount >= testLimit) {
-        testLimitText.textContent = "Limit tugagan!";
+      } else if (monthUsed >= testLimit) {
+        testLimitText.textContent = "Oylik limit tugagan! Keyingi oy yangilanadi";
         testLimitText.style.color = "var(--clay)";
       } else {
-        testLimitText.textContent = `Qolgan: ${testRemaining}`;
+        testLimitText.textContent = `Bu oy qolgan (test + slayd): ${testRemaining}`;
         testLimitText.style.color = "var(--muted)";
       }
     }
 
-    // Prezentatsiyalar
-    const presCount = data.counts?.presentation || 0;
-    const presLimit = data.limits?.presentation || 6;
-    const presRemaining = data.remaining?.presentation || 0;
-    const presPercent = presLimit > 0 ? Math.min(100, Math.round((presCount / presLimit) * 100)) : 0;
+    // Prezentatsiyalar (free tarifda testlar bilan umumiy oylik limit)
+    const presCount = isPro ? (data.counts?.presentation || 0) : (monthly.presentation || 0);
+    const presLimit = isPro ? null : monthLimit;
+    const presRemaining = monthRemaining;
+    const presPercent = isPro ? 0 : monthPercent;
 
     const presCountBadge = document.getElementById("presCountBadge");
     const presProgressBar = document.getElementById("presProgressBar");
@@ -4948,7 +4961,7 @@ window.loadTeacherMaterialStats = async function() {
       if (isPro) {
         presCountBadge.style.background = "var(--amber-soft)";
         presCountBadge.style.color = "var(--amber)";
-      } else if (presCount >= presLimit) {
+      } else if (monthUsed >= presLimit) {
         presCountBadge.style.background = "rgba(217,119,87,0.15)";
         presCountBadge.style.color = "var(--clay)";
       }
@@ -4958,11 +4971,11 @@ window.loadTeacherMaterialStats = async function() {
       if (isPro) {
         presLimitText.textContent = "Cheksiz (PRO)";
         presLimitText.style.color = "var(--amber)";
-      } else if (presCount >= presLimit) {
-        presLimitText.textContent = "Limit tugagan!";
+      } else if (monthUsed >= presLimit) {
+        presLimitText.textContent = "Oylik limit tugagan! Keyingi oy yangilanadi";
         presLimitText.style.color = "var(--clay)";
       } else {
-        presLimitText.textContent = `Qolgan: ${presRemaining}`;
+        presLimitText.textContent = `Bu oy qolgan (test + slayd): ${presRemaining}`;
         presLimitText.style.color = "var(--muted)";
       }
     }

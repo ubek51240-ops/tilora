@@ -92,7 +92,7 @@ const SCREEN_PERMISSIONS = {
   "s_teacher": ["teacher", "admin", "student"],
   "s_subjects": ["teacher", "admin"],
   "s_diag_manage": ["teacher", "admin"],
-  "s_research": ["researcher", "admin", "teacher", "guest", "student", "developer"],
+  "s_research": ["researcher", "admin", "teacher", "guest", "developer"],
   "s_admin": ["admin"],
   "s_api_docs": ["developer", "admin"],
   "s_about": ["student", "teacher", "admin", "researcher", "guest", "developer"],

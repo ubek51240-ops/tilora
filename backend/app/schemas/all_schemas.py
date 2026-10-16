@@ -30,7 +30,7 @@ class RegisterResponse(BaseModel):
 class SubscribeRequest(BaseModel):
     plan: str = "pro_monthly"  # pro_monthly, pro_annual, pro
     payment_method: str = "click"  # click, payme, card
-    amount: float = 49000.0
+    amount: float = 10.0  # USD
     phone_number: Optional[str] = None
     transaction_id: Optional[str] = None
 

@@ -242,7 +242,7 @@ def approve_subscription_payment(
 
     return {
         "status": "approved",
-        "message": f"{payment.user_name} ning {payment.amount:,} so'mlik to'lovi tasdiqlandi va uning hisobi '👑 PRO' tarifiga o'tkazildi!"
+        "message": f"{payment.user_name} ning {payment.amount:,} $ lik to'lovi tasdiqlandi va uning hisobi '👑 PRO' tarifiga o'tkazildi!"
     }
 
 

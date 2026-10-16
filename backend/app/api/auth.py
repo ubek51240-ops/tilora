@@ -315,7 +315,7 @@ def create_subscription_request(
     payment_method = (payload.payment_method or "click")[:50]
     if payment_method not in ("click", "payme", "card", "uzum"):
         payment_method = "click"
-    amount = 49000.0 if plan != "pro_annual" else 490000.0  # Summa serverda belgilanadi, mijoz o'zgartira olmaydi
+    amount = 10.0 if plan != "pro_annual" else 100.0  # USD; summa serverda belgilanadi, mijoz o'zgartira olmaydi
     tx_raw = (payload.transaction_id or "").strip()[:100]
     tx_id = tx_raw or f"TX-{_utcnow().strftime('%Y%m%d%H%M%S')}"
 

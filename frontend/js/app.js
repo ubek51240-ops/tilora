@@ -3088,7 +3088,7 @@ async function submitSubscribePayment() {
       },
       body: JSON.stringify({
         plan: "pro",
-        amount: 49000.0,
+        amount: 10.0, // USD (summa serverda belgilanadi)
         payment_method: payMethod,
         transaction_id: txId
       })
@@ -6620,7 +6620,7 @@ window.renderAdminPayments = function(payments) {
         <div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
             <span style="font-weight:700;font-size:15px;color:var(--ink)">${escapeHtml(p.user_name || p.user_email)}</span>
-            <span style="font-size:12px;font-weight:700;color:var(--teal)">${p.amount.toLocaleString()} so'm</span>
+            <span style="font-size:12px;font-weight:700;color:var(--teal)">${p.amount.toLocaleString()} $</span>
             ${statusBadge}
             <span style="font-size:11px;color:var(--muted)">${new Date(p.created_at).toLocaleString('uz-UZ')}</span>
           </div>

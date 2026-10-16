@@ -266,7 +266,7 @@ class SubscriptionPayment(Base):
     user_email = Column(String(255), nullable=False)
     role = Column(String(20), default="student")
     plan = Column(String(50), default="pro_monthly")  # "pro_monthly", "pro_annual"
-    amount = Column(Integer, default=49000)  # so'm
+    amount = Column(Integer, default=10)  # USD
     payment_method = Column(String(50), default="click")  # click, payme, card
     transaction_id = Column(String(100), nullable=True)
     receipt_image = Column(String(255), nullable=True)

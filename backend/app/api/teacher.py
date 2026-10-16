@@ -123,6 +123,7 @@ def get_teacher_subjects(
     Profilga doimiy biriktirilgan holda saqlanadi.
     """
     teacher_id = current_user.get("id")
+    is_admin = current_user.get("role") == "admin"
     subjects = db.query(TeacherSubject).filter(TeacherSubject.teacher_id == teacher_id).order_by(TeacherSubject.created_at.desc()).all()
 
     # Agar o'qituvchida hali fanlar bo'lmasa, dastlabki 2 ta namunaviy fanni avtomatik kiritish
@@ -158,12 +159,24 @@ def get_teacher_subjects(
         # Qayta o'qish
         subjects = db.query(TeacherSubject).filter(TeacherSubject.teacher_id == teacher_id).order_by(TeacherSubject.created_at.desc()).all()
 
+    # Super admin barcha o'qituvchilarning fanlarini ko'radi va ular uchun ham material yarata oladi
+    teacher_names = {}
+    if is_admin:
+        subjects = db.query(TeacherSubject).order_by(TeacherSubject.created_at.desc()).all()
+        owner_ids = {s.teacher_id for s in subjects if s.teacher_id}
+        if owner_ids:
+            for u in db.query(User).filter(User.id.in_(owner_ids)).all():
+                teacher_names[u.id] = u.full_name or u.email
+
     result = []
     for s in subjects:
         topics_count = db.query(SyllabusTopic).filter(SyllabusTopic.subject_id == s.id).count()
         materials_count = db.query(TeacherMaterial).filter(TeacherMaterial.subject_id == s.id).count()
         result.append({
             "id": s.id,
+            "teacher_id": s.teacher_id,
+            "teacher_name": teacher_names.get(s.teacher_id, ""),
+            "is_own": s.teacher_id == teacher_id,
             "name": s.name,
             "code": s.code or "",
             "semester": s.semester or "5-semestr",

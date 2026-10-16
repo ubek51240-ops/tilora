@@ -5016,8 +5016,9 @@ window.loadTeacherSubjects = async function() {
     // Generator select dropdownni yangilash
     if (selectSubj) {
       const curVal = selectSubj.value;
+      // Admin uchun boshqa o'qituvchining fani bo'lsa, egasi ham ko'rsatiladi
       selectSubj.innerHTML = `<option value="">-- Fanni tanlang --</option>` +
-        STATE.teacherSubjects.map(s => `<option value="${escapeHtml(s.id)}" ${curVal === s.id ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.group_name)})</option>`).join("");
+        STATE.teacherSubjects.map(s => `<option value="${escapeHtml(s.id)}" ${curVal === s.id ? 'selected' : ''}>${escapeHtml(s.name)} (${escapeHtml(s.group_name)})${s.is_own === false && s.teacher_name ? ` · ${escapeHtml(s.teacher_name)}` : ""}</option>`).join("");
       if (curVal) window.onGenSubjectChange();
       window.renderGenExtraSubjects();
     }
@@ -5043,6 +5044,7 @@ window.loadTeacherSubjects = async function() {
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
               <span style="font-size:11px;font-weight:700;padding:2px 7px;background:var(--teal-soft);color:var(--teal);border-radius:4px">${escapeHtml(s.code || 'FAN')}</span>
               <span style="font-size:12px;color:var(--muted)">${escapeHtml(s.course_year)}-kurs · ${escapeHtml(s.group_name)} · ${escapeHtml(s.semester)}</span>
+              ${s.is_own === false && s.teacher_name ? `<span style="font-size:11px;font-weight:700;padding:2px 7px;background:var(--amber-soft);color:var(--amber);border-radius:4px">👤 ${escapeHtml(s.teacher_name)}</span>` : ""}
             </div>
             <h3 style="margin:0 0 6px;font-size:18px;font-family:var(--serif)">${escapeHtml(s.name)}</h3>
             <p style="margin:0 0 10px;font-size:13px;color:var(--ink-2)">${escapeHtml(s.description || "Ushbu fan bo'yicha sillabus va dars materiallari.")}</p>
@@ -5064,9 +5066,9 @@ window.loadTeacherSubjects = async function() {
             <button class="btn-primary" style="padding:7px 13px;font-size:12.5px" onclick="window.prepareGenerateForTopic('${s.id}', '', 'test')">
               ✨ AI Tayyorlash
             </button>
-            <button class="btn-primary" style="padding:7px 10px;font-size:12px;background:none;color:var(--clay);border:1px solid var(--line)" onclick="window.deleteTeacherSubject('${s.id}')" title="Fanni o'chirish">
+            ${s.is_own === false ? "" : `<button class="btn-primary" style="padding:7px 10px;font-size:12px;background:none;color:var(--clay);border:1px solid var(--line)" onclick="window.deleteTeacherSubject('${s.id}')" title="Fanni o'chirish">
               🗑️
-            </button>
+            </button>`}
           </div>
         </div>
 
@@ -7028,11 +7030,94 @@ STATE.studentPresentation = null;
 STATE.studentSlideIndex = 0;
 
 // 1. Fanlar va materiallarni serverdan yuklash
+// ==================== O'QITUVCHI / ADMIN: "MUSTAQIL TOPSHIRIQLAR" EKRANIDAN MATERIAL YARATISH ====================
+// Talaba ekranida (s_student_materials) o'qituvchi yoki admin fan uchun to'g'ridan-to'g'ri
+// test / slayd / yozma mashg'ulot / dars rejasi yaratishga o'tadi: AI generator (s_subjects)
+// tanlangan fan va material turi bilan oldindan to'ldiriladi.
+window.MATERIAL_CREATOR_TYPES = [
+  { type: "test", icon: "📝", uz: "Test", en: "Test", ru: "Тест" },
+  { type: "presentation", icon: "🖥️", uz: "Slayd", en: "Slides", ru: "Слайды" },
+  { type: "writing", icon: "✍️", uz: "Yozma mashg'ulot", en: "Writing task", ru: "Письменное задание" },
+  { type: "lesson_plan", icon: "📄", uz: "Dars rejasi", en: "Lesson plan", ru: "План урока" }
+];
+
+window.canCreateMaterials = function() {
+  const role = STATE.currentUser ? STATE.currentUser.role : "guest";
+  return role === "teacher" || role === "admin";
+};
+
+// O'qituvchi faqat o'z fanlari uchun, admin barcha fanlar uchun yarata oladi
+window.canCreateForSubject = function(subj) {
+  if (!window.canCreateMaterials() || !subj) return false;
+  if (STATE.currentUser.role === "admin") return true;
+  return !subj.teacher_id || String(subj.teacher_id) === String(STATE.currentUser.id);
+};
+
+// Fan kartasi / banner uchun "➕ Yaratish: Test · Slayd · Yozma · Reja" tugmalari
+window.materialCreatorButtonsHtml = function(subj, mode) {
+  if (!window.canCreateForSubject(subj)) return "";
+  const lang = window.getCurrentLang ? window.getCurrentLang() : "uz";
+  const head = lang === "ru" ? "➕ Создать:" : (lang === "en" ? "➕ Create:" : "➕ Yaratish:");
+  const btns = window.MATERIAL_CREATOR_TYPES.map(t =>
+    `<button type="button" class="btn-primary" style="padding:4px 10px;font-size:11.5px;background:var(--surface);color:var(--teal);border:1px solid var(--teal)" onclick="event.stopPropagation();window.openMaterialCreator('${escapeHtml(subj.id)}','${t.type}')">${t.icon} ${t[lang] || t.uz}</button>`
+  ).join("");
+  const extra = mode === "card" ? "padding-top:8px;border-top:1px dashed var(--line);" : "";
+  return `<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;${extra}"><span style="font-size:11.5px;font-weight:700;color:var(--muted)">${head}</span>${btns}</div>`;
+};
+
+// Sarlavhadagi "✨ Material yaratish" tugmasi faqat o'qituvchi/admin uchun ko'rinadi
+window.updateMaterialCreatorButton = function() {
+  const btn = document.getElementById("smCreateBtn");
+  if (!btn) return;
+  const ok = window.canCreateMaterials();
+  btn.style.display = ok ? "flex" : "none";
+  const lang = window.getCurrentLang ? window.getCurrentLang() : "uz";
+  const label = btn.querySelector("[data-creator-label]");
+  if (label) label.textContent = lang === "ru" ? "Создать материал" : (lang === "en" ? "Create material" : "Material yaratish");
+};
+
+window.openMaterialCreator = async function(subjectId, materialType) {
+  const lang = window.getCurrentLang ? window.getCurrentLang() : "uz";
+  if (!window.canCreateMaterials()) {
+    showToast(lang === "ru" ? "Создавать материалы могут только преподаватель или администратор." : (lang === "en" ? "Only a teacher or admin can create materials." : "Material yaratish faqat o'qituvchi yoki admin uchun."), "error");
+    return;
+  }
+  // Fan berilmagan bo'lsa, hozir tanlangan fan filtri olinadi
+  if (!subjectId && STATE.studentSubjectFilter && STATE.studentSubjectFilter !== "all") {
+    subjectId = STATE.studentSubjectFilter;
+  }
+  const subj = (STATE.studentSubjects || []).find(s => String(s.id) === String(subjectId));
+  if (subj && !window.canCreateForSubject(subj)) {
+    showToast(lang === "ru" ? "Этот предмет принадлежит другому преподавателю." : (lang === "en" ? "This course belongs to another teacher." : "Bu fan boshqa o'qituvchiga tegishli — faqat o'z fanlaringiz uchun material yaratishingiz mumkin."), "error");
+    return;
+  }
+
+  // Generator ekraniga o'tish va fanlar ro'yxatini (dropdown) to'ldirib olish
+  showScreen("s_subjects");
+  if (typeof window.loadTeacherSubjects === "function") await window.loadTeacherSubjects();
+  if (subjectId && !(STATE.teacherSubjects || []).some(s => String(s.id) === String(subjectId))) {
+    showToast(lang === "ru" ? "Предмет не найден в списке генератора." : (lang === "en" ? "Course not found in the generator list." : "Fan generator ro'yxatida topilmadi, fanni qo'lda tanlang."), "error");
+    subjectId = "";
+  }
+  await window.prepareGenerateForTopic(subjectId || "", "", materialType || "test");
+
+  const t = window.MATERIAL_CREATOR_TYPES.find(x => x.type === (materialType || "test"));
+  const typeName = t ? (t[lang] || t.uz) : "";
+  const subjName = subj ? (subj.title || subj.name) : "";
+  const msg = lang === "ru"
+    ? `✨ Генератор готов: ${typeName}${subjName ? " · " + subjName : ""}. Выберите тему и нажмите «Создать».`
+    : (lang === "en"
+      ? `✨ Generator ready: ${typeName}${subjName ? " · " + subjName : ""}. Pick a topic and press Generate.`
+      : `✨ Generator tayyor: ${typeName}${subjName ? " · " + subjName : ""}. Mavzuni tanlab "Tayyorlash" tugmasini bosing.`);
+  showToast(msg, "success");
+};
+
 window.loadStudentSubjectsAndMaterials = async function() {
   const grid = document.getElementById("studentMaterialsGrid");
   const countBadge = document.getElementById("studentMaterialsCountBadge");
   const select = document.getElementById("studentSubjectFilterSelect");
   const lang = window.getCurrentLang ? window.getCurrentLang() : "uz";
+  window.updateMaterialCreatorButton();
 
   if (grid) {
     const loadingText = lang === "ru" ? "Загрузка учебных предметов и материалов..." : (lang === "en" ? "Loading courses and learning materials..." : "O'quv fanlari va materiallar yuklanmoqda...");
@@ -7201,6 +7286,7 @@ window.renderStudentSubjectCards = function() {
           <span style="padding:2px 8px;border-radius:6px;background:rgba(180,83,9,0.12);color:var(--amber)">✍️ ${c.writing || 0} ${writWord}</span>
           <span style="padding:2px 8px;border-radius:6px;background:var(--surface-2);color:var(--ink-2)">📄 ${c.lesson_plan || 0} ${planWord}</span>
         </div>
+        ${window.materialCreatorButtonsHtml(s, "card")}
         <div>
           <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-bottom:3px"><span>${doneWord}</span><span>${done}/${total} (${pct}%)</span></div>
           <div style="height:6px;border-radius:4px;background:var(--surface-2);overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--teal)"></div></div>
@@ -7246,6 +7332,13 @@ window.onStudentSubjectFilterChange = function(silent) {
       const prog = document.getElementById("stSubjProgress");
       const doneLabel = lang === "ru" ? "Выполнено" : (lang === "en" ? "Completed" : "Bajarilgan");
       if (prog) prog.textContent = STATE.token ? `${doneLabel}: ${subj.done_count || 0}/${subj.materials_count || 0} (${subj.progress_percent || 0}%)` : "";
+      // O'qituvchi / admin: shu fan uchun material yaratish tugmalari
+      const createBox = document.getElementById("stSubjCreateBox");
+      if (createBox) {
+        const html = window.materialCreatorButtonsHtml(subj, "banner");
+        createBox.innerHTML = html;
+        createBox.style.display = html ? "block" : "none";
+      }
     }
   } else {
     if (banner) banner.style.display = "none";
@@ -7313,11 +7406,16 @@ window.filterStudentMaterialsDisplay = function() {
       emptyDesc = lang === "ru" ? "Преподаватель ещё не создал тесты или слайды по этому предмету." : (lang === "en" ? "The instructor has not created tests or slides for this course yet." : "O'qituvchi hali bu fan bo'yicha test yoki slaydlar yaratmagan.");
     }
 
+    // O'qituvchi / admin uchun bo'sh holatda ham yaratish tugmalari ko'rsatiladi
+    const curSubj = (STATE.studentSubjects || []).find(s => String(s.id) === String(STATE.studentSubjectFilter));
+    const createHtml = curSubj ? window.materialCreatorButtonsHtml(curSubj, "empty") : "";
+
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:50px 20px;background:var(--surface-2);border-radius:12px;border:1px dashed var(--line)">
         <div style="font-size:40px;margin-bottom:10px">📂</div>
         <h4 style="margin:0 0 6px;font-size:16px;color:var(--ink)">${emptyTitle}</h4>
         <p style="margin:0;font-size:13px;color:var(--muted)">${emptyDesc}</p>
+        ${createHtml ? `<div style="display:flex;justify-content:center;margin-top:14px">${createHtml}</div>` : ""}
       </div>
     `;
     return;

@@ -547,6 +547,7 @@ def get_available_subjects_for_student(
             "course_year": s.course_year or 3,
             "group_name": s.group_name or "",
             "description": s.description or "",
+            "teacher_id": s.teacher_id,
             "teacher_name": teacher.full_name if teacher else "Kafedra o'qituvchisi",
             "topics_count": topics_count,
             "materials_count": materials_count,

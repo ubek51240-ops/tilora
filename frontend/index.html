@@ -948,8 +948,12 @@
           <h2 data-i18n="sm_title" style="font-family:var(--serif);font-size:24px;margin-bottom:4px">📚 Mustaqil topshiriqlar</h2>
           <p data-i18n="sm_desc" style="font-size:13.5px;color:var(--muted)">Avval fanni tanlang, so'ng o'qituvchi yuklagan testlarni ishlang, prezentatsiyalarni o'rganing va yozma mashg'ulotni topshiring</p>
         </div>
-        <div style="display:flex;align-items:center;gap:10px">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <span id="studentMaterialsCountBadge" class="chip part" style="font-weight:700">0 ta material</span>
+          <!-- O'qituvchi / admin uchun: tanlangan fan bo'yicha material yaratishga o'tish (JS ko'rsatadi) -->
+          <button id="smCreateBtn" class="btn-primary" style="display:none;padding:8px 14px;font-size:13px;align-items:center;gap:6px;background:var(--amber)" onclick="window.openMaterialCreator()">
+            <span>✨</span> <span data-creator-label>Material yaratish</span>
+          </button>
           <button class="btn-primary" style="padding:8px 14px;font-size:13px;display:flex;align-items:center;gap:6px" onclick="window.loadStudentSubjectsAndMaterials()">
             <span>🔄</span> <span data-i18n="btn_refresh">Yangilash</span>
           </button>
@@ -1007,6 +1011,8 @@
               <h3 id="stSubjTitle" style="margin:0;font-size:18px;font-family:var(--serif)">Fan nomi</h3>
             </div>
             <p id="stSubjDesc" style="margin:6px 0 0;font-size:13px;color:var(--ink-2);line-height:1.5">Fan tavsifi...</p>
+            <!-- O'qituvchi / admin uchun: shu fan bo'yicha test / slayd / yozma / dars rejasi yaratish tugmalari -->
+            <div id="stSubjCreateBox" style="display:none;margin-top:10px"></div>
           </div>
           <div style="text-align:right">
             <span id="stSubjTopicCount" style="font-size:12.5px;font-weight:700;color:var(--teal)">0 ta mavzu</span>
